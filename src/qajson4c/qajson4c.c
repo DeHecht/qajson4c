@@ -985,13 +985,10 @@ const QAJSON4C_Value* QAJSON4C_member_get_value(const QAJSON4C_Member* member) {
 
 const QAJSON4C_Value* QAJSON4C_object_get(const QAJSON4C_Value* value, const char* name) {
 	assert(QAJSON4C_is_object(value));
-	size_type count = value->data.obj.type;
+	size_type count = value->data.obj.count;
 
-	QAJSON4C_String str;
-	str.s = name;
-	str.count = strlen(name);
 	QAJSON4C_Value wrapper_value;
-	wrapper_value.data.s = str;
+	QAJSON4C_set_string_reference(&wrapper_value, name);
 
 	QAJSON4C_Member* entry;
 	for (size_type i = 0; i < count; ++i) {
