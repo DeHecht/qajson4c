@@ -8,3 +8,6 @@ target_include_directories(qajson4c PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION include
         FILES_MATCHING PATTERN "*.h" 
         PATTERN ".svn" EXCLUDE)
+
+INSTALL(TARGETS qajson4c DESTINATION "lib")
+        
