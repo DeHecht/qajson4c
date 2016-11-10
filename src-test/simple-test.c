@@ -48,6 +48,7 @@ static struct argp_option options[] = {
   {"output",   'o', "FILE", 0, "Filename to write the output json to.", 0 },
   {"buff-size",'b', "size", 0, "Buffer size in bytes. 0 => auto-detection.", 0 },
   {"insitu",   'i', "bool", 0, "0 => off, 1 => on.", 0 },
+  {"verbose",  'v', 0,      0, "Print more information about allocated buffer sizes etc.", 0},
   { 0 }
 };
 
@@ -58,6 +59,7 @@ struct arguments
 	char* output_file;
 	size_t buffer_size;
 	bool insitu_parsing;
+	bool verbose;
 };
 
 /* Parse a single option. */
@@ -80,6 +82,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'f':
       arguments->input_file = arg;
+      break;
+    case 'v':
+      arguments->verbose = true;
       break;
 
 	case ARGP_KEY_ARG:
@@ -127,6 +132,7 @@ int main(int argc, char **argv) {
 	arguments.buffer_size = 0;
 	arguments.input_file = "-";
 	arguments.output_file = "-";
+	arguments.verbose = false;
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 	char* input_string = read_file_content(arguments.input_file);
@@ -146,12 +152,8 @@ int main(int argc, char **argv) {
 			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(input_string);
 		} else {
 			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size(input_string);
-            size_t buffer_size_small = QAJSON4C_calculate_max_buffer_size_insitu(input_string);
-			printf("Buffer size without strings %lu\n", buffer_size_small);
 		}
 	}
-
-	printf("Test with buffer size %lu\n", arguments.buffer_size);
 
 	char* buffer = malloc(arguments.buffer_size);
 
@@ -160,6 +162,10 @@ int main(int argc, char **argv) {
 		document = QAJSON4C_parse_insitu(input_string, buffer, arguments.buffer_size);
 	} else {
 		document = QAJSON4C_parse(input_string, buffer, arguments.buffer_size);
+	}
+
+	if ( arguments.verbose ) {
+		printf("Required buffer size %lu\n", arguments.buffer_size);
 	}
 
 	char* output_string = malloc(arguments.buffer_size);

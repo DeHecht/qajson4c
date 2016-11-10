@@ -591,9 +591,11 @@ static void QAJSON4C_parse_string(QAJSON4C_Parser* parser, QAJSON4C_Value* value
 		size_type size = parser->json_pos - prev_pos;
 		if ( value != NULL ) {
 			if ( parser->insitu_parsing ) {
-			    QAJSON4C_set_string(value, parser->json, .ref=true, .len=size);
+				char* insitu_string = (char*)parser->json;
+				insitu_string[parser->json_pos - 1] = '\0';
+			    QAJSON4C_set_string(value, &parser->json[prev_pos], .ref=true, .len=size);
 			} else {
-                QAJSON4C_set_string(value, parser->json, .builder=parser->builder, size);
+                QAJSON4C_set_string(value, &parser->json[prev_pos], .builder=parser->builder, size);
 			}
 		} else if (size > INLINE_STRING_SIZE) {
 			// we "may" not be able to store it inline in the DOM
@@ -761,7 +763,16 @@ static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, s
     }
     case QAJSON4C_INLINE_STRING:
     case QAJSON4C_STRING: {
-        index += snprintf(buffer + index, buffer_size - index, "\"%s\"", QAJSON4C_get_string(value));
+    	buffer[index++] = '"';
+    	const char* base = QAJSON4C_get_string(value);
+    	// FIXME: use the stored string length instead of the strlen function.
+    	for( size_type i = 0; i < strlen(base); i++) {
+    		if ( base[i] == '"') {
+    			buffer[index++] = '\\';
+    		}
+    		buffer[index++] = base[i];
+    	}
+    	buffer[index++] = '"';
         break;
     }
     default:
@@ -1173,6 +1184,6 @@ static char* QAJSON4C_builder_pop_string( QAJSON4C_Builder* builder, size_type l
     // strings grow from back to the front!
     builder->cur_str_pos -= length * sizeof(char);
     assert( builder->cur_obj_pos < builder->cur_str_pos );
-    return (char*)(builder->buffer + builder->cur_str_pos);
+    return (char*)(&builder->buffer[builder->cur_str_pos]);
 
 }
