@@ -1,0 +1,10 @@
+
+FILE (GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.c )
+
+add_library(qajson4c ${SOURCE_FILES})
+
+target_include_directories(qajson4c PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION include
+        FILES_MATCHING PATTERN "*.h" 
+        PATTERN ".svn" EXCLUDE)
