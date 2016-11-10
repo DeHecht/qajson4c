@@ -146,6 +146,8 @@ int main(int argc, char **argv) {
 			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(input_string);
 		} else {
 			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size(input_string);
+            size_t buffer_size_small = QAJSON4C_calculate_max_buffer_size_insitu(input_string);
+			printf("Buffer size without strings %lu\n", buffer_size_small);
 		}
 	}
 

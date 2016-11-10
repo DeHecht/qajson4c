@@ -68,19 +68,11 @@ void test_dom_creation(void) {
 	QAJSON4C_Value* root_value = QAJSON4C_get_root_value_rw(document);
 	QAJSON4C_set_object(root_value, 2, &builder);
 
-	QAJSON4C_Member* firstMember = QAJSON4C_object_get_member_rw(root_value, 0);
-	QAJSON4C_Value* key = QAJSON4C_member_get_key_rw(firstMember);
-	QAJSON4C_Value* value = QAJSON4C_member_get_value_rw(firstMember);
+	QAJSON4C_Value* id_value = QAJSON4C_object_create_member(root_value, "id", .ref=true);
+	QAJSON4C_set_uint(id_value, 123);
 
-	QAJSON4C_set_string_reference(key, "id");
-	QAJSON4C_set_uint(value , 123);
-
-	QAJSON4C_Member* secondMember = QAJSON4C_object_get_member_rw(root_value, 1);
-	QAJSON4C_Value* secondKey = QAJSON4C_member_get_key_rw(secondMember);
-	QAJSON4C_Value* secondValue = QAJSON4C_member_get_value_rw(secondMember);
-
-	QAJSON4C_set_string_reference(secondKey, "name");
-	QAJSON4C_set_string_reference(secondValue, "USE System Technology BV");
+    QAJSON4C_Value* name_value = QAJSON4C_object_create_member(root_value, "name", .ref=true);
+    QAJSON4C_set_string(name_value, "USE System Technology BV", .ref=true);
 
 	QAJSON4C_print(document, outbuff, 2048);
 	printf("Printed: %s\n", outbuff);
