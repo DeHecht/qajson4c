@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
 
 	char* output_string = malloc(arguments.buffer_size);
 
-	QAJSON4C_print(document, output_string, arguments.buffer_size);
+	QAJSON4C_sprint(document, output_string, arguments.buffer_size);
 	fwrite(output_string, sizeof(char), strlen(output_string), output_file);
 
 	fclose(output_file);

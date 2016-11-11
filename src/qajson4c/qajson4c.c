@@ -178,7 +178,7 @@ static void QAJSON4C_parse_first_pass( QAJSON4C_Parser* parser );
 static QAJSON4C_Document* QAJSON4C_parse_second_pass( QAJSON4C_Parser* parser );
 static QAJSON4C_Document* QAJSON4C_create_error_description( QAJSON4C_Parser* parser );
 
-static int QAJSON4C_strcmp( QAJSON4C_Value* lhs, QAJSON4C_Value* rhs );
+static int QAJSON4C_strcmp( const QAJSON4C_Value* lhs, const QAJSON4C_Value* rhs );
 static void QAJSON4C_skip_whitespaces_and_comments( QAJSON4C_Parser* parser );
 
 static void QAJSON4C_first_pass_process( QAJSON4C_Parser* parser, uint8_t depth );
@@ -371,10 +371,10 @@ static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Valu
 
     if (*start_pos == '-') {
         use_int = true;
-        i_value = strtol(start_pos, &pos, 10);
+        i_value = strtol(start_pos, &pos, 0);
     } else {
         use_uint = true;
-        u_value = strtoul(start_pos, &pos, 10);
+        u_value = strtoul(start_pos, &pos, 0);
     }
 
     if (pos == start_pos) {
@@ -698,10 +698,11 @@ static QAJSON4C_Document* QAJSON4C_parse_second_pass(QAJSON4C_Parser* parser) {
 	return document;
 }
 
-void QAJSON4C_print(const QAJSON4C_Document* document, char* buffer, size_t buffer_size)
+size_t QAJSON4C_sprint(const QAJSON4C_Document* document, char* buffer, size_t buffer_size)
 {
 	size_t index = QAJSON4C_print_value(&document->root_element, buffer, buffer_size, 0);
 	buffer[index] = '\0';
+	return index;
 }
 
 static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, size_t buffer_size, size_t index ) {
@@ -763,16 +764,20 @@ static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, s
     }
     case QAJSON4C_INLINE_STRING:
     case QAJSON4C_STRING: {
-    	buffer[index++] = '"';
+        if (index < buffer_size) {
+            buffer[index++] = '"';
+        }
     	const char* base = QAJSON4C_get_string(value);
     	// FIXME: use the stored string length instead of the strlen function.
-    	for( size_type i = 0; i < strlen(base); i++) {
+    	for( size_type i = 0; i < strlen(base) && index < buffer_size; i++) {
     		if ( base[i] == '"') {
     			buffer[index++] = '\\';
     		}
     		buffer[index++] = base[i];
     	}
-    	buffer[index++] = '"';
+        if (index < buffer_size) {
+            buffer[index++] = '"';
+        }
         break;
     }
     default:
@@ -819,7 +824,7 @@ static void QAJSON4C_second_pass_process(QAJSON4C_Parser* parser, QAJSON4C_Value
 }
 
 
-static int QAJSON4C_strcmp(QAJSON4C_Value* lhs, QAJSON4C_Value* rhs) {
+static int QAJSON4C_strcmp( const QAJSON4C_Value* lhs, const QAJSON4C_Value* rhs ) {
 	// first on string-length
 	size_type lhs_size = QAJSON4C_get_string_length(lhs);
 	size_type rhs_size = QAJSON4C_get_string_length(rhs);
@@ -837,7 +842,7 @@ static int QAJSON4C_strcmp(QAJSON4C_Value* lhs, QAJSON4C_Value* rhs) {
 	return 0;
 }
 
-static bool QAJSON4C_is_primitive(const QAJSON4C_Value* value)
+static bool QAJSON4C_is_primitive( const QAJSON4C_Value* value)
 {
 	return value != NULL && value->data.flag.type == QAJSON4C_PRIMITIVE;
 }
@@ -853,7 +858,6 @@ const QAJSON4C_Value* QAJSON4C_get_root_value(const QAJSON4C_Document* document)
 QAJSON4C_Value* QAJSON4C_get_root_value_rw(QAJSON4C_Document* document) {
 	return &document->root_element;
 }
-
 
 bool QAJSON4C_is_string(const QAJSON4C_Value* value) {
 	return value != NULL && (value->data.flag.type == QAJSON4C_INLINE_STRING || value->data.flag.type == QAJSON4C_STRING);
@@ -873,6 +877,18 @@ unsigned QAJSON4C_get_string_length(const QAJSON4C_Value* value) {
 		return value->data.ss.count;
 	}
 	return value->data.s.count;
+}
+
+bool QAJSON4C_string_equals_var( const QAJSON4C_Value* value, string_cmp_args args ) {
+    return QAJSON4C_string_cmp_var(value, args) == 0;
+}
+
+int QAJSON4C_string_cmp_var( const QAJSON4C_Value* value, string_cmp_args args ) {
+    assert(QAJSON4C_is_string(value));
+    // TODO: optimize this for performance?
+    QAJSON4C_Value wrapper_value;
+    QAJSON4C_set_string(&wrapper_value, .str = args.str, .ref=true, .len = args.len);
+    return QAJSON4C_strcmp(value, &wrapper_value);
 }
 
 bool QAJSON4C_is_object(const QAJSON4C_Value* value) {
@@ -984,6 +1000,7 @@ QAJSON4C_Value* QAJSON4C_object_create_member_var(QAJSON4C_Value* value_ptr, str
 
 const QAJSON4C_Member* QAJSON4C_object_get_member(const QAJSON4C_Value* value, unsigned index) {
 	assert(QAJSON4C_is_object(value));
+    assert(value->data.obj.count > index);
 	return &value->data.obj.top[index];
 }
 
@@ -997,12 +1014,12 @@ const QAJSON4C_Value* QAJSON4C_member_get_value(const QAJSON4C_Member* member) {
 	return &member->value;
 }
 
-const QAJSON4C_Value* QAJSON4C_object_get(const QAJSON4C_Value* value, const char* name) {
+const QAJSON4C_Value* QAJSON4C_object_get_var(const QAJSON4C_Value* value, string_cmp_args args) {
 	assert(QAJSON4C_is_object(value));
 	size_type count = value->data.obj.count;
 
 	QAJSON4C_Value wrapper_value;
-	QAJSON4C_set_string(&wrapper_value, name, .ref=true);
+    QAJSON4C_set_string(&wrapper_value, .str = args.str, .ref=true);
 
 	QAJSON4C_Member* entry;
 	for (size_type i = 0; i < count; ++i) {
@@ -1033,53 +1050,51 @@ void QAJSON4C_set_bool(QAJSON4C_Value* value_ptr, bool value)
 	value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_BOOL;
 	value_ptr->data.p.data.b = value;
 }
-void QAJSON4C_set_int(QAJSON4C_Value* value_ptr, int32_t value)
-{
-	QAJSON4C_set_int64(value_ptr, value);
+
+void QAJSON4C_set_int( QAJSON4C_Value* value_ptr, int32_t value ) {
+    QAJSON4C_set_int64(value_ptr, value);
 }
-void QAJSON4C_set_uint(QAJSON4C_Value* value_ptr, uint32_t value)
-{
-	QAJSON4C_set_uint64(value_ptr, value);
+void QAJSON4C_set_uint( QAJSON4C_Value* value_ptr, uint32_t value ) {
+    QAJSON4C_set_uint64(value_ptr, value);
 }
 
-void QAJSON4C_set_int64(QAJSON4C_Value* value_ptr, int64_t value)
-{
-	value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
-	value_ptr->data.p.data.i = value;
-	if (value > INT32_MAX) {
-		value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_INT64;
-		value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_INT64;
-	} else {
-		value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_INT;
-		value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_INT64 | QAJSON4C_PRIMITIVE_INT;
-	}
-	value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_DOUBLE;
+void QAJSON4C_set_int64( QAJSON4C_Value* value_ptr, int64_t value ) {
+    value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
+    value_ptr->data.p.data.i = value;
+    if (value > INT32_MAX) {
+        value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_INT64;
+        value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_INT64;
+    } else {
+        value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_INT;
+        value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_INT64 | QAJSON4C_PRIMITIVE_INT;
+    }
+    value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_DOUBLE;
 }
-void QAJSON4C_set_uint64(QAJSON4C_Value* value_ptr, uint64_t value)
-{
-	value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
-	value_ptr->data.p.data.u = value;
 
-	if (value > UINT32_MAX) {
-		value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_UINT64;
-		value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_UINT64;
-	} else {
+void QAJSON4C_set_uint64( QAJSON4C_Value* value_ptr, uint64_t value ) {
+    value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
+    value_ptr->data.p.data.u = value;
+
+    if (value > UINT32_MAX) {
+        value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_UINT64;
+        value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_UINT64;
+    } else {
 		value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_UINT;
 		value_ptr->data.p.compatiblity_type = QAJSON4C_PRIMITIVE_UINT64 | QAJSON4C_PRIMITIVE_UINT;
-	}
-	if (value <= INT64_MAX) {
-		value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_INT64;
-	}
-	if (value <= INT32_MAX) {
-		value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_INT;
-	}
-	value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_DOUBLE;
+    }
+    if (value <= INT64_MAX) {
+        value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_INT64;
+    }
+    if (value <= INT32_MAX) {
+        value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_INT;
+    }
+    value_ptr->data.p.compatiblity_type |= QAJSON4C_PRIMITIVE_DOUBLE;
 }
 
-void QAJSON4C_set_double(QAJSON4C_Value* value_ptr, double value) {
-	value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
-	value_ptr->data.p.data.d = value;
-	value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_DOUBLE;
+void QAJSON4C_set_double( QAJSON4C_Value* value_ptr, double value ) {
+    value_ptr->data.flag.type = QAJSON4C_PRIMITIVE;
+    value_ptr->data.p.data.d = value;
+    value_ptr->data.p.storage_type = QAJSON4C_PRIMITIVE_DOUBLE;
 }
 
 void QAJSON4C_set_string_var( QAJSON4C_Value* value_ptr, string_ref_args args ) {
@@ -1128,19 +1143,6 @@ void QAJSON4C_set_object( QAJSON4C_Value* value_ptr, unsigned count, QAJSON4C_Bu
     value_ptr->data.flag.type = QAJSON4C_OBJECT;
     value_ptr->data.obj.top = QAJSON4C_builder_pop_members( builder, count );
     value_ptr->data.obj.count = count;
-}
-
-QAJSON4C_Member* QAJSON4C_object_get_member_rw( QAJSON4C_Value* value_ptr, unsigned index ) {
-    assert( QAJSON4C_is_object( value_ptr ) );
-    return &value_ptr->data.obj.top[index];
-}
-
-QAJSON4C_Value* QAJSON4C_member_get_key_rw( QAJSON4C_Member* member_ptr ) {
-    return &member_ptr->key;
-}
-
-QAJSON4C_Value* QAJSON4C_member_get_value_rw( QAJSON4C_Member* member_ptr ) {
-    return &member_ptr->value;
 }
 
 void QAJSON4C_builder_init( QAJSON4C_Builder* me, void* buff, size_t buff_size ) {

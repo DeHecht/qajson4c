@@ -28,15 +28,26 @@
 #define QAJSON4C_H_
 
 #ifdef __cplusplus
+// Helper macros for easier string handling.
+#define QAJSON4C_set_string(val_ptr,...) QAJSON4C_set_string_var(val_ptr, {__VA_ARGS__})
+#define QAJSON4C_object_create_member(val_ptr,...) QAJSON4C_object_create_member_var(val_ptr, {__VA_ARGS__})
+#define QAJSON4C_object_get(val_ptr,...) QAJSON4C_object_get_var(val_ptr, {__VA_ARGS__})
+#define QAJSON4C_string_equals(val_ptr,...) QAJSON4C_string_equals_var(val_ptr, {__VA_ARGS__})
+#define QAJSON4C_string_cmp(val_ptr,...) QAJSON4C_string_cmp_var(val_ptr, {__VA_ARGS__})
 extern "C" {
+#else
+// Helper macros for easier string handling.
+#define QAJSON4C_set_string(val_ptr,...) QAJSON4C_set_string_var(val_ptr, (string_ref_args){__VA_ARGS__})
+#define QAJSON4C_object_create_member(val_ptr,...) QAJSON4C_object_create_member_var(val_ptr, (string_ref_args){__VA_ARGS__})
+#define QAJSON4C_object_get(val_ptr,...) QAJSON4C_object_get_var(val_ptr, (string_cmp_args){__VA_ARGS__})
+#define QAJSON4C_string_equals(val_ptr,...) QAJSON4C_string_equals_var(val_ptr, (string_cmp_args){__VA_ARGS__})
+#define QAJSON4C_string_cmp(val_ptr,...) QAJSON4C_string_cmp_var(val_ptr, (string_cmp_args){__VA_ARGS__})
 #endif
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-#define QAJSON4C_set_string(val_ptr,...) QAJSON4C_set_string_var(val_ptr, (string_ref_args){__VA_ARGS__});
-#define QAJSON4C_object_create_member(val_ptr,...) QAJSON4C_object_create_member_var(val_ptr, (string_ref_args){__VA_ARGS__});
 
 struct QAJSON4C_Document;
 typedef struct QAJSON4C_Document QAJSON4C_Document;
@@ -62,6 +73,11 @@ typedef struct {
     QAJSON4C_Builder* builder;
     uint32_t len;
 } string_ref_args;
+
+typedef struct {
+    const char* str;
+    uint32_t len;
+} string_cmp_args;
 
 typedef enum QAJSON4C_ERROR_CODES {
 	QAJSON4C_ERROR_DEPTH_OVERFLOW = 1,
@@ -92,13 +108,16 @@ const QAJSON4C_Document* QAJSON4C_parse(const char* json, void* buffer, size_t b
 
 const QAJSON4C_Document* QAJSON4C_parse_insitu(char* json, void* buffer, size_t buffer_size);
 
-void QAJSON4C_print(const QAJSON4C_Document* document, char* buffer, size_t buffer_size);
+size_t QAJSON4C_sprint(const QAJSON4C_Document* document, char* buffer, size_t buffer_size);
 
 const QAJSON4C_Value* QAJSON4C_get_root_value(const QAJSON4C_Document* document);
 
 bool QAJSON4C_is_string(const QAJSON4C_Value* value);
 const char* QAJSON4C_get_string(const QAJSON4C_Value* value);
 unsigned QAJSON4C_get_string_length(const QAJSON4C_Value* value);
+
+bool QAJSON4C_string_equals_var(const QAJSON4C_Value* value, string_cmp_args args);
+int QAJSON4C_string_cmp_var(const QAJSON4C_Value* value, string_cmp_args args);
 
 bool QAJSON4C_is_object(const QAJSON4C_Value* value);
 bool QAJSON4C_is_array(const QAJSON4C_Value* value);
@@ -132,7 +151,7 @@ unsigned QAJSON4C_object_size(const QAJSON4C_Value* value);
 const QAJSON4C_Member* QAJSON4C_object_get_member(const QAJSON4C_Value* value, unsigned index);
 const QAJSON4C_Value* QAJSON4C_member_get_key(const QAJSON4C_Member* member);
 const QAJSON4C_Value* QAJSON4C_member_get_value(const QAJSON4C_Member* member);
-const QAJSON4C_Value* QAJSON4C_object_get(const QAJSON4C_Value* value, const char* name);
+const QAJSON4C_Value* QAJSON4C_object_get_var(const QAJSON4C_Value* value, string_cmp_args args);
 
 unsigned QAJSON4C_array_size(const QAJSON4C_Value* value);
 const QAJSON4C_Value* QAJSON4C_array_get(const QAJSON4C_Value* value, unsigned index);

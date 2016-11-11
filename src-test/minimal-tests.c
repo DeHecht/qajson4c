@@ -49,7 +49,7 @@ void do_parse(char* json) {
 			if ( QAJSON4C_is_error(root_value) ) {
 				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJSON4C_get_json_pos(root_value));
 			} else {
-				QAJSON4C_print(document, outbuff, 2048);
+				QAJSON4C_sprint(document, outbuff, 2048);
 				printf("Printed: %s\n", outbuff);
 			}
 		} else {
@@ -74,7 +74,7 @@ void test_dom_creation(void) {
     QAJSON4C_Value* name_value = QAJSON4C_object_create_member(root_value, "name", .ref=true);
     QAJSON4C_set_string(name_value, "USE System Technology BV", .ref=true);
 
-	QAJSON4C_print(document, outbuff, 2048);
+	QAJSON4C_sprint(document, outbuff, 2048);
 	printf("Printed: %s\n", outbuff);
 }
 
