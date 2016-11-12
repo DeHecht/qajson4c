@@ -25,23 +25,29 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <qajson4c/qajson4c.h>
 
 void do_parse(char* json) {
-	char buff[2048];
 	char outbuff[2048];
 	printf("Test: %s\n", json);
 
 	for( int i = 0; i < 2; i++) {
+		char* buff = NULL;
 		const QAJSON4C_Document* document = NULL;
 		if (i == 0) {
 			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size(json);
+			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size: %u\n", buffer_size);
 			document = QAJSON4C_parse(json, buff, buffer_size);
 		} else if (i == 1) {
 			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(json);
+			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size (insitu): %u\n", buffer_size);
 			document = QAJSON4C_parse_insitu(json, buff, buffer_size);
+		} else {
+			assert(false);
 		}
 		if ( document != NULL ) {
 			const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
@@ -49,12 +55,13 @@ void do_parse(char* json) {
 			if ( QAJSON4C_is_error(root_value) ) {
 				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJSON4C_get_json_pos(root_value));
 			} else {
-				QAJSON4C_print(document, outbuff, 2048);
+				QAJSON4C_sprint(document, outbuff, 2048);
 				printf("Printed: %s\n", outbuff);
 			}
 		} else {
 			puts("Document is NULL");
 		}
+		free(buff);
 	}
 }
 
@@ -68,22 +75,26 @@ void test_dom_creation(void) {
 	QAJSON4C_Value* root_value = QAJSON4C_get_root_value_rw(document);
 	QAJSON4C_set_object(root_value, 2, &builder);
 
-	QAJSON4C_Member* firstMember = QAJSON4C_object_get_member_rw(root_value, 0);
-	QAJSON4C_Value* key = QAJSON4C_member_get_key_rw(firstMember);
-	QAJSON4C_Value* value = QAJSON4C_member_get_value_rw(firstMember);
+	QAJSON4C_Value* id_value = QAJSON4C_object_create_member(root_value, "id", .ref=true);
+	QAJSON4C_set_uint(id_value, 123);
 
-	QAJSON4C_set_string_reference(key, "id");
-	QAJSON4C_set_uint(value , 123);
+    QAJSON4C_Value* name_value = QAJSON4C_object_create_member(root_value, "name", .ref=true);
+    QAJSON4C_set_string(name_value, "USE System Technology BV", .ref=true);
 
-	QAJSON4C_Member* secondMember = QAJSON4C_object_get_member_rw(root_value, 1);
-	QAJSON4C_Value* secondKey = QAJSON4C_member_get_key_rw(secondMember);
-	QAJSON4C_Value* secondValue = QAJSON4C_member_get_value_rw(secondMember);
-
-	QAJSON4C_set_string_reference(secondKey, "name");
-	QAJSON4C_set_string_reference(secondValue, "USE System Technology BV");
-
-	QAJSON4C_print(document, outbuff, 2048);
+	QAJSON4C_sprint(document, outbuff, 2048);
 	printf("Printed: %s\n", outbuff);
+}
+
+void test_dom_access(void) {
+	puts("test_dom_access");
+	char test[] = "{\"id\":1, \"name\": \"dude\", \"very_long_key_value\": 10}";
+	char buff[2048];
+	const QAJSON4C_Document* document = QAJSON4C_parse(test, buff, 2048);
+	const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
+	const QAJSON4C_Value* id_value = QAJSON4C_object_get(root_value, "id", true);
+	assert(id_value != NULL);
+	const QAJSON4C_Value* vlkv_value = QAJSON4C_object_get(root_value, "very_long_key_value", true);
+	assert(vlkv_value != NULL);
 }
 
 int main() {
@@ -102,18 +113,7 @@ int main() {
 
 	QAJSON4C_print_stats();
 
-
-	FILE* fp = fopen("data/watchdog.json", "r");
-	if (fp != NULL) {
-		char buff[2048];
-		size_t r = fread(buff, sizeof(char), 2048, fp);
-		printf("Read %lu from file\n", r);
-		buff[r] = '\0';
-		fclose(fp);
-		do_parse(buff);
-	} else {
-		printf("Unable to open file!");
-	}
+	test_dom_access();
 
 	do_parse(numberJson);
 	do_parse(nullJson);
