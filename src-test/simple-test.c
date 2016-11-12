@@ -140,6 +140,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Unable to open file '%s'\n", arguments.input_file);
 		exit(1);
 	}
+	size_t input_string_size = strlen(input_string);
+
 	FILE* output_file = fopen(arguments.output_file, "w");
 	if ( output_file == NULL ) {
 		fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
@@ -168,9 +170,10 @@ int main(int argc, char **argv) {
 		printf("Required buffer size %lu\n", arguments.buffer_size);
 	}
 
-	char* output_string = malloc(arguments.buffer_size);
+	size_t output_string_size = sizeof(char) * input_string_size;
+	char* output_string = malloc(output_string_size);
 
-	QAJSON4C_sprint(document, output_string, arguments.buffer_size);
+	QAJSON4C_sprint(document, output_string, output_string_size);
 	fwrite(output_string, sizeof(char), strlen(output_string), output_file);
 
 	fclose(output_file);

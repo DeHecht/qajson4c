@@ -31,7 +31,7 @@
 
 #include <qajson4c/qajson4c.h>
 
-#define INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t))
+#define INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
 
 typedef uint32_t size_type;
 typedef uint16_t half_size_type;
@@ -94,7 +94,7 @@ typedef struct QAJSON4C_Error {
  * On 32-Bit => 6 chars + \0, on 64-Bit => 10 chars + \0.
  */
 typedef struct QAJSON4C_Short_string {
-    char s[INLINE_STRING_SIZE];
+    char s[INLINE_STRING_SIZE + 1];
     uint8_t count;
     size_type type;
 } QAJSON4C_Short_string;
@@ -194,6 +194,7 @@ static void QAJSON4C_parse_constant( QAJSON4C_Parser* parser, QAJSON4C_Value* re
 static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
 static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, size_t buffer_size, size_t index );
 
+static void QAJSON4C_builder_validate_buffer( QAJSON4C_Builder* builder );
 static QAJSON4C_Value* QAJSON4C_builder_pop_values( QAJSON4C_Builder* builder, size_type count );
 static QAJSON4C_Member* QAJSON4C_builder_pop_members( QAJSON4C_Builder* builder, size_type count );
 static char* QAJSON4C_builder_pop_string( QAJSON4C_Builder* builder, size_type length );
@@ -238,6 +239,8 @@ const QAJSON4C_Document* QAJSON4C_parse( const char* json, void* buffer, size_t 
     parser.insitu_parsing = false;
 
     QAJSON4C_parse_first_pass(&parser);
+    // printf("First pass statistics: Structs %u bytes, Strings %u bytes, DOM Values total: %u\n", parser.curr_buffer_pos, parser.curr_buffer_str_pos, parser.amount_elements);
+
     if (parser.error) {
         return QAJSON4C_create_error_description(&parser);
     }
@@ -264,7 +267,7 @@ unsigned QAJSON4C_calculate_max_buffer_size( const char* json ) {
     parser.buffer = NULL;
     parser.buffer_size = 0;
     QAJSON4C_parse_first_pass(&parser);
-    return sizeof(QAJSON4C_Document) + parser.amount_elements * sizeof(QAJSON4C_Value) + parser.curr_buffer_str_pos;
+    return sizeof(QAJSON4C_Document) + (parser.amount_elements) * sizeof(QAJSON4C_Value) + parser.curr_buffer_str_pos;
 }
 
 unsigned QAJSON4C_calculate_max_buffer_size_insitu( const char* json ) {
@@ -491,6 +494,8 @@ static void QAJSON4C_parse_array(QAJSON4C_Parser* parser, QAJSON4C_Value* result
 	size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
 	parser->curr_buffer_pos += sizeof(size_type);
 
+	// printf("Array has %d elements\n", elements);
+
 	QAJSON4C_set_array(result_ptr, elements, parser->builder);
 	QAJSON4C_Value* top = result_ptr->data.array.top;
 
@@ -523,6 +528,7 @@ static void QAJSON4C_parse_object(QAJSON4C_Parser* parser, QAJSON4C_Value* resul
 	// FIXME: implement a pop() method.
 	size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
 	parser->curr_buffer_pos += sizeof(size_type);
+	// printf("Object has %d elements\n", elements);
 
 	QAJSON4C_set_object(result_ptr, elements, parser->builder);
 	QAJSON4C_Member* top = result_ptr->data.obj.top;
@@ -588,18 +594,22 @@ static void QAJSON4C_parse_string(QAJSON4C_Parser* parser, QAJSON4C_Value* value
 		parser->error = true;
 		parser->errno = QAJSON4C_ERROR_BUFFER_TRUNCATED;
 	} else {
-		size_type size = parser->json_pos - prev_pos;
+		size_type size = parser->json_pos - prev_pos - 1;
 		if ( value != NULL ) {
 			if ( parser->insitu_parsing ) {
 				char* insitu_string = (char*)parser->json;
 				insitu_string[parser->json_pos - 1] = '\0';
 			    QAJSON4C_set_string(value, &parser->json[prev_pos], .ref=true, .len=size);
 			} else {
-                QAJSON4C_set_string(value, &parser->json[prev_pos], .builder=parser->builder, size);
+				if (size == 0) { // special case, else it would trigger auto-size detection!
+	                QAJSON4C_set_string(value, "", .builder=parser->builder);
+				} else {
+	                QAJSON4C_set_string(value, &parser->json[prev_pos], .builder=parser->builder, size);
+				}
 			}
 		} else if (size > INLINE_STRING_SIZE) {
-			// we "may" not be able to store it inline in the DOM
-			parser->curr_buffer_str_pos += size;
+			// the determined string size + '\0'
+			parser->curr_buffer_str_pos += size + 1;
 		}
 	}
 
@@ -676,6 +686,13 @@ static QAJSON4C_Document* QAJSON4C_parse_second_pass(QAJSON4C_Parser* parser) {
 		size_type required_tempoary_storage = parser->curr_buffer_pos + sizeof(size_type);
         size_type copy_to_index = required_object_storage - required_tempoary_storage;
 
+        // printf("Required object storage: %u\n", required_object_storage);
+        // printf("Required string storage: %u\n", parser->curr_buffer_str_pos);
+        // printf("Total available storage: %u\n", parser->buffer_size);
+
+        // printf("Required tempoary storage: %u\n", required_tempoary_storage);
+        // printf("memmove(buff[%u], buff[0], %u]\n", copy_to_index, required_tempoary_storage);
+
 		// Currently the sizes of the objects are placed in memory starting at index 0 of the buffer.
 		// To avoid, that the first object will override the valuable information gathered in the first
 		// pass, the data is moved to the end of the required_object_storage. This will cause the last
@@ -695,6 +712,8 @@ static QAJSON4C_Document* QAJSON4C_parse_second_pass(QAJSON4C_Parser* parser) {
 	QAJSON4C_Document* document = QAJSON4C_builder_get_document(&builder);
 
 	QAJSON4C_second_pass_process(parser, &document->root_element);
+
+	// printf("Statistics object-stack-index: %lu, string-heap-index %lu\n", builder.cur_obj_pos, builder.cur_str_pos);
 	return document;
 }
 
@@ -1106,24 +1125,22 @@ void QAJSON4C_set_string_var( QAJSON4C_Value* value_ptr, string_ref_args args ) 
     // check that in case a copy is requested the builder is specified!
     assert( args.ref || args.builder != NULL );
 
-    if ( args.ref ) {
+    if ( args.len <= INLINE_STRING_SIZE ) {
+        value_ptr->data.flag.type = QAJSON4C_INLINE_STRING;
+        value_ptr->data.ss.count = (uint8_t)args.len;
+        memcpy( &value_ptr->data.ss.s, args.str, args.len );
+        value_ptr->data.ss.s[args.len] = '\0';
+    } else if ( args.ref ) {
         value_ptr->data.flag.type = QAJSON4C_STRING;
         value_ptr->data.s.s = args.str;
         value_ptr->data.s.count = args.len;
     } else {
-        if ( args.len <= INLINE_STRING_SIZE ) {
-            value_ptr->data.flag.type = QAJSON4C_INLINE_STRING;
-            value_ptr->data.ss.count = (uint8_t)args.len;
-            memcpy( &value_ptr->data.ss.s, args.str, args.len );
-            value_ptr->data.ss.s[args.len - 1] = '\0';
-        } else {
-            value_ptr->data.flag.type = QAJSON4C_STRING;
-            value_ptr->data.s.count = (uint8_t)args.len;
-            char* new_string = QAJSON4C_builder_pop_string( args.builder, args.len );
-            memcpy( new_string, args.str, args.len );
-            value_ptr->data.s.s = new_string;
-            new_string[args.len - 1] = '\0';
-        }
+		value_ptr->data.flag.type = QAJSON4C_STRING;
+		value_ptr->data.s.count = args.len;
+		char* new_string = QAJSON4C_builder_pop_string( args.builder, args.len + 1 );
+		memcpy( new_string, args.str, args.len );
+		value_ptr->data.s.s = new_string;
+		new_string[args.len] = '\0';
     }
 }
 
@@ -1159,10 +1176,20 @@ QAJSON4C_Document* QAJSON4C_builder_get_document( QAJSON4C_Builder* builder ) {
     return (QAJSON4C_Document*)builder->buffer;
 }
 
+static void QAJSON4C_builder_validate_buffer( QAJSON4C_Builder* builder ) {
+	// cur_obj_pos points on memory 1 Byte after the last inserted object
+	// cur_str_pos points on the first character on the last inserted string.
+    assert(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
+}
+
 static QAJSON4C_Value* QAJSON4C_builder_pop_values( QAJSON4C_Builder* builder, size_type count ) {
-    QAJSON4C_Value* new_pointer = (QAJSON4C_Value*)&builder->buffer[builder->cur_obj_pos];
-    builder->cur_obj_pos += count * sizeof(QAJSON4C_Value);
-    assert( builder->cur_obj_pos < builder->cur_str_pos );
+	if (count == 0) {
+		return NULL;
+	}
+    QAJSON4C_Value* new_pointer = (QAJSON4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
+	builder->cur_obj_pos += count * sizeof(QAJSON4C_Value);
+    // printf("new current object position %lu\n", builder->cur_obj_pos);
+	QAJSON4C_builder_validate_buffer(builder);
     for( size_type i = 0; i < count; i++ ) {
         new_pointer[i].data.flag.type = QAJSON4C_NULL;
     }
@@ -1170,9 +1197,13 @@ static QAJSON4C_Value* QAJSON4C_builder_pop_values( QAJSON4C_Builder* builder, s
 }
 
 static QAJSON4C_Member* QAJSON4C_builder_pop_members( QAJSON4C_Builder* builder, size_type count ) {
-    QAJSON4C_Member* new_pointer = (QAJSON4C_Member*)&builder->buffer[builder->cur_obj_pos];
+	if (count == 0) {
+		return NULL;
+	}
+    QAJSON4C_Member* new_pointer = (QAJSON4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
     builder->cur_obj_pos += count * sizeof(QAJSON4C_Member);
-    assert( builder->cur_obj_pos < builder->cur_str_pos );
+    // printf("new current object position %lu\n", builder->cur_obj_pos);
+	QAJSON4C_builder_validate_buffer(builder);
 
     for( size_type i = 0; i < count; i++ ) {
         new_pointer[i].key.data.flag.type = QAJSON4C_NULL;
@@ -1185,7 +1216,8 @@ static QAJSON4C_Member* QAJSON4C_builder_pop_members( QAJSON4C_Builder* builder,
 static char* QAJSON4C_builder_pop_string( QAJSON4C_Builder* builder, size_type length ) {
     // strings grow from back to the front!
     builder->cur_str_pos -= length * sizeof(char);
-    assert( builder->cur_obj_pos < builder->cur_str_pos );
+    // printf("new current string position %lu (length: %u)\n", builder->cur_str_pos, length);
+	QAJSON4C_builder_validate_buffer(builder);
     return (char*)(&builder->buffer[builder->cur_str_pos]);
 
 }

@@ -25,23 +25,29 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <qajson4c/qajson4c.h>
 
 void do_parse(char* json) {
-	char buff[2048];
 	char outbuff[2048];
 	printf("Test: %s\n", json);
 
 	for( int i = 0; i < 2; i++) {
+		char* buff = NULL;
 		const QAJSON4C_Document* document = NULL;
 		if (i == 0) {
 			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size(json);
+			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size: %u\n", buffer_size);
 			document = QAJSON4C_parse(json, buff, buffer_size);
 		} else if (i == 1) {
 			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(json);
+			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size (insitu): %u\n", buffer_size);
 			document = QAJSON4C_parse_insitu(json, buff, buffer_size);
+		} else {
+			assert(false);
 		}
 		if ( document != NULL ) {
 			const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
@@ -55,6 +61,7 @@ void do_parse(char* json) {
 		} else {
 			puts("Document is NULL");
 		}
+		free(buff);
 	}
 }
 
@@ -78,6 +85,18 @@ void test_dom_creation(void) {
 	printf("Printed: %s\n", outbuff);
 }
 
+void test_dom_access(void) {
+	puts("test_dom_access");
+	char test[] = "{\"id\":1, \"name\": \"dude\", \"very_long_key_value\": 10}";
+	char buff[2048];
+	const QAJSON4C_Document* document = QAJSON4C_parse(test, buff, 2048);
+	const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
+	const QAJSON4C_Value* id_value = QAJSON4C_object_get(root_value, "id", true);
+	assert(id_value != NULL);
+	const QAJSON4C_Value* vlkv_value = QAJSON4C_object_get(root_value, "very_long_key_value", true);
+	assert(vlkv_value != NULL);
+}
+
 int main() {
 	char test1[] = "{}";
 	char test2[] = "{\"id\":1, \"name\": \"dude\",}";
@@ -94,18 +113,7 @@ int main() {
 
 	QAJSON4C_print_stats();
 
-
-	FILE* fp = fopen("data/watchdog.json", "r");
-	if (fp != NULL) {
-		char buff[2048];
-		size_t r = fread(buff, sizeof(char), 2048, fp);
-		printf("Read %lu from file\n", r);
-		buff[r] = '\0';
-		fclose(fp);
-		do_parse(buff);
-	} else {
-		printf("Unable to open file!");
-	}
+	test_dom_access();
 
 	do_parse(numberJson);
 	do_parse(nullJson);
