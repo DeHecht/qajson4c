@@ -14,7 +14,7 @@ def get_exec_path():
 
 class TestJsonMethods(unittest.TestCase):
 
-    BINARY_NAME="simple-test"
+    BINARY_NAME="simple-processor"
     DATA_DIR="data"
 
     @classmethod
