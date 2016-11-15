@@ -618,8 +618,12 @@ static void QAJSON4C_parse_string(QAJSON4C_Parser* parser, QAJSON4C_Value* value
 
 static void QAJSON4C_first_pass_process(QAJSON4C_Parser* parser, uint8_t depth)
 {
-	QAJSON4C_skip_whitespaces_and_comments(parser);
-	switch (parser->json[parser->json_pos]) {
+    QAJSON4C_skip_whitespaces_and_comments(parser);
+    switch (parser->json[parser->json_pos]) {
+    case '\0':
+        parser->error = true;
+        parser->errno = QAJSON4C_ERROR_BUFFER_TRUNCATED;
+        break;
     case '{':
        QAJSON4C_first_pass_object(parser, depth);
        break;

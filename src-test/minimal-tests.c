@@ -110,6 +110,7 @@ int main() {
 	char trueJson[] = "true";
 	char falseJson[] = "false";
 	char someLongStrings[] = "{\"idddddddddddddddddi\":1, \"nameeeeeeeeeeeeeeeeeeeees\": /*** TEST COMMENT **/ \"Mr. John Doe the Third\"}";
+	char empty[] = "";
 
 	QAJSON4C_print_stats();
 
@@ -127,6 +128,7 @@ int main() {
 	do_parse(subArrayTest);
 	do_parse(someLongStrings);
 	do_parse(bombasticNesting);
+	do_parse(empty);
 
 	test_dom_creation();
 	return 0;
