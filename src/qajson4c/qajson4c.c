@@ -540,6 +540,7 @@ static void QAJSON4C_parse_array(QAJSON4C_Parser* parser, QAJSON4C_Value* result
 	// pass over a trailing , if available
 	if( parser->json[parser->json_pos] == ',') {
 		parser->json_pos++;
+	    QAJSON4C_skip_whitespaces_and_comments(parser);
 	}
 	parser->json_pos++; // pass over the ] char
 
@@ -578,6 +579,7 @@ static void QAJSON4C_parse_object(QAJSON4C_Parser* parser, QAJSON4C_Value* resul
 	// pass over a trailing , if available
 	if( parser->json[parser->json_pos] == ',') {
 		parser->json_pos++;
+	    QAJSON4C_skip_whitespaces_and_comments(parser);
 	}
 
 	parser->json_pos++; // pass over the } char

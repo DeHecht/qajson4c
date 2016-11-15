@@ -116,11 +116,11 @@ char* read_file_content(const char* filename) {
 	fseek(fp, 0L, SEEK_END);
 	size_t sz = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
-	char* buff = malloc(sz * sizeof(char));
-	fread(buff, sizeof(char), sz, fp);
+	char* buff = malloc(sz * sizeof(char) + 1);
+	fread(buff, sizeof(char), sz + 1, fp);
 	fclose(fp);
-	// replace EOF with EOS
-	buff[sz - 1] = '\0';
+
+	buff[sz] = '\0';
 	return buff;
 }
 
