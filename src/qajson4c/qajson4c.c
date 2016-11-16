@@ -36,76 +36,74 @@
 typedef uint32_t size_type;
 typedef uint16_t half_size_type;
 
-typedef enum QAJSON4C_Type {
-    QAJSON4C_NULL = 0,
-    QAJSON4C_UNSPECIFIED,
-    QAJSON4C_OBJECT,
-    QAJSON4C_ARRAY,
-    QAJSON4C_STRING,
-    QAJSON4C_INLINE_STRING,
-    QAJSON4C_PRIMITIVE,
-    QAJSON4C_ERROR_DESCRIPTION,
-} QAJSON4C_Type;
+typedef enum QAJ4C_Type {
+    QAJ4C_NULL = 0,
+    QAJ4C_UNSPECIFIED,
+    QAJ4C_OBJECT,
+    QAJ4C_ARRAY,
+    QAJ4C_STRING,
+    QAJ4C_INLINE_STRING,
+    QAJ4C_PRIMITIVE,
+    QAJ4C_ERROR_DESCRIPTION,
+} QAJ4C_Type;
 
-typedef enum QAJSON4C_Primitive_type {
-    QAJSON4C_PRIMITIVE_BOOL = (1 << 0),
-    QAJSON4C_PRIMITIVE_INT = (1 << 1),
-    QAJSON4C_PRIMITIVE_INT64 = (1 << 2),
-    QAJSON4C_PRIMITIVE_UINT = (1 << 3),
-    QAJSON4C_PRIMITIVE_UINT64 = (1 << 4),
-    QAJSON4C_PRIMITIVE_DOUBLE = (1 << 5),
-} QAJSON4C_Primitive_type;
+typedef enum QAJ4C_Primitive_type {
+    QAJ4C_PRIMITIVE_BOOL = (1 << 0),
+    QAJ4C_PRIMITIVE_INT = (1 << 1),
+    QAJ4C_PRIMITIVE_INT64 = (1 << 2),
+    QAJ4C_PRIMITIVE_UINT = (1 << 3),
+    QAJ4C_PRIMITIVE_UINT64 = (1 << 4),
+    QAJ4C_PRIMITIVE_DOUBLE = (1 << 5),
+} QAJ4C_Primitive_type;
 
-typedef struct QAJSON4C_Object {
-    QAJSON4C_Member* top;
+typedef struct QAJ4C_Object {
+    QAJ4C_Member* top;
     size_type count;
-} QAJSON4C_Object;
+} QAJ4C_Object;
 
-typedef struct QAJSON4C_Array {
-    QAJSON4C_Value* top;
+typedef struct QAJ4C_Array {
+    QAJ4C_Value* top;
     size_type count;
-} QAJSON4C_Array;
+} QAJ4C_Array;
 
-typedef struct QAJSON4C_String {
+typedef struct QAJ4C_String {
     const char* s;
     size_type count;
-} QAJSON4C_String;
+} QAJ4C_String;
 
-
-typedef struct QAJSON4C_Error_information {
+typedef struct QAJ4C_Error_information {
     const char* json;
     size_type json_pos;
     size_type errno;
-} QAJSON4C_Error_information;
+} QAJ4C_Error_information;
 
-typedef struct QAJSON4C_Error {
-    QAJSON4C_Error_information* info;
+typedef struct QAJ4C_Error {
+    QAJ4C_Error_information* info;
     size_type padding;
-} QAJSON4C_Error;
-
+} QAJ4C_Error;
 
 /**
- * Instead of storing a pointer to a char* like in QAJSON4C_String we can inline the
+ * Instead of storing a pointer to a char* like in QAJ4C_String we can inline the
  * char in the struct. This saves a) the dereferencing, b) additional memory.
  * As the string has to be small the count value can also be smaller, to additionally
  * store some more chars.
  * On 32-Bit => 6 chars + \0, on 64-Bit => 10 chars + \0.
  */
-typedef struct QAJSON4C_Short_string {
+typedef struct QAJ4C_Short_string {
     char s[INLINE_STRING_SIZE + 1];
     uint8_t count;
-} QAJSON4C_Short_string;
+} QAJ4C_Short_string;
 
-typedef struct QAJSON4C_Primitive {
+typedef struct QAJ4C_Primitive {
     union primitive {
         double d;
         uint64_t u;
         int64_t i;
         bool b;
     } data;
-} QAJSON4C_Primitive;
+} QAJ4C_Primitive;
 
-struct QAJSON4C_Value {
+struct QAJ4C_Value {
     union {
         uintptr_t padding_ptr;
         uint32_t padding_min;
@@ -114,16 +112,16 @@ struct QAJSON4C_Value {
     size_type type;
 }; // minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte
 
-struct QAJSON4C_Member {
-    QAJSON4C_Value key;
-    QAJSON4C_Value value;
+struct QAJ4C_Member {
+    QAJ4C_Value key;
+    QAJ4C_Value value;
 };
 
-struct QAJSON4C_Document {
-    QAJSON4C_Value root_element;
+struct QAJ4C_Document {
+    QAJ4C_Value root_element;
 };
 
-typedef struct QAJSON4C_Parser {
+typedef struct QAJ4C_Parser {
     const char* json;
     size_type json_pos;
 
@@ -140,179 +138,161 @@ typedef struct QAJSON4C_Parser {
     // for statistics
     size_type amount_elements;
 
-    QAJSON4C_Builder* builder;
+    QAJ4C_Builder* builder;
     bool insitu_parsing;
 
     bool error;
-    QAJSON4C_ERROR_CODES errno;
-} QAJSON4C_Parser;
+    QAJ4C_ERROR_CODES errno;
+} QAJ4C_Parser;
 
-static const char QAJSON4C_NULL_STR[] = "null";
-static const char QAJSON4C_TRUE_STR[] = "true";
-static const char QAJSON4C_FALSE_STR[] = "false";
-static const unsigned QAJSON4C_NULL_STR_LEN = sizeof(QAJSON4C_NULL_STR)
-        / sizeof(QAJSON4C_NULL_STR[0]);
-static const unsigned QAJSON4C_TRUE_STR_LEN = sizeof(QAJSON4C_TRUE_STR)
-        / sizeof(QAJSON4C_TRUE_STR[0]);
-static const unsigned QAJSON4C_FALSE_STR_LEN = sizeof(QAJSON4C_FALSE_STR)
-        / sizeof(QAJSON4C_FALSE_STR[0]);
+static const char QAJ4C_NULL_STR[] = "null";
+static const char QAJ4C_TRUE_STR[] = "true";
+static const char QAJ4C_FALSE_STR[] = "false";
+static const unsigned QAJ4C_NULL_STR_LEN = sizeof(QAJ4C_NULL_STR) / sizeof(QAJ4C_NULL_STR[0]);
+static const unsigned QAJ4C_TRUE_STR_LEN = sizeof(QAJ4C_TRUE_STR) / sizeof(QAJ4C_TRUE_STR[0]);
+static const unsigned QAJ4C_FALSE_STR_LEN = sizeof(QAJ4C_FALSE_STR) / sizeof(QAJ4C_FALSE_STR[0]);
 
-static bool QAJSON4C_is_primitive( const QAJSON4C_Value* value );
-static void QAJSON4C_parse_first_pass( QAJSON4C_Parser* parser );
-static QAJSON4C_Document* QAJSON4C_parse_second_pass( QAJSON4C_Parser* parser );
-static QAJSON4C_Document* QAJSON4C_create_error_description( QAJSON4C_Parser* parser );
+static bool QAJ4C_is_primitive( const QAJ4C_Value* value );
+static void QAJ4C_parse_first_pass( QAJ4C_Parser* parser );
+static QAJ4C_Document* QAJ4C_parse_second_pass( QAJ4C_Parser* parser );
+static QAJ4C_Document* QAJ4C_create_error_description( QAJ4C_Parser* parser );
 
-static int QAJSON4C_strcmp( const QAJSON4C_Value* lhs, const QAJSON4C_Value* rhs );
-static void QAJSON4C_skip_whitespaces_and_comments( QAJSON4C_Parser* parser );
+static int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
+static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Parser* parser );
 
-static void QAJSON4C_first_pass_process( QAJSON4C_Parser* parser, uint8_t depth );
-static void QAJSON4C_first_pass_object( QAJSON4C_Parser* parser, uint8_t depth );
-static void QAJSON4C_first_pass_array( QAJSON4C_Parser* parser, uint8_t depth );
+static void QAJ4C_first_pass_process( QAJ4C_Parser* parser, uint8_t depth );
+static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth );
+static void QAJ4C_first_pass_array( QAJ4C_Parser* parser, uint8_t depth );
 
-static void QAJSON4C_second_pass_process( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
+static void QAJ4C_second_pass_process( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 
-static void QAJSON4C_parse_array( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
-static void QAJSON4C_parse_object( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
-static void QAJSON4C_parse_string( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
-static void QAJSON4C_parse_constant( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
-static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr );
-static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, size_t buffer_size, size_t index );
+static void QAJ4C_parse_array( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
+static void QAJ4C_parse_object( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
+static void QAJ4C_parse_string( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
+static void QAJ4C_parse_constant( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
+static void QAJ4C_parse_numeric_value( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
+static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t buffer_size, size_t index );
 
-static inline QAJSON4C_Type QAJSON4C_get_type( const QAJSON4C_Value* value ) {
+static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value ) {
     return value->type & 0xFF;
 }
 
-static inline void QAJSON4C_set_type( QAJSON4C_Value* value, QAJSON4C_Type type ) {
+static inline void QAJ4C_set_type( QAJ4C_Value* value, QAJ4C_Type type ) {
     value->type = (value->type & 0xFFFFF00) | (type & 0xFF);
 }
 
-static inline void QAJSON4C_set_storage_type( QAJSON4C_Value* value, uint8_t type )
-{
+static inline void QAJ4C_set_storage_type( QAJ4C_Value* value, uint8_t type ) {
     value->type = (value->type & 0xFF00FF) | (((size_type)type) << 8);
 }
 
-static inline void QAJSON4C_set_compatibility_types( QAJSON4C_Value* value, uint8_t type )
-{
+static inline void QAJ4C_set_compatibility_types( QAJ4C_Value* value, uint8_t type ) {
     value->type = (value->type & 0xFFFF) | (((size_type)type) << 16);
 }
 
-static inline void QAJSON4C_add_compatibility_types( QAJSON4C_Value* value, uint8_t type )
-{
+static inline void QAJ4C_add_compatibility_types( QAJ4C_Value* value, uint8_t type ) {
     value->type = value->type | (((size_type)type) << 16);
 }
 
-static inline uint8_t QAJSON4C_get_storage_type( const QAJSON4C_Value* value )
-{
+static inline uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value ) {
     return (value->type >> 8) & 0xFF;
 }
 
-static inline uint8_t QAJSON4C_get_compatibility_types( const QAJSON4C_Value* value )
-{
+static inline uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value ) {
     return (value->type >> 16) & 0xFF;
 }
 
-static void QAJSON4C_builder_validate_buffer( QAJSON4C_Builder* builder );
-static QAJSON4C_Value* QAJSON4C_builder_pop_values( QAJSON4C_Builder* builder, size_type count );
-static QAJSON4C_Member* QAJSON4C_builder_pop_members( QAJSON4C_Builder* builder, size_type count );
-static char* QAJSON4C_builder_pop_string( QAJSON4C_Builder* builder, size_type length );
+static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder );
+static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
+static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
+static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
 
-void QAJSON4C_print_stats() {
-    printf("Sizeof QAJSON4C_Value: %zu\n", sizeof(QAJSON4C_Value));
-    printf("Sizeof QAJSON4C_Member: %zu\n", sizeof(QAJSON4C_Member));
-    printf("Sizeof QAJSON4C_Object: %zu\n", sizeof(QAJSON4C_Object));
-    printf("Sizeof QAJSON4C_Array: %zu\n", sizeof(QAJSON4C_Array));
-    printf("Sizeof QAJSON4C_String: %zu\n", sizeof(QAJSON4C_String));
-    printf("Sizeof QAJSON4C_Short_string: %zu\n", sizeof(QAJSON4C_Short_string));
-    printf("Sizeof QAJSON4C_Primitive: %zu\n", sizeof(QAJSON4C_Primitive));
-    printf("Sizeof QAJSON4C_Error: %zu\n", sizeof(QAJSON4C_Error));
-//    QAJSON4C_Object obj;
-//    QAJSON4C_Array array;
-//    QAJSON4C_String s;
-//    QAJSON4C_Short_string ss;
-//    QAJSON4C_Primitive p;
-//    QAJSON4C_Flag flag;
-//    QAJSON4C_Error err;
-
-
+void QAJ4C_print_stats() {
+    printf("Sizeof QAJ4C_Value: %zu\n", sizeof(QAJ4C_Value));
+    printf("Sizeof QAJ4C_Member: %zu\n", sizeof(QAJ4C_Member));
+    printf("Sizeof QAJ4C_Object: %zu\n", sizeof(QAJ4C_Object));
+    printf("Sizeof QAJ4C_Array: %zu\n", sizeof(QAJ4C_Array));
+    printf("Sizeof QAJ4C_String: %zu\n", sizeof(QAJ4C_String));
+    printf("Sizeof QAJ4C_Short_string: %zu\n", sizeof(QAJ4C_Short_string));
+    printf("Sizeof QAJ4C_Primitive: %zu\n", sizeof(QAJ4C_Primitive));
+    printf("Sizeof QAJ4C_Error: %zu\n", sizeof(QAJ4C_Error));
     printf("Sizeof double: %zu\n", sizeof(double));
     printf("Sizeof int64: %zu\n", sizeof(int64_t));
     printf("Sizeof uint64: %zu\n", sizeof(uint64_t));
-
 }
 
-static QAJSON4C_Document* QAJSON4C_create_error_description( QAJSON4C_Parser* parser ) {
+static QAJ4C_Document* QAJ4C_create_error_description( QAJ4C_Parser* parser ) {
     // not enough space to store error information in buffer...
-    if (parser->buffer_size < sizeof(QAJSON4C_Document) + sizeof(QAJSON4C_Error_information)) {
+    if (parser->buffer_size < sizeof(QAJ4C_Document) + sizeof(QAJ4C_Error_information)) {
         return NULL;
     }
 
-    QAJSON4C_Builder builder;
-    QAJSON4C_builder_init(&builder, parser->buffer, parser->buffer_size);
-    QAJSON4C_Document* document = QAJSON4C_builder_get_document(&builder);
-    QAJSON4C_set_type(&document->root_element, QAJSON4C_ERROR_DESCRIPTION);
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, parser->buffer, parser->buffer_size);
+    QAJ4C_Document* document = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_type(&document->root_element, QAJ4C_ERROR_DESCRIPTION);
 
-    QAJSON4C_Error_information* err_info = (QAJSON4C_Error_information*)(builder.buffer + builder.cur_obj_pos);
+    QAJ4C_Error_information* err_info = (QAJ4C_Error_information*)(builder.buffer + builder.cur_obj_pos);
     err_info->errno = parser->errno;
     err_info->json = parser->json;
     err_info->json_pos = parser->json_pos;
 
-    ((QAJSON4C_Error*)document)->info = err_info;
+    ((QAJ4C_Error*)document)->info = err_info;
 
     return document;
 }
 
-const QAJSON4C_Document* QAJSON4C_parse( const char* json, void* buffer, size_t buffer_size ) {
-    QAJSON4C_Parser parser;
+const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer_size ) {
+    QAJ4C_Parser parser;
     parser.json = json;
     parser.buffer = buffer;
     parser.buffer_size = buffer_size;
     parser.insitu_parsing = false;
 
-    QAJSON4C_parse_first_pass(&parser);
+    QAJ4C_parse_first_pass(&parser);
     // printf("First pass statistics: Structs %u bytes, Strings %u bytes, DOM Values total: %u\n", parser.curr_buffer_pos, parser.curr_buffer_str_pos, parser.amount_elements);
 
     if (parser.error) {
-        return QAJSON4C_create_error_description(&parser);
+        return QAJ4C_create_error_description(&parser);
     }
-    return QAJSON4C_parse_second_pass(&parser);
+    return QAJ4C_parse_second_pass(&parser);
 }
 
-const QAJSON4C_Document* QAJSON4C_parse_insitu( char* json, void* buffer, size_t buffer_size ) {
-    QAJSON4C_Parser parser;
+const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size ) {
+    QAJ4C_Parser parser;
     parser.json = json;
     parser.buffer = buffer;
     parser.buffer_size = buffer_size;
     parser.insitu_parsing = true;
 
-    QAJSON4C_parse_first_pass(&parser);
+    QAJ4C_parse_first_pass(&parser);
     if (parser.error) {
-        return QAJSON4C_create_error_description(&parser);
+        return QAJ4C_create_error_description(&parser);
     }
-    return QAJSON4C_parse_second_pass(&parser);
+    return QAJ4C_parse_second_pass(&parser);
 }
 
-unsigned QAJSON4C_calculate_max_buffer_size( const char* json ) {
-    QAJSON4C_Parser parser;
+unsigned QAJ4C_calculate_max_buffer_size( const char* json ) {
+    QAJ4C_Parser parser;
     parser.json = json;
     parser.buffer = NULL;
     parser.buffer_size = 0;
-    QAJSON4C_parse_first_pass(&parser);
-    return sizeof(QAJSON4C_Document) + (parser.amount_elements) * sizeof(QAJSON4C_Value) + parser.curr_buffer_str_pos;
+    QAJ4C_parse_first_pass(&parser);
+    return sizeof(QAJ4C_Document) + (parser.amount_elements) * sizeof(QAJ4C_Value) + parser.curr_buffer_str_pos;
 }
 
-unsigned QAJSON4C_calculate_max_buffer_size_insitu( const char* json ) {
-    QAJSON4C_Parser parser;
+unsigned QAJ4C_calculate_max_buffer_size_insitu( const char* json ) {
+    QAJ4C_Parser parser;
     parser.json = json;
     parser.buffer = NULL;
     parser.buffer_size = 0;
-    QAJSON4C_parse_first_pass(&parser);
-    return sizeof(QAJSON4C_Document) + parser.amount_elements * sizeof(QAJSON4C_Value);
+    QAJ4C_parse_first_pass(&parser);
+    return sizeof(QAJ4C_Document) + parser.amount_elements * sizeof(QAJ4C_Value);
 }
 
-static void QAJSON4C_first_pass_object( QAJSON4C_Parser* parser, uint8_t depth ) {
+static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth ) {
     if (parser->max_depth < depth) {
         parser->error = true;
-        parser->errno = QAJSON4C_ERROR_DEPTH_OVERFLOW;
+        parser->errno = QAJ4C_ERROR_DEPTH_OVERFLOW;
         return;
     }
     parser->amount_elements++;
@@ -322,33 +302,33 @@ static void QAJSON4C_first_pass_object( QAJSON4C_Parser* parser, uint8_t depth )
     parser->curr_buffer_pos += sizeof(size_type);
     parser->json_pos++; // pass over the { char
     while (!parser->error && parser->json[parser->json_pos] != '}') {
-        QAJSON4C_skip_whitespaces_and_comments(parser);
+        QAJ4C_skip_whitespaces_and_comments(parser);
         if (counter > 0) {
             if (parser->json[parser->json_pos] != ',') {
                 parser->error = true;
-                parser->errno = QAJSON4C_ERROR_ARRAY_MISSING_COMMA;
+                parser->errno = QAJ4C_ERROR_ARRAY_MISSING_COMMA;
                 return;
             }
             parser->json_pos++; // pass over the , char
-            QAJSON4C_skip_whitespaces_and_comments(parser);
+            QAJ4C_skip_whitespaces_and_comments(parser);
         }
         if (parser->json[parser->json_pos] != '}') {
-            QAJSON4C_parse_string(parser, NULL);
+            QAJ4C_parse_string(parser, NULL);
             if (parser->error) {
                 return;
             }
-            QAJSON4C_skip_whitespaces_and_comments(parser);
+            QAJ4C_skip_whitespaces_and_comments(parser);
             if (parser->json[parser->json_pos] != ':') {
                 parser->error = true;
-                parser->errno = QAJSON4C_ERROR_OBJECT_MISSING_COLON;
+                parser->errno = QAJ4C_ERROR_OBJECT_MISSING_COLON;
                 return;
             }
             parser->json_pos++; // pass over the : char
-            QAJSON4C_skip_whitespaces_and_comments(parser);
-            QAJSON4C_first_pass_process(parser, depth + 1);
+            QAJ4C_skip_whitespaces_and_comments(parser);
+            QAJ4C_first_pass_process(parser, depth + 1);
             counter++;
         }
-        QAJSON4C_skip_whitespaces_and_comments(parser);
+        QAJ4C_skip_whitespaces_and_comments(parser);
     }
     parser->json_pos++; // pass over the } char
     if (parser->buffer != NULL) {
@@ -356,10 +336,10 @@ static void QAJSON4C_first_pass_object( QAJSON4C_Parser* parser, uint8_t depth )
     }
 }
 
-static void QAJSON4C_first_pass_array( QAJSON4C_Parser* parser, uint8_t depth ) {
+static void QAJ4C_first_pass_array( QAJ4C_Parser* parser, uint8_t depth ) {
     if (parser->max_depth < depth) {
         parser->error = true;
-        parser->errno = QAJSON4C_ERROR_DEPTH_OVERFLOW;
+        parser->errno = QAJ4C_ERROR_DEPTH_OVERFLOW;
         return;
     }
     parser->amount_elements++;
@@ -368,21 +348,21 @@ static void QAJSON4C_first_pass_array( QAJSON4C_Parser* parser, uint8_t depth ) 
     parser->curr_buffer_pos += sizeof(size_type);
     parser->json_pos++; // pass over the [ char
     while (!parser->error && parser->json[parser->json_pos] != ']') {
-        QAJSON4C_skip_whitespaces_and_comments(parser);
+        QAJ4C_skip_whitespaces_and_comments(parser);
         if (counter > 0) {
             if (parser->json[parser->json_pos] != ',') {
                 parser->error = true;
-                parser->errno = QAJSON4C_ERROR_ARRAY_MISSING_COMMA;
+                parser->errno = QAJ4C_ERROR_ARRAY_MISSING_COMMA;
                 return;
             }
             parser->json_pos++; // pass over the , char
-            QAJSON4C_skip_whitespaces_and_comments(parser);
+            QAJ4C_skip_whitespaces_and_comments(parser);
         }
         if (parser->json[parser->json_pos] != ']') {
-            QAJSON4C_first_pass_process(parser, depth + 1);
+            QAJ4C_first_pass_process(parser, depth + 1);
             counter++;
         }
-        QAJSON4C_skip_whitespaces_and_comments(parser);
+        QAJ4C_skip_whitespaces_and_comments(parser);
     }
     parser->json_pos++; // pass over the ] char
     if (parser->buffer != NULL) {
@@ -390,7 +370,7 @@ static void QAJSON4C_first_pass_array( QAJSON4C_Parser* parser, uint8_t depth ) 
     }
 }
 
-static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr ) {
+static void QAJ4C_parse_numeric_value( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) {
     parser->amount_elements++;
     bool use_uint = false;
     bool use_int = false;
@@ -412,7 +392,7 @@ static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Valu
 
     if (pos == start_pos) {
         parser->error = true;
-        parser->errno = QAJSON4C_ERROR_INVALID_NUMBER_FORMAT;
+        parser->errno = QAJ4C_ERROR_INVALID_NUMBER_FORMAT;
         return;
     }
 
@@ -438,17 +418,17 @@ static void QAJSON4C_parse_numeric_value( QAJSON4C_Parser* parser, QAJSON4C_Valu
 
     if (result_ptr != NULL) {
         if (use_double) {
-            QAJSON4C_set_double(result_ptr, d_value);
+            QAJ4C_set_double(result_ptr, d_value);
         } else if (use_uint) {
-            QAJSON4C_set_uint64(result_ptr, u_value);
+            QAJ4C_set_uint64(result_ptr, u_value);
         } else if (use_int) {
-            QAJSON4C_set_int64(result_ptr, i_value);
+            QAJ4C_set_int64(result_ptr, i_value);
         }
     }
     parser->json_pos += pos - start_pos;
 }
 
-static void QAJSON4C_skip_whitespaces_and_comments( QAJSON4C_Parser* parser ) {
+static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Parser* parser ) {
     bool skipping = true;
     bool in_comment = false;
     while (skipping && parser->json[parser->json_pos] != '\0') {
@@ -482,186 +462,175 @@ static void QAJSON4C_skip_whitespaces_and_comments( QAJSON4C_Parser* parser ) {
     }
 }
 
-
-static void QAJSON4C_parse_constant(QAJSON4C_Parser* parser, QAJSON4C_Value* result)
-{
-	parser->amount_elements++;
-	const char* value_ptr = &parser->json[parser->json_pos];
-	if (strncmp(QAJSON4C_NULL_STR, value_ptr, QAJSON4C_NULL_STR_LEN-1) == 0) {
-		if (result != NULL) {
-		    QAJSON4C_set_type(result, QAJSON4C_NULL);
-		}
-		parser->json_pos += QAJSON4C_NULL_STR_LEN-1;
-	} else if (strncmp(QAJSON4C_FALSE_STR, value_ptr, QAJSON4C_FALSE_STR_LEN - 1) == 0
-			|| strncmp(QAJSON4C_TRUE_STR, value_ptr, QAJSON4C_TRUE_STR_LEN -1) == 0) {
-		bool constant_value = strncmp(QAJSON4C_TRUE_STR, value_ptr, QAJSON4C_TRUE_STR_LEN - 1) == 0;
-		if (result != NULL) {
-		    QAJSON4C_set_bool(result, constant_value);
-		}
-		if( constant_value )
-		{
-			parser->json_pos += QAJSON4C_TRUE_STR_LEN-1;
-		}
-		else
-		{
-			parser->json_pos += QAJSON4C_FALSE_STR_LEN-1;
-		}
-	} else {
-		parser->error = true;
-		parser->errno = QAJSON4C_ERROR_UNEXPECTED_CHAR;
-	}
+static void QAJ4C_parse_constant( QAJ4C_Parser* parser, QAJ4C_Value* result ) {
+    parser->amount_elements++;
+    const char* value_ptr = &parser->json[parser->json_pos];
+    if (strncmp(QAJ4C_NULL_STR, value_ptr, QAJ4C_NULL_STR_LEN - 1) == 0) {
+        if (result != NULL) {
+            QAJ4C_set_type(result, QAJ4C_NULL);
+        }
+        parser->json_pos += QAJ4C_NULL_STR_LEN - 1;
+    } else if (strncmp(QAJ4C_FALSE_STR, value_ptr, QAJ4C_FALSE_STR_LEN - 1) == 0
+            || strncmp(QAJ4C_TRUE_STR, value_ptr, QAJ4C_TRUE_STR_LEN - 1) == 0) {
+        bool constant_value = strncmp(QAJ4C_TRUE_STR, value_ptr, QAJ4C_TRUE_STR_LEN - 1) == 0;
+        if (result != NULL) {
+            QAJ4C_set_bool(result, constant_value);
+        }
+        if (constant_value) {
+            parser->json_pos += QAJ4C_TRUE_STR_LEN - 1;
+        } else {
+            parser->json_pos += QAJ4C_FALSE_STR_LEN - 1;
+        }
+    } else {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_UNEXPECTED_CHAR;
+    }
 }
 
-static void QAJSON4C_parse_array(QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr) {
-	if (parser->json[parser->json_pos] != '[') {
-		parser->error = true;
-		parser->errno = QAJSON4C_ERROR_UNEXPECTED_CHAR;
-		return;
-	}
-	size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
-	parser->curr_buffer_pos += sizeof(size_type);
+static void QAJ4C_parse_array( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) {
+    if (parser->json[parser->json_pos] != '[') {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_UNEXPECTED_CHAR;
+        return;
+    }
+    size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
+    parser->curr_buffer_pos += sizeof(size_type);
 
-	// printf("Array has %d elements\n", elements);
+    // printf("Array has %d elements\n", elements);
 
-	QAJSON4C_set_array(result_ptr, elements, parser->builder);
-	QAJSON4C_Value* top = ((QAJSON4C_Array*)result_ptr)->top;
+    QAJ4C_set_array(result_ptr, elements, parser->builder);
+    QAJ4C_Value* top = ((QAJ4C_Array*)result_ptr)->top;
 
-	parser->json_pos++; // pass over the [ char
-	for (size_type index = 0; index < elements; index++) {
-		QAJSON4C_skip_whitespaces_and_comments(parser);
-		if(parser->json[parser->json_pos] == ',') {
-			parser->json_pos++;
-			QAJSON4C_skip_whitespaces_and_comments(parser);
-		}
-		QAJSON4C_second_pass_process(parser, &top[index]);
-	}
-	QAJSON4C_skip_whitespaces_and_comments(parser);
+    parser->json_pos++; // pass over the [ char
+    for (size_type index = 0; index < elements; index++) {
+        QAJ4C_skip_whitespaces_and_comments(parser);
+        if (parser->json[parser->json_pos] == ',') {
+            parser->json_pos++;
+            QAJ4C_skip_whitespaces_and_comments(parser);
+        }
+        QAJ4C_second_pass_process(parser, &top[index]);
+    }
+    QAJ4C_skip_whitespaces_and_comments(parser);
 
-	// pass over a trailing , if available
-	if( parser->json[parser->json_pos] == ',') {
-		parser->json_pos++;
-	    QAJSON4C_skip_whitespaces_and_comments(parser);
-	}
-	parser->json_pos++; // pass over the ] char
+    // pass over a trailing , if available
+    if (parser->json[parser->json_pos] == ',') {
+        parser->json_pos++;
+        QAJ4C_skip_whitespaces_and_comments(parser);
+    }
+    parser->json_pos++; // pass over the ] char
 
 }
 
-static void QAJSON4C_parse_object(QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr) {
-	if (parser->json[parser->json_pos] != '{') {
-		parser->error = true;
-		parser->errno = QAJSON4C_ERROR_UNEXPECTED_CHAR;
-		return;
-	}
+static void QAJ4C_parse_object( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) {
+    if (parser->json[parser->json_pos] != '{') {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_UNEXPECTED_CHAR;
+        return;
+    }
 
-	// FIXME: implement a pop() method.
-	size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
-	parser->curr_buffer_pos += sizeof(size_type);
-	// printf("Object has %d elements\n", elements);
+    // FIXME: implement a pop() method.
+    size_type elements = *((size_type*)&parser->buffer[parser->curr_buffer_pos]);
+    parser->curr_buffer_pos += sizeof(size_type);
+    // printf("Object has %d elements\n", elements);
 
-	QAJSON4C_set_object(result_ptr, elements, parser->builder);
-	QAJSON4C_Member* top = ((QAJSON4C_Object*)result_ptr)->top;
+    QAJ4C_set_object(result_ptr, elements, parser->builder);
+    QAJ4C_Member* top = ((QAJ4C_Object*)result_ptr)->top;
 
-	parser->json_pos++; // pass over the { char
+    parser->json_pos++; // pass over the { char
 
-	for (size_type index = 0; index < elements; index++) {
-		QAJSON4C_skip_whitespaces_and_comments(parser);
-		if(parser->json[parser->json_pos] == ',') {
-			parser->json_pos++;
-			QAJSON4C_skip_whitespaces_and_comments(parser);
-		}
-		QAJSON4C_parse_string(parser, &top[index].key);
-		QAJSON4C_skip_whitespaces_and_comments(parser);
-		parser->json_pos++; // pass over the :
-		QAJSON4C_skip_whitespaces_and_comments(parser);
-		QAJSON4C_second_pass_process(parser, &top[index].value);
-	}
-	QAJSON4C_skip_whitespaces_and_comments(parser);
-	// pass over a trailing , if available
-	if( parser->json[parser->json_pos] == ',') {
-		parser->json_pos++;
-	    QAJSON4C_skip_whitespaces_and_comments(parser);
-	}
+    for (size_type index = 0; index < elements; index++) {
+        QAJ4C_skip_whitespaces_and_comments(parser);
+        if (parser->json[parser->json_pos] == ',') {
+            parser->json_pos++;
+            QAJ4C_skip_whitespaces_and_comments(parser);
+        }
+        QAJ4C_parse_string(parser, &top[index].key);
+        QAJ4C_skip_whitespaces_and_comments(parser);
+        parser->json_pos++; // pass over the :
+        QAJ4C_skip_whitespaces_and_comments(parser);
+        QAJ4C_second_pass_process(parser, &top[index].value);
+    }
+    QAJ4C_skip_whitespaces_and_comments(parser);
+    // pass over a trailing , if available
+    if (parser->json[parser->json_pos] == ',') {
+        parser->json_pos++;
+        QAJ4C_skip_whitespaces_and_comments(parser);
+    }
 
-	parser->json_pos++; // pass over the } char
+    parser->json_pos++; // pass over the } char
 }
 
 /**
  * This method analyzes a string and moves the json_pos index to the character after
  * the ending ".
  */
-static void QAJSON4C_parse_string(QAJSON4C_Parser* parser, QAJSON4C_Value* value) {
-	if (parser->json[parser->json_pos] != '"') {
-		parser->error = true;
-		parser->errno = QAJSON4C_ERROR_INVALID_STRING_START;
-		return;
-	}
-	parser->amount_elements++;
-	parser->json_pos++; // move to first char in string
-	size_type prev_pos = parser->json_pos;
-	bool escape_char = false;
-	bool in_string = true;
-	// process until end of string and return the string size
-	while (in_string && parser->json[parser->json_pos] != '\0') {
-		if (!escape_char) {
-			switch (parser->json[parser->json_pos]) {
-			case '\\':
-				escape_char = true;
-				break;
-			case '"':
-				in_string = false;
-				break;
-			default:
-				break;
-			}
-		} else {
-			escape_char = false;
-		}
-		parser->json_pos++;
-	}
+static void QAJ4C_parse_string( QAJ4C_Parser* parser, QAJ4C_Value* value ) {
+    if (parser->json[parser->json_pos] != '"') {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_INVALID_STRING_START;
+        return;
+    }
+    parser->amount_elements++;
+    parser->json_pos++; // move to first char in string
+    size_type prev_pos = parser->json_pos;
+    bool escape_char = false;
+    bool in_string = true;
+    // process until end of string and return the string size
+    while (in_string && parser->json[parser->json_pos] != '\0') {
+        if (!escape_char) {
+            switch (parser->json[parser->json_pos]) {
+            case '\\':
+                escape_char = true;
+                break;
+            case '"':
+                in_string = false;
+                break;
+            default:
+                break;
+            }
+        } else {
+            escape_char = false;
+        }
+        parser->json_pos++;
+    }
 
-	if (in_string) {
-		parser->error = true;
-		parser->errno = QAJSON4C_ERROR_BUFFER_TRUNCATED;
-	} else {
-		size_type size = parser->json_pos - prev_pos - 1;
-		if ( value != NULL ) {
-			if ( parser->insitu_parsing ) {
-				char* insitu_string = (char*)parser->json;
-				insitu_string[parser->json_pos - 1] = '\0';
-			    QAJSON4C_set_string(value, &parser->json[prev_pos], .ref=true, .len=size);
-			} else {
-				if (size == 0) { // special case, else it would trigger auto-size detection!
-	                QAJSON4C_set_string(value, "", .builder=parser->builder);
-				} else {
-	                QAJSON4C_set_string(value, &parser->json[prev_pos], .builder=parser->builder, size);
-				}
-			}
-		} else if (size > INLINE_STRING_SIZE) {
-			// the determined string size + '\0'
-			parser->curr_buffer_str_pos += size + 1;
-		}
-	}
-
-	// we have already proceed the " character within the while loop
+    if (in_string) {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_BUFFER_TRUNCATED;
+    } else {
+        size_type size = parser->json_pos - prev_pos - 1;
+        if (value != NULL) {
+            if (parser->insitu_parsing) {
+                char* insitu_string = (char*)parser->json;
+                insitu_string[parser->json_pos - 1] = '\0';
+                QAJ4C_set_string_ref2(value, &parser->json[prev_pos], size);
+            } else {
+			    QAJ4C_set_string_copy2(value, parser->builder, &parser->json[prev_pos], size);
+            }
+        } else if (size > INLINE_STRING_SIZE) {
+            // the determined string size + '\0'
+            parser->curr_buffer_str_pos += size + 1;
+        }
+    }
+    // we have already proceed the " character within the while loop
 }
 
-static void QAJSON4C_first_pass_process(QAJSON4C_Parser* parser, uint8_t depth)
-{
-    QAJSON4C_skip_whitespaces_and_comments(parser);
+static void QAJ4C_first_pass_process( QAJ4C_Parser* parser, uint8_t depth ) {
+    QAJ4C_skip_whitespaces_and_comments(parser);
     switch (parser->json[parser->json_pos]) {
     case '\0':
         parser->error = true;
-        parser->errno = QAJSON4C_ERROR_BUFFER_TRUNCATED;
+        parser->errno = QAJ4C_ERROR_BUFFER_TRUNCATED;
         break;
     case '{':
-       QAJSON4C_first_pass_object(parser, depth);
-       break;
+        QAJ4C_first_pass_object(parser, depth);
+        break;
     case '[':
-       QAJSON4C_first_pass_array(parser, depth);
-       break;
+        QAJ4C_first_pass_array(parser, depth);
+        break;
     case '"':
-       QAJSON4C_parse_string(parser, NULL);
-       break;
+        QAJ4C_parse_string(parser, NULL);
+        break;
     case '-':
     case '0':
     case '1':
@@ -673,49 +642,47 @@ static void QAJSON4C_first_pass_process(QAJSON4C_Parser* parser, uint8_t depth)
     case '7':
     case '8':
     case '9':
-       QAJSON4C_parse_numeric_value(parser, NULL);
-       break;
+        QAJ4C_parse_numeric_value(parser, NULL);
+        break;
     case 't':
     case 'f':
     case 'n':
-       QAJSON4C_parse_constant(parser, NULL);
-       break;
-	}
+        QAJ4C_parse_constant(parser, NULL);
+        break;
+    }
 }
 
+static void QAJ4C_parse_first_pass( QAJ4C_Parser* parser ) {
+    // strategy. Walk through the json message and create counters how many members the detected arrays/objects have.
+    // additionally count how many "memory" is required to store the DOM (exclusive and inclusive the strings).
+    // With this information we can reserve the correct amount of memory for each object at once ...
+    // the data should be stored on the end of the DOM "space" so it will be overridden by the DOM elements and thus
+    // will not require additional memory.
+    parser->json_pos = 0;
+    parser->curr_buffer_pos = 0;
+    parser->curr_buffer_str_pos = 0;
+    parser->max_depth = 32;
+    parser->error = false;
+    parser->errno = 0;
+    parser->amount_elements = 0;
 
-static void QAJSON4C_parse_first_pass(QAJSON4C_Parser* parser) {
-	// strategy. Walk through the json message and create counters how many members the detected arrays/objects have.
-	// additionally count how many "memory" is required to store the DOM (exclusive and inclusive the strings).
-	// With this information we can reserve the correct amount of memory for each object at once ...
-	// the data should be stored on the end of the DOM "space" so it will be overridden by the DOM elements and thus
-	// will not require additional memory.
-	parser->json_pos = 0;
-	parser->curr_buffer_pos = 0;
-	parser->curr_buffer_str_pos = 0;
-	parser->max_depth = 32;
-	parser->error = false;
-	parser->errno = 0;
-	parser->amount_elements = 0;
-
-	QAJSON4C_first_pass_process(parser, 0);
-	if (!parser->error) {
-		// skip whitespaces and comments
-		QAJSON4C_skip_whitespaces_and_comments(parser);
-		if (parser->json[parser->json_pos] != '\0') {
-			parser->error = true;
-			parser->errno = QAJSON4C_ERROR_UNEXPECTED_JSON_APPENDIX;
-		}
-	}
+    QAJ4C_first_pass_process(parser, 0);
+    if (!parser->error) {
+        // skip whitespaces and comments
+        QAJ4C_skip_whitespaces_and_comments(parser);
+        if (parser->json[parser->json_pos] != '\0') {
+            parser->error = true;
+            parser->errno = QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX;
+        }
+    }
 }
 
-static QAJSON4C_Document* QAJSON4C_parse_second_pass(QAJSON4C_Parser* parser) {
-	// prepare the layout and already create the document element!
-	// then call the second_pass_process method
+static QAJ4C_Document* QAJ4C_parse_second_pass( QAJ4C_Parser* parser ) {
+    // prepare the layout and already create the document element!
+    // then call the second_pass_process method
 
-	if (parser->curr_buffer_pos > 0 )
-	{
-		size_type required_object_storage = sizeof(QAJSON4C_Document) + parser->amount_elements * sizeof(QAJSON4C_Value);
+    if (parser->curr_buffer_pos > 0) {
+		size_type required_object_storage = sizeof(QAJ4C_Document) + parser->amount_elements * sizeof(QAJ4C_Value);
 		size_type required_tempoary_storage = parser->curr_buffer_pos + sizeof(size_type);
         size_type copy_to_index = required_object_storage - required_tempoary_storage;
 
@@ -731,95 +698,94 @@ static QAJSON4C_Document* QAJSON4C_parse_second_pass(QAJSON4C_Parser* parser) {
 		// pass, the data is moved to the end of the required_object_storage. This will cause the last
 		// object to be the first that will override its own valuable information. But at a moment where
 		// the data is safe to override!
-		memmove(parser->buffer + copy_to_index, parser->buffer, required_tempoary_storage);
-		parser->curr_buffer_pos = copy_to_index;
-	}
-	// QAJSON4C_second_pass_process
-	parser->json_pos = 0;
-	parser->amount_elements = 0;
+        memmove(parser->buffer + copy_to_index, parser->buffer, required_tempoary_storage);
+        parser->curr_buffer_pos = copy_to_index;
+    }
+    // QAJ4C_second_pass_process
+    parser->json_pos = 0;
+    parser->amount_elements = 0;
 
-	QAJSON4C_Builder builder;
-	QAJSON4C_builder_init(&builder, parser->buffer, parser->buffer_size);
-	parser->builder = &builder;
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, parser->buffer, parser->buffer_size);
+    parser->builder = &builder;
 
-	QAJSON4C_Document* document = QAJSON4C_builder_get_document(&builder);
+    QAJ4C_Document* document = QAJ4C_builder_get_document(&builder);
 
-	QAJSON4C_second_pass_process(parser, &document->root_element);
+    QAJ4C_second_pass_process(parser, &document->root_element);
 
-	// printf("Statistics object-stack-index: %lu, string-heap-index %lu\n", builder.cur_obj_pos, builder.cur_str_pos);
-	return document;
+    // printf("Statistics object-stack-index: %lu, string-heap-index %lu\n", builder.cur_obj_pos, builder.cur_str_pos);
+    return document;
 }
 
-size_t QAJSON4C_sprint(const QAJSON4C_Document* document, char* buffer, size_t buffer_size)
-{
-	size_t index = QAJSON4C_print_value(&document->root_element, buffer, buffer_size, 0);
-	buffer[index] = '\0';
-	return index;
+size_t QAJ4C_sprint( const QAJ4C_Document* document, char* buffer, size_t buffer_size ) {
+    size_t index = QAJ4C_print_value(&document->root_element, buffer, buffer_size, 0);
+    buffer[index] = '\0';
+    return index;
 }
 
-static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, size_t buffer_size, size_t index ) {
+static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t buffer_size, size_t index ) {
     // FIXME: prevent a buffer overflow by checking buffer_size!
-    switch (QAJSON4C_get_type(value)) {
-    case QAJSON4C_OBJECT: {
-        QAJSON4C_Member* top = ((QAJSON4C_Object*)value)->top;
+    switch (QAJ4C_get_type(value)) {
+    case QAJ4C_OBJECT: {
+        QAJ4C_Member* top = ((QAJ4C_Object*)value)->top;
         index += snprintf(buffer + index, buffer_size - index, "{");
-        for (size_type i = 0; i < ((QAJSON4C_Object*)value)->count; i++) {
-            if (!QAJSON4C_is_null(&top[i].key)) {
+        for (size_type i = 0; i < ((QAJ4C_Object*)value)->count; i++) {
+            if (!QAJ4C_is_null(&top[i].key)) {
                 if (i > 0) {
                     index += snprintf(buffer + index, buffer_size - index, ",");
                 }
 
-                index = QAJSON4C_print_value(&top[i].key, buffer, buffer_size, index);
+                index = QAJ4C_print_value(&top[i].key, buffer, buffer_size, index);
                 index += snprintf(buffer + index, buffer_size - index, ":");
-                index = QAJSON4C_print_value(&top[i].value, buffer, buffer_size, index);
+                index = QAJ4C_print_value(&top[i].value, buffer, buffer_size, index);
             }
         }
         index += snprintf(buffer + index, buffer_size - index, "}");
         break;
     }
-    case QAJSON4C_ARRAY: {
-        QAJSON4C_Value* top = ((QAJSON4C_Array*)value)->top;
+    case QAJ4C_ARRAY: {
+        QAJ4C_Value* top = ((QAJ4C_Array*)value)->top;
         index += snprintf(buffer + index, buffer_size - index, "[");
-        for (size_type i = 0; i < ((QAJSON4C_Array*)value)->count; i++) {
+        for (size_type i = 0; i < ((QAJ4C_Array*)value)->count; i++) {
             if (i > 0) {
                 index += snprintf(buffer + index, buffer_size - index, ",");
             }
-            index = QAJSON4C_print_value(&top[i], buffer, buffer_size, index);
+            index = QAJ4C_print_value(&top[i], buffer, buffer_size, index);
         }
         index += snprintf(buffer + index, buffer_size - index, "]");
         break;
     }
-    case QAJSON4C_PRIMITIVE: {
-        switch (QAJSON4C_get_storage_type(value)) {
-        case QAJSON4C_PRIMITIVE_BOOL:
-            index += snprintf(buffer + index, buffer_size - index, "%s", ((QAJSON4C_Primitive*)value)->data.b ? "true" : "false");
+    case QAJ4C_PRIMITIVE: {
+        switch (QAJ4C_get_storage_type(value)) {
+        case QAJ4C_PRIMITIVE_BOOL:
+            index += snprintf(buffer + index, buffer_size - index, "%s", ((QAJ4C_Primitive*)value)->data.b ? "true" : "false");
             break;
-        case QAJSON4C_PRIMITIVE_INT:
-        case QAJSON4C_PRIMITIVE_INT64:
-            index += snprintf(buffer + index, buffer_size - index, "%jd", ((QAJSON4C_Primitive*)value)->data.i);
+        case QAJ4C_PRIMITIVE_INT:
+        case QAJ4C_PRIMITIVE_INT64:
+            index += snprintf(buffer + index, buffer_size - index, "%jd", ((QAJ4C_Primitive*)value)->data.i);
             break;
-        case QAJSON4C_PRIMITIVE_UINT:
-        case QAJSON4C_PRIMITIVE_UINT64:
-            index += snprintf(buffer + index, buffer_size - index, "%ju", ((QAJSON4C_Primitive*)value)->data.u);
+        case QAJ4C_PRIMITIVE_UINT:
+        case QAJ4C_PRIMITIVE_UINT64:
+            index += snprintf(buffer + index, buffer_size - index, "%ju", ((QAJ4C_Primitive*)value)->data.u);
             break;
-        case QAJSON4C_PRIMITIVE_DOUBLE:
-            index += snprintf(buffer + index, buffer_size - index, "%f", ((QAJSON4C_Primitive*)value)->data.d);
+        case QAJ4C_PRIMITIVE_DOUBLE:
+            index += snprintf(buffer + index, buffer_size - index, "%f", ((QAJ4C_Primitive*)value)->data.d);
             break;
         default:
             assert(false);
         }
         break;
     }
-    case QAJSON4C_NULL: {
-        index += snprintf(buffer + index, buffer_size - index, QAJSON4C_NULL_STR);
+    case QAJ4C_NULL: {
+        index += snprintf(buffer + index, buffer_size - index, QAJ4C_NULL_STR);
         break;
     }
-    case QAJSON4C_INLINE_STRING:
-    case QAJSON4C_STRING: {
+    case QAJ4C_INLINE_STRING:
+    case QAJ4C_STRING: {
         if (index < buffer_size) {
             buffer[index++] = '"';
         }
-    	const char* base = QAJSON4C_get_string(value);
+    	const char* base = QAJ4C_get_string(value);
     	// FIXME: use the stored string length instead of the strlen function.
     	for( size_type i = 0; i < strlen(base) && index < buffer_size; i++) {
     		if ( base[i] == '"') {
@@ -838,21 +804,18 @@ static size_t QAJSON4C_print_value( const QAJSON4C_Value* value, char* buffer, s
     return index;
 }
 
-
-
-static void QAJSON4C_second_pass_process(QAJSON4C_Parser* parser, QAJSON4C_Value* result_ptr)
-{
-	QAJSON4C_skip_whitespaces_and_comments(parser);
-	switch (parser->json[parser->json_pos]) {
+static void QAJ4C_second_pass_process( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) {
+    QAJ4C_skip_whitespaces_and_comments(parser);
+    switch (parser->json[parser->json_pos]) {
     case '{':
-       QAJSON4C_parse_object(parser, result_ptr);
-       break;
+        QAJ4C_parse_object(parser, result_ptr);
+        break;
     case '[':
-       QAJSON4C_parse_array(parser, result_ptr);
-       break;
+        QAJ4C_parse_array(parser, result_ptr);
+        break;
     case '"':
-       QAJSON4C_parse_string(parser, result_ptr);
-       break;
+        QAJ4C_parse_string(parser, result_ptr);
+        break;
     case '-':
     case '0':
     case '1':
@@ -864,395 +827,389 @@ static void QAJSON4C_second_pass_process(QAJSON4C_Parser* parser, QAJSON4C_Value
     case '7':
     case '8':
     case '9':
-       QAJSON4C_parse_numeric_value(parser, result_ptr);
-       break;
+        QAJ4C_parse_numeric_value(parser, result_ptr);
+        break;
     case 't':
     case 'f':
     case 'n':
-       QAJSON4C_parse_constant(parser, result_ptr);
-       break;
-	}
-
+        QAJ4C_parse_constant(parser, result_ptr);
+        break;
+    }
 }
 
+static int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
+    // first on string-length
+    size_type lhs_size = QAJ4C_get_string_length(lhs);
+    size_type rhs_size = QAJ4C_get_string_length(rhs);
+    if (lhs_size != rhs_size) {
+        return lhs_size - rhs_size;
+    }
+    const char* lhs_string = QAJ4C_get_string(lhs);
+    const char* rhs_string = QAJ4C_get_string(rhs);
 
-static int QAJSON4C_strcmp( const QAJSON4C_Value* lhs, const QAJSON4C_Value* rhs ) {
-	// first on string-length
-	size_type lhs_size = QAJSON4C_get_string_length(lhs);
-	size_type rhs_size = QAJSON4C_get_string_length(rhs);
-	if (lhs_size != rhs_size) {
-		return lhs_size - rhs_size;
-	}
-	const char* lhs_string = QAJSON4C_get_string(lhs);
-	const char* rhs_string = QAJSON4C_get_string(rhs);
-
-	for (size_type i = 0; i < lhs_size; ++i) {
-		if (lhs_string[i] != rhs_string[i]) {
-			return lhs_string[i] - rhs_string[i];
-		}
-	}
-	return 0;
+    for (size_type i = 0; i < lhs_size; ++i) {
+        if (lhs_string[i] != rhs_string[i]) {
+            return lhs_string[i] - rhs_string[i];
+        }
+    }
+    return 0;
 }
 
-static bool QAJSON4C_is_primitive( const QAJSON4C_Value* value)
-{
-	return value != NULL && QAJSON4C_get_type(value) == QAJSON4C_PRIMITIVE;
+static bool QAJ4C_is_primitive( const QAJ4C_Value* value ) {
+    return value != NULL && QAJ4C_get_type(value) == QAJ4C_PRIMITIVE;
 }
 
 /**
  * Getter and setter
  */
 
-const QAJSON4C_Value* QAJSON4C_get_root_value(const QAJSON4C_Document* document) {
-	return &document->root_element;
+const QAJ4C_Value* QAJ4C_get_root_value( const QAJ4C_Document* document ) {
+    return &document->root_element;
 }
 
-QAJSON4C_Value* QAJSON4C_get_root_value_rw(QAJSON4C_Document* document) {
-	return &document->root_element;
+QAJ4C_Value* QAJ4C_get_root_value_rw( QAJ4C_Document* document ) {
+    return &document->root_element;
 }
 
-bool QAJSON4C_is_string(const QAJSON4C_Value* value) {
-	return value != NULL && (QAJSON4C_get_type(value) == QAJSON4C_INLINE_STRING || QAJSON4C_get_type(value) == QAJSON4C_STRING);
+bool QAJ4C_is_string( const QAJ4C_Value* value ) {
+    return value != NULL && (QAJ4C_get_type(value) == QAJ4C_INLINE_STRING || QAJ4C_get_type(value) == QAJ4C_STRING);
 }
 
-const char* QAJSON4C_get_string(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_string(value));
-	if( QAJSON4C_get_type(value) == QAJSON4C_INLINE_STRING) {
-		return ((QAJSON4C_Short_string*)value)->s;
-	}
-	return ((QAJSON4C_String*)value)->s;
+const char* QAJ4C_get_string( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_string(value));
+    if (QAJ4C_get_type(value) == QAJ4C_INLINE_STRING) {
+        return ((QAJ4C_Short_string*)value)->s;
+    }
+    return ((QAJ4C_String*)value)->s;
 }
 
-unsigned QAJSON4C_get_string_length(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_string(value));
-	if( QAJSON4C_get_type(value) == QAJSON4C_INLINE_STRING) {
-		return ((QAJSON4C_Short_string*)value)->count;
-	}
-	return ((QAJSON4C_String*)value)->count;
+unsigned QAJ4C_get_string_length( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_string(value));
+    if (QAJ4C_get_type(value) == QAJ4C_INLINE_STRING) {
+        return ((QAJ4C_Short_string*)value)->count;
+    }
+    return ((QAJ4C_String*)value)->count;
 }
 
-bool QAJSON4C_string_equals_var( const QAJSON4C_Value* value, string_cmp_args args ) {
-    return QAJSON4C_string_cmp_var(value, args) == 0;
-}
-
-int QAJSON4C_string_cmp_var( const QAJSON4C_Value* value, string_cmp_args args ) {
-    assert(QAJSON4C_is_string(value));
+int QAJ4C_string_cmp2( const QAJ4C_Value* value, const char* str, size_t len ) {
+    assert(QAJ4C_is_string(value));
     // TODO: optimize this for performance?
-    QAJSON4C_Value wrapper_value;
-    QAJSON4C_set_string(&wrapper_value, .str = args.str, .ref=true, .len = args.len);
-    return QAJSON4C_strcmp(value, &wrapper_value);
+    QAJ4C_Value wrapper_value;
+    QAJ4C_set_string_ref2(&wrapper_value, str, len);
+    return QAJ4C_strcmp(value, &wrapper_value);
 }
 
-bool QAJSON4C_is_object(const QAJSON4C_Value* value) {
-	return value != NULL && QAJSON4C_get_type(value) == QAJSON4C_OBJECT;
+bool QAJ4C_is_object( const QAJ4C_Value* value ) {
+    return value != NULL && QAJ4C_get_type(value) == QAJ4C_OBJECT;
 }
 
-bool QAJSON4C_is_array(const QAJSON4C_Value* value) {
-	return value != NULL && QAJSON4C_get_type(value) == QAJSON4C_ARRAY;
+bool QAJ4C_is_array( const QAJ4C_Value* value ) {
+    return value != NULL && QAJ4C_get_type(value) == QAJ4C_ARRAY;
 }
 
-bool QAJSON4C_is_int(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_INT) != 0;
+bool QAJ4C_is_int( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_INT) != 0;
 }
 
-bool QAJSON4C_is_int64(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_INT64) != 0;
+bool QAJ4C_is_int64( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_INT64) != 0;
 }
 
-bool QAJSON4C_is_uint(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_UINT) != 0;
+bool QAJ4C_is_uint( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_UINT) != 0;
 }
 
-bool QAJSON4C_is_uint64(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_UINT64) != 0;
+bool QAJ4C_is_uint64( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_UINT64) != 0;
 }
 
-bool QAJSON4C_is_real(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_DOUBLE) != 0;
+bool QAJ4C_is_real( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_DOUBLE) != 0;
 }
 
-bool QAJSON4C_is_bool(const QAJSON4C_Value* value) {
-   return QAJSON4C_is_primitive(value) && (QAJSON4C_get_compatibility_types(value) & QAJSON4C_PRIMITIVE_BOOL) != 0;
+bool QAJ4C_is_bool( const QAJ4C_Value* value ) {
+    return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_BOOL) != 0;
 }
 
-int32_t QAJSON4C_get_int(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_int(value));
-	return (int32_t)((QAJSON4C_Primitive*)value)->data.i;
+int32_t QAJ4C_get_int( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_int(value));
+    return (int32_t)((QAJ4C_Primitive*)value)->data.i;
 }
 
-uint32_t QAJSON4C_get_uint(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_uint(value));
-	return (uint32_t)((QAJSON4C_Primitive*)value)->data.u;
+uint32_t QAJ4C_get_uint( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_uint(value));
+    return (uint32_t)((QAJ4C_Primitive*)value)->data.u;
 }
 
-double QAJSON4C_get_real(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_real(value));
-    switch (QAJSON4C_get_storage_type(value))
-	{
-	case QAJSON4C_PRIMITIVE_INT:
-	case QAJSON4C_PRIMITIVE_INT64:
-		return (double)((QAJSON4C_Primitive*)value)->data.i;
-	case QAJSON4C_PRIMITIVE_UINT:
-	case QAJSON4C_PRIMITIVE_UINT64:
-      return (double)((QAJSON4C_Primitive*)value)->data.u;
-	}
-	return ((QAJSON4C_Primitive*)value)->data.d;
+double QAJ4C_get_real( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_real(value));
+    switch (QAJ4C_get_storage_type(value)) {
+    case QAJ4C_PRIMITIVE_INT:
+    case QAJ4C_PRIMITIVE_INT64:
+        return (double)((QAJ4C_Primitive*)value)->data.i;
+    case QAJ4C_PRIMITIVE_UINT:
+    case QAJ4C_PRIMITIVE_UINT64:
+        return (double)((QAJ4C_Primitive*)value)->data.u;
+    }
+    return ((QAJ4C_Primitive*)value)->data.d;
 }
 
-bool QAJSON4C_get_bool(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_bool(value));
-   return ((QAJSON4C_Primitive*)value)->data.b;
+bool QAJ4C_get_bool( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_bool(value));
+    return ((QAJ4C_Primitive*)value)->data.b;
 }
 
-bool QAJSON4C_is_null(const QAJSON4C_Value* value) {
-	return value == NULL || QAJSON4C_get_type(value) == QAJSON4C_NULL;
+bool QAJ4C_is_null( const QAJ4C_Value* value ) {
+    return value == NULL || QAJ4C_get_type(value) == QAJ4C_NULL;
 }
 
-
-bool QAJSON4C_is_error(const QAJSON4C_Value* value) {
-	return value != NULL && QAJSON4C_get_type(value) == QAJSON4C_ERROR_DESCRIPTION;
+bool QAJ4C_is_error( const QAJ4C_Value* value ) {
+    return value != NULL && QAJ4C_get_type(value) == QAJ4C_ERROR_DESCRIPTION;
 }
 
-const char* QAJSON4C_get_json(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_error(value));
-	return ((QAJSON4C_Error*)value)->info->json;
+const char* QAJ4C_get_json( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_error(value));
+    return ((QAJ4C_Error*)value)->info->json;
 }
 
-QAJSON4C_ERROR_CODES QAJSON4C_get_errno(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_error(value));
-	return ((QAJSON4C_Error*)value)->info->errno;
+QAJ4C_ERROR_CODES QAJ4C_get_errno( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_error(value));
+    return ((QAJ4C_Error*)value)->info->errno;
 }
 
-unsigned QAJSON4C_get_json_pos(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_error(value));
-	return ((QAJSON4C_Error*)value)->info->json_pos;
+unsigned QAJ4C_get_json_pos( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_error(value));
+    return ((QAJ4C_Error*)value)->info->json_pos;
 }
 
-unsigned QAJSON4C_object_size(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_object(value));
-	return ((QAJSON4C_Object*)value)->count;
+unsigned QAJ4C_object_size( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_object(value));
+    return ((QAJ4C_Object*)value)->count;
 }
 
-QAJSON4C_Value* QAJSON4C_object_create_member_var(QAJSON4C_Value* value_ptr, string_ref_args args)
-{
-    // FIXME: Optimize this?
-    assert(QAJSON4C_is_object(value_ptr));
-    size_type count = ((QAJSON4C_Object*)value_ptr)->count;
+QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+    assert(QAJ4C_is_object(value_ptr));
+    size_type count = ((QAJ4C_Object*)value_ptr)->count;
     for (size_type i = 0; i < count; ++i) {
-        QAJSON4C_Value* key_value = &((QAJSON4C_Object*)value_ptr)->top[i].key;
-        if (QAJSON4C_is_null(key_value)) {
+        QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
+        if (QAJ4C_is_null(key_value)) {
             // we found some free space to place our ptr
-            QAJSON4C_set_string_var(key_value, args);
-            return &((QAJSON4C_Object*)value_ptr)->top[i].value;
+            QAJ4C_set_string_ref2(key_value, str, len);
+            return &((QAJ4C_Object*)value_ptr)->top[i].value;
         }
     }
     return NULL;
 }
 
-
-const QAJSON4C_Member* QAJSON4C_object_get_member(const QAJSON4C_Value* value, unsigned index) {
-	assert(QAJSON4C_is_object(value));
-    assert(((QAJSON4C_Object*)value)->count > index);
-	return &((QAJSON4C_Object*)value)->top[index];
+QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str, size_t len ) {
+    assert(QAJ4C_is_object(value_ptr));
+    size_type count = ((QAJ4C_Object*)value_ptr)->count;
+    for (size_type i = 0; i < count; ++i) {
+        QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
+        if (QAJ4C_is_null(key_value)) {
+            // we found some free space to place our ptr
+            QAJ4C_set_string_copy2(key_value, builder, str, len);
+            return &((QAJ4C_Object*)value_ptr)->top[i].value;
+        }
+    }
+    return NULL;
 }
 
-const QAJSON4C_Value* QAJSON4C_member_get_key(const QAJSON4C_Member* member) {
-	assert(member != NULL);
-	return &member->key;
+const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value, unsigned index ) {
+    assert(QAJ4C_is_object(value));
+    assert(((QAJ4C_Object* )value)->count > index);
+    return &((QAJ4C_Object*)value)->top[index];
 }
 
-const QAJSON4C_Value* QAJSON4C_member_get_value(const QAJSON4C_Member* member) {
-	assert(member != NULL);
-	return &member->value;
+const QAJ4C_Value* QAJ4C_member_get_key( const QAJ4C_Member* member ) {
+    assert(member != NULL);
+    return &member->key;
 }
 
-const QAJSON4C_Value* QAJSON4C_object_get_var(const QAJSON4C_Value* value, string_cmp_args args) {
-	assert(QAJSON4C_is_object(value));
-	size_type count = ((QAJSON4C_Object*)value)->count;
-
-	QAJSON4C_Value wrapper_value;
-    QAJSON4C_set_string(&wrapper_value, .str = args.str, .ref=true);
-
-	QAJSON4C_Member* entry;
-	for (size_type i = 0; i < count; ++i) {
-		entry = ((QAJSON4C_Object*)value)->top + i;
-		if (QAJSON4C_strcmp(&wrapper_value, &entry->key) == 0) {
-			return &entry->value;
-		}
-	}
-	return NULL; // assert?
+const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
+    assert(member != NULL);
+    return &member->value;
 }
 
-const QAJSON4C_Value* QAJSON4C_array_get(const QAJSON4C_Value* value, unsigned index) {
-	assert(QAJSON4C_is_array(value));
-	assert(((QAJSON4C_Array*)value)->count > index);
-	return ((QAJSON4C_Array*)value)->top + index;
+const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value, const char* str, size_t len ) {
+    assert(QAJ4C_is_object(value));
+    size_type count = ((QAJ4C_Object*)value)->count;
+    QAJ4C_Value wrapper_value;
+    QAJ4C_set_string_ref2(&wrapper_value, str, len);
+
+    QAJ4C_Member* entry;
+    for (size_type i = 0; i < count; ++i) {
+        entry = ((QAJ4C_Object*)value)->top + i;
+        if (QAJ4C_strcmp(&wrapper_value, &entry->key) == 0) {
+            return &entry->value;
+        }
+    }
+    return NULL; // assert?
 }
 
-unsigned QAJSON4C_array_size(const QAJSON4C_Value* value) {
-	assert(QAJSON4C_is_array(value));
-	return ((QAJSON4C_Array*)value)->count;
+const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value, unsigned index ) {
+    assert(QAJ4C_is_array(value));
+    assert(((QAJ4C_Array* )value)->count > index);
+    return ((QAJ4C_Array*)value)->top + index;
+}
+
+unsigned QAJ4C_array_size( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_array(value));
+    return ((QAJ4C_Array*)value)->count;
 }
 
 // Modifications on primitives is quite easy
-void QAJSON4C_set_bool(QAJSON4C_Value* value_ptr, bool value)
-{
-	assert(value_ptr != NULL);
-	QAJSON4C_set_type(value_ptr, QAJSON4C_PRIMITIVE);
-    QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_BOOL);
-    QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_BOOL);
-    ((QAJSON4C_Primitive*)value_ptr)->data.b = value;
+void QAJ4C_set_bool( QAJ4C_Value* value_ptr, bool value ) {
+    assert(value_ptr != NULL);
+    QAJ4C_set_type(value_ptr, QAJ4C_PRIMITIVE);
+    QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_BOOL);
+    QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_BOOL);
+    ((QAJ4C_Primitive*)value_ptr)->data.b = value;
 }
 
-void QAJSON4C_set_int( QAJSON4C_Value* value_ptr, int32_t value ) {
-    QAJSON4C_set_int64(value_ptr, value);
+void QAJ4C_set_int( QAJ4C_Value* value_ptr, int32_t value ) {
+    QAJ4C_set_int64(value_ptr, value);
 }
-void QAJSON4C_set_uint( QAJSON4C_Value* value_ptr, uint32_t value ) {
-    QAJSON4C_set_uint64(value_ptr, value);
+void QAJ4C_set_uint( QAJ4C_Value* value_ptr, uint32_t value ) {
+    QAJ4C_set_uint64(value_ptr, value);
 }
 
-void QAJSON4C_set_int64( QAJSON4C_Value* value_ptr, int64_t value ) {
-    QAJSON4C_set_type(value_ptr, QAJSON4C_PRIMITIVE);
-    ((QAJSON4C_Primitive*)value_ptr)->data.i = value;
+void QAJ4C_set_int64( QAJ4C_Value* value_ptr, int64_t value ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_PRIMITIVE);
+    ((QAJ4C_Primitive*)value_ptr)->data.i = value;
     if (value > INT32_MAX) {
-        QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_INT64);
-        QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_INT64);
+        QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_INT64);
+        QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_INT64);
     } else {
-        QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_INT);
-        QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_INT64 | QAJSON4C_PRIMITIVE_INT);
+        QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_INT);
+        QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_INT);
     }
-    QAJSON4C_add_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_DOUBLE);
+    QAJ4C_add_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_DOUBLE);
 }
 
-void QAJSON4C_set_uint64( QAJSON4C_Value* value_ptr, uint64_t value ) {
-    QAJSON4C_set_type(value_ptr, QAJSON4C_PRIMITIVE);
-    ((QAJSON4C_Primitive*)value_ptr)->data.u = value;
+void QAJ4C_set_uint64( QAJ4C_Value* value_ptr, uint64_t value ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_PRIMITIVE);
+    ((QAJ4C_Primitive*)value_ptr)->data.u = value;
 
     if (value > UINT32_MAX) {
-        QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_UINT64);
-        QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_UINT64);
+        QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_UINT64);
+        QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_UINT64);
     } else {
-        QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_UINT);
-        QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_UINT64 | QAJSON4C_PRIMITIVE_UINT);
+        QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_UINT);
+        QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_UINT64 | QAJ4C_PRIMITIVE_UINT);
     }
     if (value <= INT64_MAX) {
-        QAJSON4C_add_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_INT64);
+        QAJ4C_add_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_INT64);
     }
     if (value <= INT32_MAX) {
-        QAJSON4C_add_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_INT);
+        QAJ4C_add_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_INT);
     }
-    QAJSON4C_add_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_DOUBLE);
+    QAJ4C_add_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_DOUBLE);
 }
 
-void QAJSON4C_set_double( QAJSON4C_Value* value_ptr, double value ) {
-    QAJSON4C_set_type(value_ptr, QAJSON4C_PRIMITIVE);
-    ((QAJSON4C_Primitive*)value_ptr)->data.d = value;
-    QAJSON4C_set_storage_type(value_ptr, QAJSON4C_PRIMITIVE_DOUBLE);
-    QAJSON4C_set_compatibility_types(value_ptr, QAJSON4C_PRIMITIVE_DOUBLE);
+void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_PRIMITIVE);
+    ((QAJ4C_Primitive*)value_ptr)->data.d = value;
+    QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_DOUBLE);
+    QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_DOUBLE);
 }
 
-void QAJSON4C_set_string_var( QAJSON4C_Value* value_ptr, string_ref_args args ) {
-    assert( args.str != NULL );
-    if ( args.len == 0 ) {
-        args.len = strlen( args.str );
-    }
+void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_STRING);
+    ((QAJ4C_String*)value_ptr)->s = str;
+    ((QAJ4C_String*)value_ptr)->count = len;
+}
 
-    // check that in case a copy is requested the builder is specified!
-    assert( args.ref || args.builder != NULL );
-
-    if ( args.len <= INLINE_STRING_SIZE ) {
-        QAJSON4C_set_type(value_ptr, QAJSON4C_INLINE_STRING);
-        ((QAJSON4C_Short_string*)value_ptr)->count = (uint8_t)args.len;
-        memcpy( &((QAJSON4C_Short_string*)value_ptr)->s, args.str, args.len );
-        ((QAJSON4C_Short_string*)value_ptr)->s[args.len] = '\0';
-    } else if ( args.ref ) {
-        QAJSON4C_set_type(value_ptr, QAJSON4C_STRING);
-        ((QAJSON4C_String*)value_ptr)->s = args.str;
-        ((QAJSON4C_String*)value_ptr)->count = args.len;
+void QAJ4C_set_string_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str, size_t len ) {
+    if (len <= INLINE_STRING_SIZE) {
+        QAJ4C_set_type(value_ptr, QAJ4C_INLINE_STRING);
+        ((QAJ4C_Short_string*)value_ptr)->count = (uint8_t)len;
+        memcpy(&((QAJ4C_Short_string*)value_ptr)->s, str, len);
+        ((QAJ4C_Short_string*)value_ptr)->s[len] = '\0';
     } else {
-        QAJSON4C_set_type(value_ptr, QAJSON4C_STRING);
-        ((QAJSON4C_String*)value_ptr)->count = args.len;
-		char* new_string = QAJSON4C_builder_pop_string( args.builder, args.len + 1 );
-		memcpy( new_string, args.str, args.len );
-		((QAJSON4C_String*)value_ptr)->s = new_string;
-		new_string[args.len] = '\0';
+        QAJ4C_set_type(value_ptr, QAJ4C_STRING);
+        ((QAJ4C_String*)value_ptr)->count = len;
+        char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
+        memcpy(new_string, str, len);
+        ((QAJ4C_String*)value_ptr)->s = new_string;
+        new_string[len] = '\0';
     }
 }
 
 // Modifications that require the builder as argument (as memory might has to be acquired in buffer)
-void QAJSON4C_set_array( QAJSON4C_Value* value_ptr, unsigned count, QAJSON4C_Builder* builder ) {
-    QAJSON4C_set_type(value_ptr, QAJSON4C_ARRAY);
-    ((QAJSON4C_Array*)value_ptr)->top = QAJSON4C_builder_pop_values( builder, count );
-    ((QAJSON4C_Array*)value_ptr)->count = count;
+void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_ARRAY);
+    ((QAJ4C_Array*)value_ptr)->top = QAJ4C_builder_pop_values(builder, count);
+    ((QAJ4C_Array*)value_ptr)->count = count;
 }
 
-QAJSON4C_Value* QAJSON4C_array_get_rw( QAJSON4C_Value* value_ptr, unsigned index ) {
-    assert( QAJSON4C_is_array( value_ptr ) );
-    return &((QAJSON4C_Array*)value_ptr)->top[index];
+QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index ) {
+    assert(QAJ4C_is_array(value_ptr));
+    return &((QAJ4C_Array*)value_ptr)->top[index];
 }
 
-void QAJSON4C_set_object( QAJSON4C_Value* value_ptr, unsigned count, QAJSON4C_Builder* builder ) {
-    QAJSON4C_set_type(value_ptr, QAJSON4C_OBJECT);
-    ((QAJSON4C_Object*)value_ptr)->top = QAJSON4C_builder_pop_members( builder, count );
-    ((QAJSON4C_Object*)value_ptr)->count = count;
+void QAJ4C_set_object( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder ) {
+    QAJ4C_set_type(value_ptr, QAJ4C_OBJECT);
+    ((QAJ4C_Object*)value_ptr)->top = QAJ4C_builder_pop_members(builder, count);
+    ((QAJ4C_Object*)value_ptr)->count = count;
 }
 
-void QAJSON4C_builder_init( QAJSON4C_Builder* me, void* buff, size_t buff_size ) {
+void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size ) {
     me->buffer = buff;
     me->buffer_size = buff_size;
 
     // objects grow from front to end (and always contains a document
-    me->cur_obj_pos = sizeof(QAJSON4C_Document);
+    me->cur_obj_pos = sizeof(QAJ4C_Document);
     // strings from end to front
     me->cur_str_pos = buff_size - 1;
 }
 
-QAJSON4C_Document* QAJSON4C_builder_get_document( QAJSON4C_Builder* builder ) {
-    return (QAJSON4C_Document*)builder->buffer;
+QAJ4C_Document* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {
+    return (QAJ4C_Document*)builder->buffer;
 }
 
-static void QAJSON4C_builder_validate_buffer( QAJSON4C_Builder* builder ) {
-	// cur_obj_pos points on memory 1 Byte after the last inserted object
-	// cur_str_pos points on the first character on the last inserted string.
+static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
+    // cur_obj_pos points on memory 1 Byte after the last inserted object
+    // cur_str_pos points on the first character on the last inserted string.
     assert(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
 }
 
-static QAJSON4C_Value* QAJSON4C_builder_pop_values( QAJSON4C_Builder* builder, size_type count ) {
-	if (count == 0) {
-		return NULL;
-	}
-    QAJSON4C_Value* new_pointer = (QAJSON4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
-	builder->cur_obj_pos += count * sizeof(QAJSON4C_Value);
+static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
+    if (count == 0) {
+        return NULL;
+    }
+    QAJ4C_Value* new_pointer = (QAJ4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
+    builder->cur_obj_pos += count * sizeof(QAJ4C_Value);
     // printf("new current object position %lu\n", builder->cur_obj_pos);
-	QAJSON4C_builder_validate_buffer(builder);
-    for( size_type i = 0; i < count; i++ ) {
-        QAJSON4C_set_type(&new_pointer[i], QAJSON4C_NULL);
+    QAJ4C_builder_validate_buffer(builder);
+    for (size_type i = 0; i < count; i++) {
+        QAJ4C_set_type(&new_pointer[i], QAJ4C_NULL);
     }
     return new_pointer;
 }
 
-static QAJSON4C_Member* QAJSON4C_builder_pop_members( QAJSON4C_Builder* builder, size_type count ) {
-	if (count == 0) {
-		return NULL;
-	}
-    QAJSON4C_Member* new_pointer = (QAJSON4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
-    builder->cur_obj_pos += count * sizeof(QAJSON4C_Member);
+static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count ) {
+    if (count == 0) {
+        return NULL;
+    }
+    QAJ4C_Member* new_pointer = (QAJ4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
+    builder->cur_obj_pos += count * sizeof(QAJ4C_Member);
     // printf("new current object position %lu\n", builder->cur_obj_pos);
-	QAJSON4C_builder_validate_buffer(builder);
+    QAJ4C_builder_validate_buffer(builder);
 
-    for( size_type i = 0; i < count; i++ ) {
-        QAJSON4C_set_type(&new_pointer[i].key, QAJSON4C_NULL);
-        QAJSON4C_set_type(&new_pointer[i].value, QAJSON4C_NULL);
+    for (size_type i = 0; i < count; i++) {
+        QAJ4C_set_type(&new_pointer[i].key, QAJ4C_NULL);
+        QAJ4C_set_type(&new_pointer[i].value, QAJ4C_NULL);
     }
 
     return new_pointer;
 }
 
-static char* QAJSON4C_builder_pop_string( QAJSON4C_Builder* builder, size_type length ) {
+static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
     // strings grow from back to the front!
     builder->cur_str_pos -= length * sizeof(char);
     // printf("new current string position %lu (length: %u)\n", builder->cur_str_pos, length);
-	QAJSON4C_builder_validate_buffer(builder);
+    QAJ4C_builder_validate_buffer(builder);
     return (char*)(&builder->buffer[builder->cur_str_pos]);
 
 }

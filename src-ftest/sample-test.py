@@ -10,8 +10,8 @@ import os
 def get_exec_path():
     return os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 
-def test_generator(filename, suffix):
-    def test(self):
+def dynamic_generator(filename, suffix):
+    def __template(self):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
         subprocess.call("{} -f {} -o result.json {}".format(binary_path, filename, suffix), shell=True)
         with open(filename) as reference:
@@ -19,7 +19,7 @@ def test_generator(filename, suffix):
                 refjson = json.load(reference)
                 genjson = json.load(generated)
                 self.assertEqual(refjson, genjson)
-    return test
+    return __template
 
 def lookup_dir_path(dirname, dir=get_exec_path()):
     for i in range(0,1):
@@ -50,17 +50,25 @@ class TestJsonMethods(unittest.TestCase):
                             return test_bin
         return None
 
-if __name__ == '__main__':
-    ''' Generate the tests, based on the json files '''
-    data_dir = lookup_dir_path("data")
-    for (dirpath, dirnames, filenames) in os.walk(data_dir):
-        for file in filenames:
+''' Generate the tests, based on the json files '''
+data_dir = lookup_dir_path("data")
+for (dirpath, dirnames, filenames) in os.walk(data_dir):
+    for file in filenames:
+        path = os.path.join(data_dir, file)
+        if os.path.exists(path) and file.endswith(".json"):
             test_name = 'test_{}'.format(file)
-            test = test_generator(os.path.join(data_dir, file), "")
+            test_name = test_name.replace("-", "_")
+            test_name = test_name.replace(".", "_")
+            test = dynamic_generator(path, "")
             setattr(TestJsonMethods, test_name, test)
             
-            test_name = 'test_{}_insitu'.format(file)
-            test_insitu = test_generator(os.path.join(data_dir, file), "-i 1")
+            test_name = 'test_insitu_{}'.format(file)
+            test_name = test_name.replace("-", "_")
+            test_name = test_name.replace(".", "_")
+            test_insitu = dynamic_generator(path, "-i 1")
             setattr(TestJsonMethods, test_name, test_insitu)
-    
+
+print dir(TestJsonMethods)
+
+if __name__ == '__main__':
     unittest.main()

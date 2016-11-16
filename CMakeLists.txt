@@ -38,7 +38,7 @@ endfunction ( register_build_type_coverage )
 
 register_build_type_coverage()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -pedantic -pedantic-errors -Wall -Wextra -Wno-missing-field-initializers")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -pedantic -pedantic-errors -Wall -Wextra")
 
 if( EXISTS ${CMAKE_TOOLCHAIN_FILE} )
     get_filename_component(USE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE} NAME)

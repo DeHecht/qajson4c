@@ -35,27 +35,27 @@ void do_parse(char* json) {
 
 	for( int i = 0; i < 2; i++) {
 		char* buff = NULL;
-		const QAJSON4C_Document* document = NULL;
+		const QAJ4C_Document* document = NULL;
 		if (i == 0) {
-			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size(json);
+			unsigned buffer_size = QAJ4C_calculate_max_buffer_size(json);
 			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size: %u\n", buffer_size);
-			document = QAJSON4C_parse(json, buff, buffer_size);
+			document = QAJ4C_parse(json, buff, buffer_size);
 		} else if (i == 1) {
-			unsigned buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(json);
+			unsigned buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json);
 			buff = malloc(sizeof(char) * buffer_size);
 			printf("Required Buffer size (insitu): %u\n", buffer_size);
-			document = QAJSON4C_parse_insitu(json, buff, buffer_size);
+			document = QAJ4C_parse_insitu(json, buff, buffer_size);
 		} else {
 			assert(false);
 		}
 		if ( document != NULL ) {
-			const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
+			const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
 
-			if ( QAJSON4C_is_error(root_value) ) {
-				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJSON4C_get_json_pos(root_value));
+			if ( QAJ4C_is_error(root_value) ) {
+				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJ4C_get_json_pos(root_value));
 			} else {
-				QAJSON4C_sprint(document, outbuff, 2048);
+				QAJ4C_sprint(document, outbuff, 2048);
 				printf("Printed: %s\n", outbuff);
 			}
 		} else {
@@ -68,20 +68,20 @@ void do_parse(char* json) {
 void test_dom_creation(void) {
 	char buff[2048];
 	char outbuff[2048];
-	QAJSON4C_Builder builder;
-	QAJSON4C_builder_init(&builder, buff, 2048);
+	QAJ4C_Builder builder;
+	QAJ4C_builder_init(&builder, buff, 2048);
 
-	QAJSON4C_Document* document = QAJSON4C_builder_get_document(&builder);
-	QAJSON4C_Value* root_value = QAJSON4C_get_root_value_rw(document);
-	QAJSON4C_set_object(root_value, 2, &builder);
+	QAJ4C_Document* document = QAJ4C_builder_get_document(&builder);
+	QAJ4C_Value* root_value = QAJ4C_get_root_value_rw(document);
+	QAJ4C_set_object(root_value, 2, &builder);
 
-	QAJSON4C_Value* id_value = QAJSON4C_object_create_member(root_value, "id", .ref=true);
-	QAJSON4C_set_uint(id_value, 123);
+	QAJ4C_Value* id_value = QAJ4C_object_create_member_by_ref(root_value, "id");
+	QAJ4C_set_uint(id_value, 123);
 
-    QAJSON4C_Value* name_value = QAJSON4C_object_create_member(root_value, "name", .ref=true);
-    QAJSON4C_set_string(name_value, "USE System Technology BV", .ref=true);
+    QAJ4C_Value* name_value = QAJ4C_object_create_member_by_ref(root_value, "name");
+    QAJ4C_set_string_ref(name_value, "USE System Technology BV");
 
-	QAJSON4C_sprint(document, outbuff, 2048);
+	QAJ4C_sprint(document, outbuff, 2048);
 	printf("Printed: %s\n", outbuff);
 }
 
@@ -89,11 +89,11 @@ void test_dom_access(void) {
 	puts("test_dom_access");
 	char test[] = "{\"id\":1, \"name\": \"dude\", \"very_long_key_value\": 10}";
 	char buff[2048];
-	const QAJSON4C_Document* document = QAJSON4C_parse(test, buff, 2048);
-	const QAJSON4C_Value* root_value = QAJSON4C_get_root_value(document);
-	const QAJSON4C_Value* id_value = QAJSON4C_object_get(root_value, "id", true);
+	const QAJ4C_Document* document = QAJ4C_parse(test, buff, 2048);
+	const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
+	const QAJ4C_Value* id_value = QAJ4C_object_get(root_value, "id");
 	assert(id_value != NULL);
-	const QAJSON4C_Value* vlkv_value = QAJSON4C_object_get(root_value, "very_long_key_value", true);
+	const QAJ4C_Value* vlkv_value = QAJ4C_object_get(root_value, "very_long_key_value");
 	assert(vlkv_value != NULL);
 }
 
@@ -113,7 +113,7 @@ int main() {
 	char empty[] = "";
 	char arrayWithObjects[] = "[{\"id\":1, },{\"id\":2},{\"id\":3}]";
 
-	QAJSON4C_print_stats();
+	QAJ4C_print_stats();
 
 	test_dom_access();
 

@@ -151,19 +151,19 @@ int main(int argc, char **argv) {
 
 	if ( arguments.buffer_size == 0 ) {
 		if( arguments.insitu_parsing ) {
-			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size_insitu(input_string);
+			arguments.buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
 		} else {
-			arguments.buffer_size = QAJSON4C_calculate_max_buffer_size(input_string);
+			arguments.buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
 		}
 	}
 
 	char* buffer = malloc(arguments.buffer_size);
 
-	const QAJSON4C_Document* document = NULL;
+	const QAJ4C_Document* document = NULL;
 	if( arguments.insitu_parsing ) {
-		document = QAJSON4C_parse_insitu(input_string, buffer, arguments.buffer_size);
+		document = QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size);
 	} else {
-		document = QAJSON4C_parse(input_string, buffer, arguments.buffer_size);
+		document = QAJ4C_parse(input_string, buffer, arguments.buffer_size);
 	}
 
 	if ( arguments.verbose ) {
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 	size_t output_string_size = sizeof(char) * input_string_size;
 	char* output_string = malloc(output_string_size);
 
-	QAJSON4C_sprint(document, output_string, output_string_size);
+	QAJ4C_sprint(document, output_string, output_string_size);
 	fwrite(output_string, sizeof(char), strlen(output_string), output_file);
 
 	fclose(output_file);
