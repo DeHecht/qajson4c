@@ -923,7 +923,7 @@ bool QAJ4C_is_uint64( const QAJ4C_Value* value ) {
     return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_UINT64) != 0;
 }
 
-bool QAJ4C_is_real( const QAJ4C_Value* value ) {
+bool QAJ4C_is_double( const QAJ4C_Value* value ) {
     return QAJ4C_is_primitive(value) && (QAJ4C_get_compatibility_types(value) & QAJ4C_PRIMITIVE_DOUBLE) != 0;
 }
 
@@ -941,8 +941,8 @@ uint32_t QAJ4C_get_uint( const QAJ4C_Value* value ) {
     return (uint32_t)((QAJ4C_Primitive*)value)->data.u;
 }
 
-double QAJ4C_get_real( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_real(value));
+double QAJ4C_get_double( const QAJ4C_Value* value ) {
+    assert(QAJ4C_is_double(value));
     switch (QAJ4C_get_storage_type(value)) {
     case QAJ4C_PRIMITIVE_INT:
     case QAJ4C_PRIMITIVE_INT64:
@@ -967,17 +967,17 @@ bool QAJ4C_is_error( const QAJ4C_Value* value ) {
     return value != NULL && QAJ4C_get_type(value) == QAJ4C_ERROR_DESCRIPTION;
 }
 
-const char* QAJ4C_get_json( const QAJ4C_Value* value ) {
+const char* QAJ4C_error_get_json( const QAJ4C_Value* value ) {
     assert(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->json;
 }
 
-QAJ4C_ERROR_CODES QAJ4C_get_errno( const QAJ4C_Value* value ) {
+QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value ) {
     assert(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->errno;
 }
 
-unsigned QAJ4C_get_json_pos( const QAJ4C_Value* value ) {
+unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value ) {
     assert(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->json_pos;
 }

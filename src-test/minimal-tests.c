@@ -53,7 +53,7 @@ void do_parse(char* json) {
 			const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
 
 			if ( QAJ4C_is_error(root_value) ) {
-				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJ4C_get_json_pos(root_value));
+				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJ4C_error_get_json_pos(root_value));
 			} else {
 				QAJ4C_sprint(document, outbuff, 2048);
 				printf("Printed: %s\n", outbuff);
