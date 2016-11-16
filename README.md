@@ -5,9 +5,10 @@
 The main goal of this parser is to provide a thread-safe JSON DOM parsing without dynamic memory allocation.
 Another goal is to keep the required buffer size as low as possible.
 
-We know that there are a lot mature json parsers around. But when we decided to pick-up the development, there was no parser that suited our needs well. Still we investigated other parsers like cJSON, Parson, jsmn and the c++ library rapidjson to get an impression about how other json libraries are developed. So 
-
 This is achieved by passing a buffer with a sufficient size to the parse method.
+
+We know that there are a lot mature json parsers around. But when we decided to pick-up the development, there was no parser that suited our needs well. Still we investigated other parsers like cJSON, Parson, jsmn and rapidjson (c++) to get an impression about how other json libraries work internally and use the inspiration for our own development.
+
 
 ###Example:
 ```
