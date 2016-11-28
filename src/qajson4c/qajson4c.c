@@ -27,11 +27,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
+#include <signal.h>
 
 #include <qajson4c/qajson4c.h>
 
 #define INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
+#define QAJ4C_ASSERT(...) if (QAJ4C_ERR_FUNCTION && !(__VA_ARGS__)) (*QAJ4C_ERR_FUNCTION)(__func__, #__VA_ARGS__)
 
 typedef uint32_t size_type;
 typedef uint16_t half_size_type;
@@ -145,13 +146,6 @@ typedef struct QAJ4C_Parser {
     QAJ4C_ERROR_CODES errno;
 } QAJ4C_Parser;
 
-static const char QAJ4C_NULL_STR[] = "null";
-static const char QAJ4C_TRUE_STR[] = "true";
-static const char QAJ4C_FALSE_STR[] = "false";
-static const unsigned QAJ4C_NULL_STR_LEN = sizeof(QAJ4C_NULL_STR) / sizeof(QAJ4C_NULL_STR[0]);
-static const unsigned QAJ4C_TRUE_STR_LEN = sizeof(QAJ4C_TRUE_STR) / sizeof(QAJ4C_TRUE_STR[0]);
-static const unsigned QAJ4C_FALSE_STR_LEN = sizeof(QAJ4C_FALSE_STR) / sizeof(QAJ4C_FALSE_STR[0]);
-
 static bool QAJ4C_is_primitive( const QAJ4C_Value* value );
 static void QAJ4C_parse_first_pass( QAJ4C_Parser* parser );
 static QAJ4C_Document* QAJ4C_parse_second_pass( QAJ4C_Parser* parser );
@@ -172,6 +166,11 @@ static void QAJ4C_parse_string( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static void QAJ4C_parse_constant( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static void QAJ4C_parse_numeric_value( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t buffer_size, size_t index );
+
+static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder );
+static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
+static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
+static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
 
 static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value ) {
     return value->type & 0xFF;
@@ -201,10 +200,18 @@ static inline uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value ) 
     return (value->type >> 16) & 0xFF;
 }
 
-static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder );
-static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
-static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
-static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
+static void QAJ4C_std_err_function( const char* function_name, const char* assertion_msg ) {
+    fprintf(stderr, "%s: %s\n", function_name, assertion_msg);
+    raise(SIGABRT);
+}
+
+static const char QAJ4C_NULL_STR[] = "null";
+static const char QAJ4C_TRUE_STR[] = "true";
+static const char QAJ4C_FALSE_STR[] = "false";
+static const unsigned QAJ4C_NULL_STR_LEN = sizeof(QAJ4C_NULL_STR) / sizeof(QAJ4C_NULL_STR[0]);
+static const unsigned QAJ4C_TRUE_STR_LEN = sizeof(QAJ4C_TRUE_STR) / sizeof(QAJ4C_TRUE_STR[0]);
+static const unsigned QAJ4C_FALSE_STR_LEN = sizeof(QAJ4C_FALSE_STR) / sizeof(QAJ4C_FALSE_STR[0]);
+static QAJ4C_fatal_error_fn QAJ4C_ERR_FUNCTION = &QAJ4C_std_err_function;
 
 void QAJ4C_print_stats() {
     printf("Sizeof QAJ4C_Value: %zu\n", sizeof(QAJ4C_Value));
@@ -239,6 +246,10 @@ static QAJ4C_Document* QAJ4C_create_error_description( QAJ4C_Parser* parser ) {
     ((QAJ4C_Error*)document)->info = err_info;
 
     return document;
+}
+
+void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
+    QAJ4C_ERR_FUNCTION = *function;
 }
 
 const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer_size ) {
@@ -772,7 +783,7 @@ static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t 
             index += snprintf(buffer + index, buffer_size - index, "%f", ((QAJ4C_Primitive*)value)->data.d);
             break;
         default:
-            assert(false);
+            QAJ4C_ASSERT(false);
         }
         break;
     }
@@ -799,7 +810,7 @@ static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t 
         break;
     }
     default:
-        assert(false);
+        QAJ4C_ASSERT(false);
     }
     return index;
 }
@@ -876,7 +887,7 @@ bool QAJ4C_is_string( const QAJ4C_Value* value ) {
 }
 
 const char* QAJ4C_get_string( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_string(value));
+    QAJ4C_ASSERT(QAJ4C_is_string(value));
     if (QAJ4C_get_type(value) == QAJ4C_INLINE_STRING) {
         return ((QAJ4C_Short_string*)value)->s;
     }
@@ -884,7 +895,7 @@ const char* QAJ4C_get_string( const QAJ4C_Value* value ) {
 }
 
 unsigned QAJ4C_get_string_length( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_string(value));
+    QAJ4C_ASSERT(QAJ4C_is_string(value));
     if (QAJ4C_get_type(value) == QAJ4C_INLINE_STRING) {
         return ((QAJ4C_Short_string*)value)->count;
     }
@@ -892,7 +903,7 @@ unsigned QAJ4C_get_string_length( const QAJ4C_Value* value ) {
 }
 
 int QAJ4C_string_cmp2( const QAJ4C_Value* value, const char* str, size_t len ) {
-    assert(QAJ4C_is_string(value));
+    QAJ4C_ASSERT(QAJ4C_is_string(value));
     // TODO: optimize this for performance?
     QAJ4C_Value wrapper_value;
     QAJ4C_set_string_ref2(&wrapper_value, str, len);
@@ -932,17 +943,17 @@ bool QAJ4C_is_bool( const QAJ4C_Value* value ) {
 }
 
 int32_t QAJ4C_get_int( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_int(value));
+    QAJ4C_ASSERT(QAJ4C_is_int(value));
     return (int32_t)((QAJ4C_Primitive*)value)->data.i;
 }
 
 uint32_t QAJ4C_get_uint( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_uint(value));
+    QAJ4C_ASSERT(QAJ4C_is_uint(value));
     return (uint32_t)((QAJ4C_Primitive*)value)->data.u;
 }
 
 double QAJ4C_get_double( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_double(value));
+    QAJ4C_ASSERT(QAJ4C_is_double(value));
     switch (QAJ4C_get_storage_type(value)) {
     case QAJ4C_PRIMITIVE_INT:
     case QAJ4C_PRIMITIVE_INT64:
@@ -955,7 +966,7 @@ double QAJ4C_get_double( const QAJ4C_Value* value ) {
 }
 
 bool QAJ4C_get_bool( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_bool(value));
+    QAJ4C_ASSERT(QAJ4C_is_bool(value));
     return ((QAJ4C_Primitive*)value)->data.b;
 }
 
@@ -968,27 +979,27 @@ bool QAJ4C_is_error( const QAJ4C_Value* value ) {
 }
 
 const char* QAJ4C_error_get_json( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_error(value));
+    QAJ4C_ASSERT(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->json;
 }
 
 QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_error(value));
+    QAJ4C_ASSERT(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->errno;
 }
 
 unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_error(value));
+    QAJ4C_ASSERT(QAJ4C_is_error(value));
     return ((QAJ4C_Error*)value)->info->json_pos;
 }
 
 unsigned QAJ4C_object_size( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_object(value));
+    QAJ4C_ASSERT(QAJ4C_is_object(value));
     return ((QAJ4C_Object*)value)->count;
 }
 
 QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    assert(QAJ4C_is_object(value_ptr));
+    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr));
     size_type count = ((QAJ4C_Object*)value_ptr)->count;
     for (size_type i = 0; i < count; ++i) {
         QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
@@ -1002,7 +1013,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const c
 }
 
 QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str, size_t len ) {
-    assert(QAJ4C_is_object(value_ptr));
+    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr));
     size_type count = ((QAJ4C_Object*)value_ptr)->count;
     for (size_type i = 0; i < count; ++i) {
         QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
@@ -1016,23 +1027,23 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
 }
 
 const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value, unsigned index ) {
-    assert(QAJ4C_is_object(value));
-    assert(((QAJ4C_Object* )value)->count > index);
+    QAJ4C_ASSERT(QAJ4C_is_object(value));
+    QAJ4C_ASSERT(((QAJ4C_Object* )value)->count > index);
     return &((QAJ4C_Object*)value)->top[index];
 }
 
 const QAJ4C_Value* QAJ4C_member_get_key( const QAJ4C_Member* member ) {
-    assert(member != NULL);
+    QAJ4C_ASSERT(member != NULL);
     return &member->key;
 }
 
 const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
-    assert(member != NULL);
+    QAJ4C_ASSERT(member != NULL);
     return &member->value;
 }
 
 const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value, const char* str, size_t len ) {
-    assert(QAJ4C_is_object(value));
+    QAJ4C_ASSERT(QAJ4C_is_object(value));
     size_type count = ((QAJ4C_Object*)value)->count;
     QAJ4C_Value wrapper_value;
     QAJ4C_set_string_ref2(&wrapper_value, str, len);
@@ -1048,19 +1059,19 @@ const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value, const char* str,
 }
 
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value, unsigned index ) {
-    assert(QAJ4C_is_array(value));
-    assert(((QAJ4C_Array* )value)->count > index);
+    QAJ4C_ASSERT(QAJ4C_is_array(value));
+    QAJ4C_ASSERT(((QAJ4C_Array* )value)->count > index);
     return ((QAJ4C_Array*)value)->top + index;
 }
 
 unsigned QAJ4C_array_size( const QAJ4C_Value* value ) {
-    assert(QAJ4C_is_array(value));
+    QAJ4C_ASSERT(QAJ4C_is_array(value));
     return ((QAJ4C_Array*)value)->count;
 }
 
 // Modifications on primitives is quite easy
 void QAJ4C_set_bool( QAJ4C_Value* value_ptr, bool value ) {
-    assert(value_ptr != NULL);
+    QAJ4C_ASSERT(value_ptr != NULL);
     QAJ4C_set_type(value_ptr, QAJ4C_PRIMITIVE);
     QAJ4C_set_storage_type(value_ptr, QAJ4C_PRIMITIVE_BOOL);
     QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_BOOL);
@@ -1144,7 +1155,7 @@ void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* bui
 }
 
 QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index ) {
-    assert(QAJ4C_is_array(value_ptr));
+    QAJ4C_ASSERT(QAJ4C_is_array(value_ptr));
     return &((QAJ4C_Array*)value_ptr)->top[index];
 }
 
@@ -1171,7 +1182,7 @@ QAJ4C_Document* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {
 static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
     // cur_obj_pos points on memory 1 Byte after the last inserted object
     // cur_str_pos points on the first character on the last inserted string.
-    assert(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
+    QAJ4C_ASSERT(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
 }
 
 static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {

@@ -30,39 +30,50 @@
 #include <qajson4c/qajson4c.h>
 
 void do_parse(char* json) {
+    int json_len = strlen(json);
+    char json_copy[json_len];
 	char outbuff[2048];
 	printf("Test: %s\n", json);
 
-	for( int i = 0; i < 2; i++) {
-		char* buff = NULL;
-		const QAJ4C_Document* document = NULL;
-		if (i == 0) {
-			unsigned buffer_size = QAJ4C_calculate_max_buffer_size(json);
-			buff = malloc(sizeof(char) * buffer_size);
-			printf("Required Buffer size: %u\n", buffer_size);
-			document = QAJ4C_parse(json, buff, buffer_size);
-		} else if (i == 1) {
-			unsigned buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json);
-			buff = malloc(sizeof(char) * buffer_size);
-			printf("Required Buffer size (insitu): %u\n", buffer_size);
-			document = QAJ4C_parse_insitu(json, buff, buffer_size);
-		} else {
-			assert(false);
-		}
-		if ( document != NULL ) {
-			const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
+    for (int t = 0; t <= json_len; t++) {
+        if (t > 0) {
+            memcpy(json_copy, json, t);
+        }
+        json_copy[t] = '\0';
 
-			if ( QAJ4C_is_error(root_value) ) {
-				printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJ4C_error_get_json_pos(root_value));
-			} else {
-				QAJ4C_sprint(document, outbuff, 2048);
-				printf("Printed: %s\n", outbuff);
-			}
-		} else {
-			puts("Document is NULL");
-		}
-		free(buff);
+        for( int i = 0; i < 2; i++) {
+            char* buff = NULL;
+            const QAJ4C_Document* document = NULL;
+            if (i == 0) {
+                unsigned buffer_size = QAJ4C_calculate_max_buffer_size(json);
+                buff = malloc(sizeof(char) * buffer_size);
+                printf("Required Buffer size: %u\n", buffer_size);
+                document = QAJ4C_parse(json_copy, buff, buffer_size);
+            } else if (i == 1) {
+                unsigned buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json);
+                buff = malloc(sizeof(char) * buffer_size);
+                printf("Required Buffer size (insitu): %u\n", buffer_size);
+                document = QAJ4C_parse_insitu(json_copy, buff, buffer_size);
+            } else {
+                assert(false);
+            }
+            if ( document != NULL ) {
+                const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
+
+                if ( QAJ4C_is_error(root_value) ) {
+                    printf("ERROR: JSON message could not be parsed (stopped @ position %u)!\n", QAJ4C_error_get_json_pos(root_value));
+                } else {
+                    QAJ4C_sprint(document, outbuff, 2048);
+                    printf("Printed: %s\n", outbuff);
+                }
+            } else {
+                puts("Document is NULL");
+            }
+            free(buff);
+        }
+
 	}
+
 }
 
 void test_dom_creation(void) {

@@ -53,6 +53,12 @@ struct QAJ4C_Builder {
 };
 typedef struct QAJ4C_Builder QAJ4C_Builder;
 
+/**
+ * This method will get called in case of a fatal error
+ * (array access on not array QAJ4C_Value).
+ */
+typedef void (*QAJ4C_fatal_error_fn)( const char* function_name, const char* assertion_msg );
+
 typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_DEPTH_OVERFLOW = 1,
     QAJ4C_ERROR_UNEXPECTED_CHAR = 2,
@@ -64,6 +70,8 @@ typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,
     QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,
 } QAJ4C_ERROR_CODES;
+
+void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );
 
 void QAJ4C_print_stats();
 

@@ -14,10 +14,10 @@ We know that there are a lot mature json parsers around. But when we decided to 
 ```
 
 	char buff[100];
-	char json = "{\"id\":1, \"name\": \"dude\"}";
+	char json[] = "{\"id\":1, \"name\": \"dude\"}";
 	const QAJ4C_Document* document;
 	
-	document = QAJ4C_parse(json, buff, 100)
+	document = QAJ4C_parse(json, buff, 100);
 	if (QAJ4C_is_object(QAJ4C_get_root_value(document))) {
 		// code retrieving data from the DOM
 	}
