@@ -69,6 +69,7 @@ typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_ARRAY_MISSING_COMMA = 7,
     QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,
     QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,
+    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,
 } QAJ4C_ERROR_CODES;
 
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );

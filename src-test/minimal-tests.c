@@ -74,6 +74,16 @@ void do_parse(char* json) {
 
 	}
 
+    char buff[64];
+    memset(buff, 0, 64);
+    const QAJ4C_Document* document = QAJ4C_parse(json, buff, 64);
+    const QAJ4C_Value* root_value = QAJ4C_get_root_value(document);
+
+    if ( QAJ4C_is_error(root_value) ) {
+        printf("ERROR: JSON message could not be parsed (stopped @ position %u), errno %d!\n", QAJ4C_error_get_json_pos(root_value), QAJ4C_error_get_errno(root_value));
+    }
+
+
 }
 
 void test_dom_creation(void) {

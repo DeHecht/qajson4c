@@ -200,6 +200,14 @@ static inline uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value ) 
     return (value->type >> 16) & 0xFF;
 }
 
+static inline unsigned QAJ4C_do_calculate_max_buffer_size( const QAJ4C_Parser* parser ) {
+    return sizeof(QAJ4C_Document) + (parser->amount_elements) * sizeof(QAJ4C_Value) + parser->curr_buffer_str_pos;
+}
+
+static inline unsigned QAJ4C_do_calculate_max_buffer_size_insitu( const QAJ4C_Parser* parser ) {
+    return sizeof(QAJ4C_Document) + parser->amount_elements * sizeof(QAJ4C_Value);
+}
+
 static void QAJ4C_std_err_function( const char* function_name, const char* assertion_msg ) {
     fprintf(stderr, "%s: %s\n", function_name, assertion_msg);
     raise(SIGABRT);
@@ -265,6 +273,12 @@ const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer
     if (parser.error) {
         return QAJ4C_create_error_description(&parser);
     }
+    if (buffer_size < QAJ4C_do_calculate_max_buffer_size(&parser)) {
+        parser.error = true;
+        parser.errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
+        return QAJ4C_create_error_description(&parser);
+    }
+
     return QAJ4C_parse_second_pass(&parser);
 }
 
@@ -279,6 +293,13 @@ const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffe
     if (parser.error) {
         return QAJ4C_create_error_description(&parser);
     }
+
+    if (buffer_size < QAJ4C_do_calculate_max_buffer_size_insitu(&parser)) {
+        parser.error = true;
+        parser.errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
+        return QAJ4C_create_error_description(&parser);
+    }
+
     return QAJ4C_parse_second_pass(&parser);
 }
 
@@ -288,7 +309,7 @@ unsigned QAJ4C_calculate_max_buffer_size( const char* json ) {
     parser.buffer = NULL;
     parser.buffer_size = 0;
     QAJ4C_parse_first_pass(&parser);
-    return sizeof(QAJ4C_Document) + (parser.amount_elements) * sizeof(QAJ4C_Value) + parser.curr_buffer_str_pos;
+    return QAJ4C_do_calculate_max_buffer_size(&parser);
 }
 
 unsigned QAJ4C_calculate_max_buffer_size_insitu( const char* json ) {
@@ -297,7 +318,7 @@ unsigned QAJ4C_calculate_max_buffer_size_insitu( const char* json ) {
     parser.buffer = NULL;
     parser.buffer_size = 0;
     QAJ4C_parse_first_pass(&parser);
-    return sizeof(QAJ4C_Document) + parser.amount_elements * sizeof(QAJ4C_Value);
+    return QAJ4C_do_calculate_max_buffer_size_insitu(&parser);
 }
 
 static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth ) {
@@ -306,6 +327,12 @@ static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth ) {
         parser->errno = QAJ4C_ERROR_DEPTH_OVERFLOW;
         return;
     }
+    if (parser->buffer != NULL && parser->buffer_size <= parser->curr_buffer_pos) {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
+        return;
+    }
+
     parser->amount_elements++;
     size_type old_pos = parser->curr_buffer_pos;
 
@@ -351,6 +378,11 @@ static void QAJ4C_first_pass_array( QAJ4C_Parser* parser, uint8_t depth ) {
     if (parser->max_depth < depth) {
         parser->error = true;
         parser->errno = QAJ4C_ERROR_DEPTH_OVERFLOW;
+        return;
+    }
+    if (parser->buffer != NULL && parser->buffer_size <= parser->curr_buffer_pos) {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
         return;
     }
     parser->amount_elements++;
