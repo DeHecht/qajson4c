@@ -1,4 +1,6 @@
-/*
+/**
+  @file
+
   Quite-Alright JSON for C - https://github.com/USESystemEngineeringBV/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -144,6 +146,8 @@ typedef struct QAJ4C_Parser {
 
     bool error;
     QAJ4C_ERROR_CODES errno;
+
+    QAJ4C_realloc_fn realloc_function;
 } QAJ4C_Parser;
 
 static bool QAJ4C_is_primitive( const QAJ4C_Value* value );
@@ -166,11 +170,13 @@ static void QAJ4C_parse_string( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static void QAJ4C_parse_constant( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static void QAJ4C_parse_numeric_value( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr );
 static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t buffer_size, size_t index );
+static bool QAJ4C_parser_realloc( QAJ4C_Parser* parser, size_type new_size );
 
 static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder );
 static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
 static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
 static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
+
 
 static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value ) {
     return value->type & 0xFF;
@@ -265,6 +271,7 @@ const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer
     parser.json = json;
     parser.buffer = buffer;
     parser.buffer_size = buffer_size;
+    parser.realloc_function = NULL;
     parser.insitu_parsing = false;
 
     QAJ4C_parse_first_pass(&parser);
@@ -287,6 +294,7 @@ const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffe
     parser.json = json;
     parser.buffer = buffer;
     parser.buffer_size = buffer_size;
+    parser.realloc_function = NULL;
     parser.insitu_parsing = true;
 
     QAJ4C_parse_first_pass(&parser);
@@ -302,6 +310,34 @@ const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffe
 
     return QAJ4C_parse_second_pass(&parser);
 }
+
+const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback) {
+    static size_type min_size = sizeof(QAJ4C_Document) + sizeof(QAJ4C_Error_information);
+    QAJ4C_Parser parser;
+    parser.json = json;
+    parser.buffer = realloc_callback(NULL, min_size);
+    parser.buffer_size = min_size;
+    parser.realloc_function = realloc_callback;
+    parser.insitu_parsing = false;
+
+    if (parser.buffer == NULL) {
+        // allocation failed ... no parsing possible!
+        return NULL;
+    }
+
+    QAJ4C_parse_first_pass(&parser);
+    if (parser.error) {
+        return QAJ4C_create_error_description(&parser);
+    }
+
+    size_type required_size = QAJ4C_do_calculate_max_buffer_size(&parser);
+    if (required_size > parser.buffer_size && !QAJ4C_parser_realloc(&parser, required_size)) {
+        return QAJ4C_create_error_description(&parser);
+    }
+
+    return QAJ4C_parse_second_pass(&parser);
+}
+
 
 unsigned QAJ4C_calculate_max_buffer_size( const char* json ) {
     QAJ4C_Parser parser;
@@ -328,9 +364,9 @@ static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth ) {
         return;
     }
     if (parser->buffer != NULL && parser->buffer_size <= parser->curr_buffer_pos) {
-        parser->error = true;
-        parser->errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
-        return;
+        if (!QAJ4C_parser_realloc(parser, parser->buffer_size * 2)) {
+            return; // memory issues (error set by parser_realloc)!
+        }
     }
 
     parser->amount_elements++;
@@ -381,9 +417,9 @@ static void QAJ4C_first_pass_array( QAJ4C_Parser* parser, uint8_t depth ) {
         return;
     }
     if (parser->buffer != NULL && parser->buffer_size <= parser->curr_buffer_pos) {
-        parser->error = true;
-        parser->errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
-        return;
+        if (!QAJ4C_parser_realloc(parser, parser->buffer_size * 2)) {
+            return; // memory issues (error set by parser_realloc)!
+        }
     }
     parser->amount_elements++;
     size_type old_pos = parser->curr_buffer_pos;
@@ -845,6 +881,25 @@ static size_t QAJ4C_print_value( const QAJ4C_Value* value, char* buffer, size_t 
         QAJ4C_ASSERT(false);
     }
     return index;
+}
+
+static bool QAJ4C_parser_realloc( QAJ4C_Parser* parser, size_type required_size ) {
+    if ( parser->realloc_function == NULL )
+    {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL;
+        return false;
+    }
+
+    void* tmp = parser->realloc_function(parser->buffer, required_size);
+    if (tmp == NULL) {
+        parser->error = true;
+        parser->errno = QAJ4C_ERROR_ALLOCATION_ERROR;
+        return false;
+    }
+    parser->buffer = tmp;
+    parser->buffer_size = required_size;
+    return true;
 }
 
 static void QAJ4C_second_pass_process( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) {

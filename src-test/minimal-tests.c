@@ -83,6 +83,14 @@ void do_parse(char* json) {
         printf("ERROR: JSON message could not be parsed (stopped @ position %u), errno %d!\n", QAJ4C_error_get_json_pos(root_value), QAJ4C_error_get_errno(root_value));
     }
 
+    document = QAJ4C_parse_dynamic(json, realloc);
+    root_value = QAJ4C_get_root_value(document);
+
+    if ( QAJ4C_is_error(root_value) ) {
+        printf("ERROR: JSON message could not be parsed dynamically (stopped @ position %u), errno %d!\n", QAJ4C_error_get_json_pos(root_value), QAJ4C_error_get_errno(root_value));
+    }
+
+    free((QAJ4C_Document*)document);
 
 }
 

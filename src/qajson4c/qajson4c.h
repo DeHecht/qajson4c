@@ -1,4 +1,6 @@
-/*
+/**
+  @file
+
   Quite-Alright JSON for C - https://github.com/USESystemEngineeringBV/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -36,12 +38,25 @@ extern "C" {
 #include <string.h>
 
 struct QAJ4C_Document;
+
+/**
+ * Document opaque data type holding the root element.
+ */
 typedef struct QAJ4C_Document QAJ4C_Document;
 
 struct QAJ4C_Value;
+
+/**
+ * Generic value opaque data type holding.
+ */
 typedef struct QAJ4C_Value QAJ4C_Value;
 
 struct QAJ4C_Member;
+
+/**
+ * Opaque data type that can be used to iterate over
+ * members within a json object.
+ */
 typedef struct QAJ4C_Member QAJ4C_Member;
 
 struct QAJ4C_Builder {
@@ -59,6 +74,13 @@ typedef struct QAJ4C_Builder QAJ4C_Builder;
  */
 typedef void (*QAJ4C_fatal_error_fn)( const char* function_name, const char* assertion_msg );
 
+/**
+ * This type defines a realloc like method that can be handed over with the according parse
+ * function.
+ */
+typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
+
+
 typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_DEPTH_OVERFLOW = 1,
     QAJ4C_ERROR_UNEXPECTED_CHAR = 2,
@@ -70,10 +92,22 @@ typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,
     QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,
     QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,
+    QAJ4C_ERROR_ALLOCATION_ERROR = 11 // only when using parse_dynamic
 } QAJ4C_ERROR_CODES;
 
+/**
+ * With this method a fatal error handler can be registered to have a custom
+ * way of handling invalid access behavior (like integer access on a string).
+ *
+ * The default behavior is to raise a SIGABRT signal.
+ */
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );
 
+/**
+ * This method can be used to print some stats about the internal object sizes.
+ * This is more a debug method for integration testing and might get removed
+ * later on.
+ */
 void QAJ4C_print_stats();
 
 /**
@@ -96,6 +130,15 @@ unsigned QAJ4C_calculate_max_buffer_size_insitu( const char* json );
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  */
 const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer_size );
+
+/**
+ * This method will parse the json message without a handed over buffer but with a realloc
+ * callback method. The realloc method will called each time allocated buffer is insufficient.
+ *
+ * @returns NULL, in case no memory could ever get allocated at all. In all other cases
+ * a valid instance (that may contain an error instead of parsed content).
+ */
+const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback);
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM.
@@ -127,9 +170,9 @@ bool QAJ4C_is_string( const QAJ4C_Value* value );
 /**
  * This method will return the starting pointer of the c-string.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be string. It is usually a good idea to call the QAJ4C_is_string method first!
- * @Note: With UTF-8 the \0 character may also be placed within the string,
+ * @note With UTF-8 the \0 character may also be placed within the string,
  * thus in case you expect UTF-8 it might be a good idea to also read the
  * QAJ4C_get_string_length method.
  */
@@ -139,7 +182,7 @@ const char* QAJ4C_get_string( const QAJ4C_Value* value );
 /**
  * This method will return string length of the string.
  *
- * @Note: With UTF-8 the \0 character may also be placed within the string.
+ * @note With UTF-8 the \0 character may also be placed within the string.
  * For this reason all string operations are also available with a defined
  * string size.
  */
@@ -197,7 +240,7 @@ bool QAJ4C_is_int( const QAJ4C_Value* value );
 /**
  * This method will return the value's int32_t value.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be int32_t. It is usually a good idea to call the QAJ4C_is_int method first!
  */
 int32_t QAJ4C_get_int( const QAJ4C_Value* value );
@@ -210,7 +253,7 @@ bool QAJ4C_is_int64( const QAJ4C_Value* value );
 /**
  * This method will return the value's int64_t value.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be int64_t. It is usually a good idea to call the QAJ4C_is_int64 method first!
  */
 int64_t QAJ4C_get_int64( const QAJ4C_Value* value );
@@ -223,7 +266,7 @@ bool QAJ4C_is_uint( const QAJ4C_Value* value );
 /**
  * This method will return the value's uint32_t value.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be uint32_t. It is usually a good idea to call the QAJ4C_is_uint method first!
  */
 uint32_t QAJ4C_get_uint( const QAJ4C_Value* value );
@@ -236,7 +279,7 @@ bool QAJ4C_is_uint64( const QAJ4C_Value* value );
 /**
  * This method will return the value's uint64_t value.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be int64_t. It is usually a good idea to call the QAJ4C_is_uint64 method first!
  */
 uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value );
@@ -244,14 +287,14 @@ uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value );
 /**
  * This method will return true, in case the value can be read out as double.
  *
- * @Note: this will return true for all parsed numeric values.
+ * @note this will return true for all parsed numeric values.
  */
 bool QAJ4C_is_double( const QAJ4C_Value* value );
 
 /**
  * This method will return the value's double value.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be double. It is usually a good idea to call the QAJ4C_is_double method first!
  */
 double QAJ4C_get_double( const QAJ4C_Value* value );
@@ -264,7 +307,7 @@ bool QAJ4C_is_bool( const QAJ4C_Value* value );
 /**
  * This method will read the bool value of the 'value'.
  *
- * @Note: This method should only be invoked on fields that are known to
+ * @note This method should only be invoked on fields that are known to
  * be boolean. It is usually a good idea to call the QAJ4C_is_bool method first!
  */
 bool QAJ4C_get_bool( const QAJ4C_Value* value );
@@ -278,7 +321,7 @@ bool QAJ4C_is_null( const QAJ4C_Value* value );
 /**
  * Checks if the value is an error (not a valid json type)
  *
- * @Note: In case the parse method will fail and the buffer size is sufficient.
+ * @note In case the parse method will fail and the buffer size is sufficient.
  * The root value will contain an error value, that can be 'queried' for
  * detailed error information.
  */
@@ -287,7 +330,7 @@ bool QAJ4C_is_error( const QAJ4C_Value* value );
 /**
  * This method will return the json string that caused the error.
  *
- * @Note: This method will fail in case the value is not an error!
+ * @note This method will fail in case the value is not an error!
  */
 const char* QAJ4C_error_get_json( const QAJ4C_Value* value );
 
@@ -295,7 +338,7 @@ const char* QAJ4C_error_get_json( const QAJ4C_Value* value );
  * This method will return an error code specifying the reason why
  * the parse method failed.
  *
- * @Note: This method will fail in case the value is not an error!
+ * @note This method will fail in case the value is not an error!
  */
 QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value );
 
@@ -303,7 +346,7 @@ QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value );
  * This method will return position within the json message where the
  * parse error was triggered.
  *
- * @Note: This method will fail in case the value is not an error!
+ * @note This method will fail in case the value is not an error!
  */
 unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value );
 
@@ -317,7 +360,7 @@ unsigned QAJ4C_object_size( const QAJ4C_Value* value );
  * In case the value is an object, this method will get the member (containing of key and value).
  * with the given index.
  *
- * @Note: the object is internally organized as c-array. This way random access on index is
+ * @note the object is internally organized as c-array. This way random access on index is
  * cheap.
  */
 const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value, unsigned index );
@@ -355,7 +398,7 @@ unsigned QAJ4C_array_size( const QAJ4C_Value* value );
  * In case the value is an array, this method will return the value at the given
  * index of this array.
  *
- * @Note: a QAJ4C_array is organized as a c-array internally, thus random access
+ * @note a QAJ4C_array is organized as a c-array internally, thus random access
  * is possible with low cost.
  */
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value, unsigned index );
@@ -411,7 +454,7 @@ void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value );
  * This method will set the value to string with a pointer to the handed over
  * string with the given size.
  *
- * @Note: As the string is a reference, the lifetime of the string must at least
+ * @note As the string is a reference, the lifetime of the string must at least
  * be as long as the lifetime of the DOM object.
  */
 void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len );
@@ -420,7 +463,7 @@ void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len 
  * This method will set the value to string with a pointer to the handed over
  * string using strlen() to determine the string size.
  *
- * @Note: As the string is a reference, the lifetime of the string must at least
+ * @note As the string is a reference, the lifetime of the string must at least
  * be as long as the lifetime of the DOM object.
  */
 static inline void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str ) {
@@ -445,7 +488,7 @@ static inline void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder*
  * This method will set the values type to array with the given value count. The
  * memory allocation will be performed on the builder.
  *
- * @Note: objects and arrays cannot be resized. Thus in case invoking this function twice
+ * @note objects and arrays cannot be resized. Thus in case invoking this function twice
  * on the same value will cause the memory allocated for the old "members" to be wasted!
  */
 void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder );
@@ -453,7 +496,7 @@ void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* bui
 /**
  * Will retrieve the entry of the array at the given index.
  *
- * @Note: a QAJ4C_array is organized as a c-array internally, thus random access
+ * @note a QAJ4C_array is organized as a c-array internally, thus random access
  * is possible with low cost.
  */
 QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index );
@@ -462,7 +505,7 @@ QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index );
  * This method will set the values type to object with the given member count. The
  * memory allocation will be performed on the builder.
  *
- * @Note: objects and arrays cannot be resized. Thus in case invoking this function twice
+ * @note objects and arrays cannot be resized. Thus in case invoking this function twice
  * on the same value will cause the memory allocated for the old "members" to be wasted!
  */
 void QAJ4C_set_object( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder );
@@ -479,7 +522,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const c
  * This way the string does not have to be copied over to the buffer, but the string has to stay
  * valid until the DOM is not required anymore.
  *
- * @Note: This is a shortcut version of the QAJ4C_object_create_member_by_ref2 method, using
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref2 method, using
  * strlen to calculate the string length.
  */
 static inline QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str ) {
@@ -496,7 +539,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
  * This method creates a member within the object doing a copy of the handed over string.
  * The allocation will be performed on the handed over builder.
  *
- * @Note: This is a shortcut version of the QAJ4C_object_create_member_by_copy2 method, using
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy2 method, using
  * strlen to calculate the string length.
  */
 static inline QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
