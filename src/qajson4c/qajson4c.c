@@ -1034,9 +1034,19 @@ int32_t QAJ4C_get_int( const QAJ4C_Value* value ) {
     return (int32_t)((QAJ4C_Primitive*)value)->data.i;
 }
 
+int64_t QAJ4C_get_int64( const QAJ4C_Value* value ) {
+    QAJ4C_ASSERT(QAJ4C_is_int64(value));
+    return ((QAJ4C_Primitive*)value)->data.i;
+}
+
 uint32_t QAJ4C_get_uint( const QAJ4C_Value* value ) {
     QAJ4C_ASSERT(QAJ4C_is_uint(value));
     return (uint32_t)((QAJ4C_Primitive*)value)->data.u;
+}
+
+uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value ) {
+    QAJ4C_ASSERT(QAJ4C_is_uint64(value));
+    return ((QAJ4C_Primitive*)value)->data.u;
 }
 
 double QAJ4C_get_double( const QAJ4C_Value* value ) {
