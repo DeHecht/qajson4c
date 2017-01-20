@@ -165,7 +165,7 @@ const QAJ4C_Value* QAJ4C_get_root_value( const QAJ4C_Document* document );
 /**
  * This method will return true, in case the value can be read out as string.
  */
-bool QAJ4C_is_string( const QAJ4C_Value* value );
+bool QAJ4C_is_string( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the starting pointer of the c-string.
@@ -177,7 +177,7 @@ bool QAJ4C_is_string( const QAJ4C_Value* value );
  * QAJ4C_get_string_length method.
  */
 
-const char* QAJ4C_get_string( const QAJ4C_Value* value );
+const char* QAJ4C_get_string( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return string length of the string.
@@ -186,7 +186,7 @@ const char* QAJ4C_get_string( const QAJ4C_Value* value );
  * For this reason all string operations are also available with a defined
  * string size.
  */
-unsigned QAJ4C_get_string_length( const QAJ4C_Value* value );
+unsigned QAJ4C_get_string_length( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will compare the value's string value with the handed over string
@@ -194,7 +194,7 @@ unsigned QAJ4C_get_string_length( const QAJ4C_Value* value );
  *
  * Has the same behavior like strcmp.
  */
-int QAJ4C_string_cmp2( const QAJ4C_Value* value, const char* str, size_t len );
+int QAJ4C_string_cmp2( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * This method will compare the value's string value with the handed over string
@@ -202,40 +202,40 @@ int QAJ4C_string_cmp2( const QAJ4C_Value* value, const char* str, size_t len );
  *
  * Has the same return behavior like strcmp.
  */
-static inline bool QAJ4C_string_cmp( const QAJ4C_Value* value, const char* str ) {
-    return QAJ4C_string_cmp2(value, str, strlen(str));
+static inline bool QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str ) {
+    return QAJ4C_string_cmp2(value_ptr, str, strlen(str));
 }
 
 /**
  * This method will return true, in case the handed over string with the given size
  * is equal to the value's string.
  */
-static inline bool QAJ4C_string_equals2( const QAJ4C_Value* value, const char* str, size_t len ) {
-    return QAJ4C_string_cmp2(value, str, len) == 0;
+static inline bool QAJ4C_string_equals2( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+    return QAJ4C_string_cmp2(value_ptr, str, len) == 0;
 }
 
 /**
  * This method will return true, in case the handed over string is equal to the
  * value's string. The string's length is determined using strlen.
  */
-static inline bool QAJ4C_string_equals( const QAJ4C_Value* value, const char* str ) {
-    return QAJ4C_string_equals2(value, str, strlen(str));
+static inline bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str ) {
+    return QAJ4C_string_equals2(value_ptr, str, strlen(str));
 }
 
 /**
  * This method will return true, in case the value can be read out as object.
  */
-bool QAJ4C_is_object( const QAJ4C_Value* value );
+bool QAJ4C_is_object( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as array.
  */
-bool QAJ4C_is_array( const QAJ4C_Value* value );
+bool QAJ4C_is_array( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as int32_t.
  */
-bool QAJ4C_is_int( const QAJ4C_Value* value );
+bool QAJ4C_is_int( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the value's int32_t value.
@@ -243,12 +243,12 @@ bool QAJ4C_is_int( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be int32_t. It is usually a good idea to call the QAJ4C_is_int method first!
  */
-int32_t QAJ4C_get_int( const QAJ4C_Value* value );
+int32_t QAJ4C_get_int( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as int64_t.
  */
-bool QAJ4C_is_int64( const QAJ4C_Value* value );
+bool QAJ4C_is_int64( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the value's int64_t value.
@@ -256,12 +256,12 @@ bool QAJ4C_is_int64( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be int64_t. It is usually a good idea to call the QAJ4C_is_int64 method first!
  */
-int64_t QAJ4C_get_int64( const QAJ4C_Value* value );
+int64_t QAJ4C_get_int64( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as uint32_t.
  */
-bool QAJ4C_is_uint( const QAJ4C_Value* value );
+bool QAJ4C_is_uint( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the value's uint32_t value.
@@ -269,12 +269,12 @@ bool QAJ4C_is_uint( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be uint32_t. It is usually a good idea to call the QAJ4C_is_uint method first!
  */
-uint32_t QAJ4C_get_uint( const QAJ4C_Value* value );
+uint32_t QAJ4C_get_uint( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as uint64_t.
  */
-bool QAJ4C_is_uint64( const QAJ4C_Value* value );
+bool QAJ4C_is_uint64( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the value's uint64_t value.
@@ -282,14 +282,14 @@ bool QAJ4C_is_uint64( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be int64_t. It is usually a good idea to call the QAJ4C_is_uint64 method first!
  */
-uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value );
+uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as double.
  *
  * @note this will return true for all parsed numeric values.
  */
-bool QAJ4C_is_double( const QAJ4C_Value* value );
+bool QAJ4C_is_double( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the value's double value.
@@ -297,12 +297,12 @@ bool QAJ4C_is_double( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be double. It is usually a good idea to call the QAJ4C_is_double method first!
  */
-double QAJ4C_get_double( const QAJ4C_Value* value );
+double QAJ4C_get_double( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the type can be read out as boolean.
  */
-bool QAJ4C_is_bool( const QAJ4C_Value* value );
+bool QAJ4C_is_bool( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will read the bool value of the 'value'.
@@ -310,13 +310,13 @@ bool QAJ4C_is_bool( const QAJ4C_Value* value );
  * @note This method should only be invoked on fields that are known to
  * be boolean. It is usually a good idea to call the QAJ4C_is_bool method first!
  */
-bool QAJ4C_get_bool( const QAJ4C_Value* value );
+bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value pointer is null
  * but also in case the value's type is null.
  */
-bool QAJ4C_is_null( const QAJ4C_Value* value );
+bool QAJ4C_is_null( const QAJ4C_Value* value_ptr );
 
 /**
  * Checks if the value is an error (not a valid json type)
@@ -325,14 +325,14 @@ bool QAJ4C_is_null( const QAJ4C_Value* value );
  * The root value will contain an error value, that can be 'queried' for
  * detailed error information.
  */
-bool QAJ4C_is_error( const QAJ4C_Value* value );
+bool QAJ4C_is_error( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return the json string that caused the error.
  *
  * @note This method will fail in case the value is not an error!
  */
-const char* QAJ4C_error_get_json( const QAJ4C_Value* value );
+const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return an error code specifying the reason why
@@ -340,7 +340,7 @@ const char* QAJ4C_error_get_json( const QAJ4C_Value* value );
  *
  * @note This method will fail in case the value is not an error!
  */
-QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value );
+QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return position within the json message where the
@@ -348,13 +348,13 @@ QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value );
  *
  * @note This method will fail in case the value is not an error!
  */
-unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value );
+unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr );
 
 
 /**
  * In case the value is an object, this method will retrieve the object member count.
  */
-unsigned QAJ4C_object_size( const QAJ4C_Value* value );
+unsigned QAJ4C_object_size( const QAJ4C_Value* value_ptr );
 
 /**
  * In case the value is an object, this method will get the member (containing of key and value).
@@ -363,7 +363,7 @@ unsigned QAJ4C_object_size( const QAJ4C_Value* value );
  * @note the object is internally organized as c-array. This way random access on index is
  * cheap.
  */
-const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value, unsigned index );
+const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, unsigned index );
 
 /**
  * This method will return the key's value of the member.
@@ -379,20 +379,20 @@ const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member );
  * In case the value is an object this method will retrieve a member by name with the
  * given size and return the value of the member.
  */
-const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value, const char* str, size_t len );
+const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * In case the value is an object this method will retrieve a member by name (using strlen
  * to determine the size) and return the value of the member.
  */
-static inline const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value, const char* str ) {
-    return QAJ4C_object_get2(value, str, strlen(str));
+static inline const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str ) {
+    return QAJ4C_object_get2(value_ptr, str, strlen(str));
 }
 
 /**
  * In case the value is an array, this method will return the array size.
  */
-unsigned QAJ4C_array_size( const QAJ4C_Value* value );
+unsigned QAJ4C_array_size( const QAJ4C_Value* value_ptr );
 
 /**
  * In case the value is an array, this method will return the value at the given
@@ -401,7 +401,7 @@ unsigned QAJ4C_array_size( const QAJ4C_Value* value );
  * @note a QAJ4C_array is organized as a c-array internally, thus random access
  * is possible with low cost.
  */
-const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value, unsigned index );
+const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, unsigned index );
 
 /**
  * Initializes the builder with the given buffer.
