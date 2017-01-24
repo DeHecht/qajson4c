@@ -180,33 +180,32 @@ static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type 
 static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
 static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
 
-
 static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value_ptr ) {
-    return value_ptr->type & 0xFFFFu;
+    return value_ptr->type & 0xFF;
 }
 
 static inline void QAJ4C_set_type( QAJ4C_Value* value_ptr, QAJ4C_Type type ) {
-    value_ptr->type = (value_ptr->type & 0xFFFF0000u) | (type & 0xFFFFu);
+    value_ptr->type = (value_ptr->type & 0xFFFFF00) | (type & 0xFF);
 }
 
 static inline void QAJ4C_set_storage_type( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = (value_ptr->type & 0xFF00FFFFu) | (((size_type)type) << 16);
+    value_ptr->type = (value_ptr->type & 0xFF00FF) | (((size_type)type) << 8);
 }
 
 static inline void QAJ4C_set_compatibility_types( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = (value_ptr->type & 0xFFFFFFu) | (((size_type)type) << 24);
+    value_ptr->type = (value_ptr->type & 0xFFFF) | (((size_type)type) << 16);
 }
 
 static inline void QAJ4C_add_compatibility_types( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = value_ptr->type | (((size_type)type) << 24);
+    value_ptr->type = value_ptr->type | (((size_type)type) << 16);
 }
 
 static inline uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr ) {
-    return (value_ptr->type >> 16) & 0xFF;
+    return (value_ptr->type >> 8) & 0xFF;
 }
 
 static inline uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr ) {
-    return (value_ptr->type >> 24) & 0xFF;
+    return (value_ptr->type >> 16) & 0xFF;
 }
 
 static inline unsigned QAJ4C_do_calculate_max_buffer_size( const QAJ4C_Parser* parser ) {
@@ -1183,11 +1182,14 @@ const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value
     return NULL;
 }
 
-const QAJ4C_Value* QAJ4C_object_get_sorted(QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr)
-{
+const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr ) {
     QAJ4C_Member member;
     member.key = *str_ptr;
-    return bsearch(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
+    QAJ4C_Member* result = bsearch(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
+    if (result != NULL) {
+        return &result->value;
+    }
+    return NULL;
 }
 
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, unsigned index ) {
