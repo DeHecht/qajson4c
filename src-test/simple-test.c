@@ -164,6 +164,9 @@ int main(int argc, char **argv) {
 		document = QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size);
 	} else {
 		document = QAJ4C_parse(input_string, buffer, arguments.buffer_size);
+        if (arguments.verbose) {
+            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof_as_document(QAJ4C_get_root_value(document)));
+        }
 	}
 
 	if ( arguments.verbose ) {

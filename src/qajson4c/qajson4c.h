@@ -511,6 +511,15 @@ QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index );
 void QAJ4C_set_object( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder );
 
 /**
+ * This method will optimize the current content on of the object (for faster DOM access).
+ * Adding new members will require to call optimize again.
+ *
+ * @note invoking optimize on an already optimized object will leave the object untouched.
+ * @note the behavior is undefined in case keys are present multiple times.
+ */
+void QAJ4C_object_optimize( QAJ4C_Value* value_ptr );
+
+/**
  * This method creates a member within the object using the reference of the handed over string.
  * This way the string does not have to be copied over to the buffer, but the string has to stay
  * valid until the DOM is not required anymore.
@@ -545,6 +554,25 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
 static inline QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
     return QAJ4C_object_create_member_by_copy2(value_ptr, builder, str, strlen(str));
 }
+
+/**
+ * This method calculates the size of the QAJ4C_Value DOM.
+ *
+ * @note QAJ4C_Value cannot be allocated stand alone so in case you intend to extract
+ * a value into a new document you need to use QAJ4C_value_sizeof_as_document instead.
+ */
+size_t QAJ4C_value_sizeof( const QAJ4C_Value* value_ptr );
+
+/**
+ * This method calculates the size of the QAJ4C_Value when it has to be embedded in a
+ * new document.
+ */
+size_t QAJ4C_value_sizeof_as_document( const QAJ4C_Value* value_ptr );
+
+/**
+ * This method calculates the size of the QAJ4C_Document.
+ */
+size_t QAJ4C_document_sizeof( const QAJ4C_Document* doc_ptr );
 
 #ifdef __cplusplus
 }

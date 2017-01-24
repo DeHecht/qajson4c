@@ -43,8 +43,10 @@ typedef enum QAJ4C_Type {
     QAJ4C_NULL = 0,
     QAJ4C_UNSPECIFIED,
     QAJ4C_OBJECT,
+    QAJ4C_OBJECT_SORTED,
     QAJ4C_ARRAY,
     QAJ4C_STRING,
+    QAJ4C_STRING_REF,
     QAJ4C_INLINE_STRING,
     QAJ4C_PRIMITIVE,
     QAJ4C_ERROR_DESCRIPTION,
@@ -157,6 +159,7 @@ static QAJ4C_Document* QAJ4C_create_error_description( QAJ4C_Parser* parser );
 
 static int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Parser* parser );
+static int QAJ4C_compare_members( const void* p1, const void * p2 );
 
 static void QAJ4C_first_pass_process( QAJ4C_Parser* parser, uint8_t depth );
 static void QAJ4C_first_pass_object( QAJ4C_Parser* parser, uint8_t depth );
@@ -179,31 +182,31 @@ static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length 
 
 
 static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value_ptr ) {
-    return value_ptr->type & 0xFF;
+    return value_ptr->type & 0xFFFFu;
 }
 
 static inline void QAJ4C_set_type( QAJ4C_Value* value_ptr, QAJ4C_Type type ) {
-    value_ptr->type = (value_ptr->type & 0xFFFFF00) | (type & 0xFF);
+    value_ptr->type = (value_ptr->type & 0xFFFF0000u) | (type & 0xFFFFu);
 }
 
 static inline void QAJ4C_set_storage_type( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = (value_ptr->type & 0xFF00FF) | (((size_type)type) << 8);
+    value_ptr->type = (value_ptr->type & 0xFF00FFFFu) | (((size_type)type) << 16);
 }
 
 static inline void QAJ4C_set_compatibility_types( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = (value_ptr->type & 0xFFFF) | (((size_type)type) << 16);
+    value_ptr->type = (value_ptr->type & 0xFFFFFFu) | (((size_type)type) << 24);
 }
 
 static inline void QAJ4C_add_compatibility_types( QAJ4C_Value* value_ptr, uint8_t type ) {
-    value_ptr->type = value_ptr->type | (((size_type)type) << 16);
+    value_ptr->type = value_ptr->type | (((size_type)type) << 24);
 }
 
 static inline uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr ) {
-    return (value_ptr->type >> 8) & 0xFF;
+    return (value_ptr->type >> 16) & 0xFF;
 }
 
 static inline uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr ) {
-    return (value_ptr->type >> 16) & 0xFF;
+    return (value_ptr->type >> 24) & 0xFF;
 }
 
 static inline unsigned QAJ4C_do_calculate_max_buffer_size( const QAJ4C_Parser* parser ) {
@@ -218,6 +221,9 @@ static void QAJ4C_std_err_function( const char* function_name, const char* asser
     fprintf(stderr, "%s: %s\n", function_name, assertion_msg);
     raise(SIGABRT);
 }
+
+const QAJ4C_Value* QAJ4C_object_get_unsorted(QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr);
+const QAJ4C_Value* QAJ4C_object_get_sorted(QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr);
 
 static const char QAJ4C_NULL_STR[] = "null";
 static const char QAJ4C_TRUE_STR[] = "true";
@@ -636,6 +642,10 @@ static void QAJ4C_parse_object( QAJ4C_Parser* parser, QAJ4C_Value* result_ptr ) 
         QAJ4C_skip_whitespaces_and_comments(parser);
     }
 
+    if ( elements > 1) {
+        QAJ4C_object_optimize(result_ptr);
+    }
+
     parser->json_pos++; // pass over the } char
 }
 
@@ -805,6 +815,7 @@ size_t QAJ4C_sprint( const QAJ4C_Document* document, char* buffer, size_t buffer
 static size_t QAJ4C_print_value( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index ) {
     // FIXME: prevent a buffer overflow by checking buffer_size!
     switch (QAJ4C_get_type(value_ptr)) {
+    case QAJ4C_OBJECT_SORTED:
     case QAJ4C_OBJECT: {
         QAJ4C_Member* top = ((QAJ4C_Object*)value_ptr)->top;
         index += snprintf(buffer + index, buffer_size - index, "{");
@@ -859,6 +870,7 @@ static size_t QAJ4C_print_value( const QAJ4C_Value* value_ptr, char* buffer, siz
         index += snprintf(buffer + index, buffer_size - index, QAJ4C_NULL_STR);
         break;
     }
+    case QAJ4C_STRING_REF:
     case QAJ4C_INLINE_STRING:
     case QAJ4C_STRING: {
         if (index < buffer_size) {
@@ -953,6 +965,12 @@ static int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     return 0;
 }
 
+static int QAJ4C_compare_members( const void* p1, const void * p2 ) {
+    const QAJ4C_Member* left = p1;
+    const QAJ4C_Member* right = p2;
+    return QAJ4C_strcmp(&left->key, &right->key);
+}
+
 static bool QAJ4C_is_primitive( const QAJ4C_Value* value_ptr ) {
     return value_ptr != NULL && QAJ4C_get_type(value_ptr) == QAJ4C_PRIMITIVE;
 }
@@ -970,7 +988,9 @@ QAJ4C_Value* QAJ4C_get_root_value_rw( QAJ4C_Document* document ) {
 }
 
 bool QAJ4C_is_string( const QAJ4C_Value* value_ptr ) {
-    return value_ptr != NULL && (QAJ4C_get_type(value_ptr) == QAJ4C_INLINE_STRING || QAJ4C_get_type(value_ptr) == QAJ4C_STRING);
+    return value_ptr != NULL && (QAJ4C_get_type(value_ptr) == QAJ4C_INLINE_STRING
+                             || QAJ4C_get_type(value_ptr) == QAJ4C_STRING
+                             || QAJ4C_get_type(value_ptr) == QAJ4C_STRING_REF);
 }
 
 const char* QAJ4C_get_string( const QAJ4C_Value* value_ptr ) {
@@ -998,7 +1018,7 @@ int QAJ4C_string_cmp2( const QAJ4C_Value* value_ptr, const char* str, size_t len
 }
 
 bool QAJ4C_is_object( const QAJ4C_Value* value_ptr ) {
-    return value_ptr != NULL && QAJ4C_get_type(value_ptr) == QAJ4C_OBJECT;
+    return value_ptr != NULL && (QAJ4C_get_type(value_ptr) == QAJ4C_OBJECT || QAJ4C_get_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
 
 bool QAJ4C_is_array( const QAJ4C_Value* value_ptr ) {
@@ -1102,6 +1122,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const c
         QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
         if (QAJ4C_is_null(key_value)) {
             // we found some free space to place our ptr
+            QAJ4C_set_type(value_ptr, QAJ4C_OBJECT); // not sorted anymore
             QAJ4C_set_string_ref2(key_value, str, len);
             return &((QAJ4C_Object*)value_ptr)->top[i].value;
         }
@@ -1116,6 +1137,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
         QAJ4C_Value* key_value = &((QAJ4C_Object*)value_ptr)->top[i].key;
         if (QAJ4C_is_null(key_value)) {
             // we found some free space to place our ptr
+            QAJ4C_set_type(value_ptr, QAJ4C_OBJECT); // not sorted anymore
             QAJ4C_set_string_copy2(key_value, builder, str, len);
             return &((QAJ4C_Object*)value_ptr)->top[i].value;
         }
@@ -1141,18 +1163,31 @@ const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
 
 const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr));
-    size_type count = ((QAJ4C_Object*)value_ptr)->count;
     QAJ4C_Value wrapper_value;
     QAJ4C_set_string_ref2(&wrapper_value, str, len);
 
+    if (QAJ4C_get_type(value_ptr) == QAJ4C_OBJECT_SORTED) {
+        return QAJ4C_object_get_sorted((QAJ4C_Object*)value_ptr, &wrapper_value);
+    }
+    return QAJ4C_object_get_unsorted((QAJ4C_Object*)value_ptr, &wrapper_value);
+}
+
+const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr ) {
     QAJ4C_Member* entry;
-    for (size_type i = 0; i < count; ++i) {
-        entry = ((QAJ4C_Object*)value_ptr)->top + i;
-        if (!QAJ4C_is_null(&entry->key) && QAJ4C_strcmp(&wrapper_value, &entry->key) == 0) {
+    for (size_type i = 0; i < obj_ptr->count; ++i) {
+        entry = obj_ptr->top + i;
+        if (!QAJ4C_is_null(&entry->key) && QAJ4C_strcmp(str_ptr, &entry->key) == 0) {
             return &entry->value;
         }
     }
-    return NULL; // assert?
+    return NULL;
+}
+
+const QAJ4C_Value* QAJ4C_object_get_sorted(QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr)
+{
+    QAJ4C_Member member;
+    member.key = *str_ptr;
+    return bsearch(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
 }
 
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, unsigned index ) {
@@ -1223,7 +1258,7 @@ void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value ) {
 }
 
 void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    QAJ4C_set_type(value_ptr, QAJ4C_STRING);
+    QAJ4C_set_type(value_ptr, QAJ4C_STRING_REF);
     ((QAJ4C_String*)value_ptr)->s = str;
     ((QAJ4C_String*)value_ptr)->count = len;
 }
@@ -1322,3 +1357,50 @@ static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length 
     return (char*)(&builder->buffer[builder->cur_str_pos]);
 
 }
+
+size_t QAJ4C_value_sizeof_as_document( const QAJ4C_Value* value_ptr ) {
+    return sizeof(QAJ4C_Document) + QAJ4C_value_sizeof(value_ptr);
+}
+
+size_t QAJ4C_document_sizeof( const QAJ4C_Document* doc_ptr ) {
+    return sizeof(QAJ4C_Document) + QAJ4C_value_sizeof(QAJ4C_get_root_value(doc_ptr));
+}
+
+size_t QAJ4C_value_sizeof( const QAJ4C_Value* value_ptr ) {
+    size_t size = sizeof(QAJ4C_Value);
+    switch (QAJ4C_get_type(value_ptr)) {
+    case QAJ4C_OBJECT_SORTED:
+    case QAJ4C_OBJECT: {
+        for (unsigned int i = 0; i < QAJ4C_object_size(value_ptr); ++i) {
+            const QAJ4C_Member* member = QAJ4C_object_get_member(value_ptr, i);
+            size += QAJ4C_value_sizeof(&member->key);
+            size += QAJ4C_value_sizeof(&member->value);
+        }
+        break;
+    }
+    case QAJ4C_ARRAY: {
+        for (unsigned int i = 0; i < QAJ4C_array_size(value_ptr); ++i) {
+            const QAJ4C_Value* elem = QAJ4C_array_get(value_ptr, i);
+            size += QAJ4C_value_sizeof(elem);
+        }
+        break;
+    }
+    case QAJ4C_STRING: {
+        size += QAJ4C_get_string_length(value_ptr) + 1;
+        break;
+    }
+    default:
+        QAJ4C_ASSERT(QAJ4C_get_type(value_ptr) != QAJ4C_UNSPECIFIED);
+    }
+    return size;
+}
+
+void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
+    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr));
+    if (QAJ4C_get_type(value_ptr) != QAJ4C_OBJECT_SORTED) {
+        QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
+        qsort(obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
+        QAJ4C_set_type(value_ptr, QAJ4C_OBJECT_SORTED);
+    }
+}
+
