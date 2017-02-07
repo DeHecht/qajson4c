@@ -1259,6 +1259,12 @@ void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value ) {
     QAJ4C_set_compatibility_types(value_ptr, QAJ4C_PRIMITIVE_DOUBLE);
 }
 
+void QAJ4C_set_null( QAJ4C_Value* value_ptr) {
+    QAJ4C_set_type(value_ptr, QAJ4C_NULL);
+    QAJ4C_set_storage_type(value_ptr, QAJ4C_NULL);
+    QAJ4C_set_compatibility_types(value_ptr, QAJ4C_NULL);
+}
+
 void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_set_type(value_ptr, QAJ4C_STRING_REF);
     ((QAJ4C_String*)value_ptr)->s = str;
