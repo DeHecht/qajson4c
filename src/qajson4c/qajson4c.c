@@ -184,6 +184,24 @@ static inline QAJ4C_Type QAJ4C_get_type( const QAJ4C_Value* value_ptr ) {
     return value_ptr->type & 0xFF;
 }
 
+/*
+ * This method will return less types as the get_type method (reducing all string types
+ * to string or all object types to object)
+ */
+static inline QAJ4C_Type QAJ4C_get_basic_type( const QAJ4C_Value* value_ptr ) {
+    QAJ4C_Type type = QAJ4C_get_type ( value_ptr );
+    switch( type )
+    {
+    case QAJ4C_OBJECT_SORTED:
+        return QAJ4C_OBJECT;
+    case QAJ4C_INLINE_STRING:
+    case QAJ4C_STRING_REF:
+        return QAJ4C_STRING;
+    default:
+        return type;
+    }
+}
+
 static inline void QAJ4C_set_type( QAJ4C_Value* value_ptr, QAJ4C_Type type ) {
     value_ptr->type = (value_ptr->type & 0xFFFFF00) | (type & 0xFF);
 }
@@ -316,7 +334,7 @@ const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffe
     return QAJ4C_parse_second_pass(&parser);
 }
 
-const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback) {
+const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback ) {
     static size_type min_size = sizeof(QAJ4C_Document) + sizeof(QAJ4C_Error_information);
     QAJ4C_Parser parser;
     parser.json = json;
@@ -964,10 +982,25 @@ static int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     return 0;
 }
 
+/*
+ * In some situations objects are not fully filled ... all unset members (key is null)
+ * have to be located at the end of the array in order to improve the attach and compare
+ * methods.
+ */
 static int QAJ4C_compare_members( const void* p1, const void * p2 ) {
     const QAJ4C_Member* left = p1;
     const QAJ4C_Member* right = p2;
-    return QAJ4C_strcmp(&left->key, &right->key);
+
+    if (QAJ4C_is_string(&left->key) && QAJ4C_is_string(&right->key)) {
+        return QAJ4C_strcmp(&left->key, &right->key);
+    }
+    if (QAJ4C_is_null(&left->key) && QAJ4C_is_null(&right->key)) {
+        return 0;
+    }
+    // Either left or right is null (but not both). Count "null" bigger as any string so it
+    // will always be moved to the end of the array!
+    return QAJ4C_is_null(&left->key) ? 1 : -1;
+
 }
 
 static bool QAJ4C_is_primitive( const QAJ4C_Value* value_ptr ) {
@@ -1084,6 +1117,10 @@ double QAJ4C_get_double( const QAJ4C_Value* value_ptr ) {
 bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_bool(value_ptr));
     return ((QAJ4C_Primitive*)value_ptr)->data.b;
+}
+
+bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr ) {
+    return value_ptr == NULL;
 }
 
 bool QAJ4C_is_null( const QAJ4C_Value* value_ptr ) {
@@ -1406,3 +1443,95 @@ void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
     }
 }
 
+void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {
+    QAJ4C_Type lhs_type = QAJ4C_get_type(src);
+    switch (lhs_type) {
+    case QAJ4C_NULL:
+    case QAJ4C_STRING_REF:
+    case QAJ4C_INLINE_STRING:
+    case QAJ4C_PRIMITIVE:
+        // simple content copy
+        *dest = *src;
+        break;
+    case QAJ4C_STRING:
+        QAJ4C_set_string_copy2(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
+        break;
+    case QAJ4C_OBJECT:
+    case QAJ4C_OBJECT_SORTED:
+        break;
+    case QAJ4C_ARRAY:
+        QAJ4C_set_array(dest, QAJ4C_array_size(src));
+        for (unsigned i = 0; i < QAJ4C_array_size(src); ++i) {
+            QAJ4C_copy(QAJ4C_array_get(src), i), QAJ4C_array_get_rw(dest, i);
+        }
+        break;
+    }
+}
+
+bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
+    QAJ4C_Type lhs_type = QAJ4C_get_basic_type(lhs);
+    QAJ4C_Type rhs_type = QAJ4C_get_basic_type(rhs);
+    if (lhs_type != rhs_type) {
+        return false;
+    }
+    switch( lhs_type ) {
+    case QAJ4C_NULL:
+        return true;
+    case QAJ4C_STRING:
+        return QAJ4C_strcmp(lhs, rhs) == 0;
+    case QAJ4C_PRIMITIVE:
+        // use the integer representation for comparison (double)
+        return ((QAJ4C_Primitive*)lhs)->data.i == ((QAJ4C_Primitive*)rhs)->data.i;
+    case QAJ4C_OBJECT:
+    {
+        unsigned size_lhs = QAJ4C_object_size( lhs );
+        if( size_lhs != QAJ4C_object_size( rhs ) )
+        {
+           return false;
+        }
+        for( unsigned i = 0; i < size_lhs; ++i )
+        {
+            const QAJ4C_Member* member_lhs = QAJ4C_object_get_member( lhs, i );
+            const QAJ4C_Value* key_lhs = QAJ4C_member_get_key( member_lhs );
+
+            const QAJ4C_Member* member_rhs = QAJ4C_object_get_member( rhs, i );
+            const QAJ4C_Value* key_rhs = QAJ4C_member_get_key( member_rhs );
+
+            // If lhs is not fully filled the objects are only equal in case rhs has
+            // the same fill amount
+            if (QAJ4C_is_null(key_lhs)) {
+                return QAJ4C_is_null(key_rhs);
+            }
+
+            const QAJ4C_Value* lhs_value = QAJ4C_member_get_value(member_lhs);
+            const QAJ4C_Value* rhs_value = QAJ4C_object_get2( rhs, QAJ4C_get_string(key_lhs), QAJ4C_get_string_length(key_lhs));
+            if ( !QAJ4C_equals( lhs_value, rhs_value ) )
+            {
+               return false;
+            }
+        }
+        return true;
+    }
+    case QAJ4C_ARRAY:
+    {
+        unsigned size_lhs = QAJ4C_array_size( lhs );
+        if ( size_lhs != QAJ4C_array_size( rhs ) )
+        {
+           return false;
+        }
+        for( unsigned i = 0; i < size_lhs; ++i )
+        {
+           const QAJ4C_Value* value_lhs = QAJ4C_array_get( lhs, i );
+           const QAJ4C_Value* value_rhs = QAJ4C_array_get( rhs, i );
+           if ( !QAJ4C_equals( value_lhs, value_rhs ) )
+           {
+              return false;
+           }
+        }
+        return true;
+    }
+    default:
+        QAJ4C_ASSERT(false);
+    }
+    return false;
+}

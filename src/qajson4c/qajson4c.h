@@ -37,6 +37,9 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+/**
+ * Document type
+ */
 struct QAJ4C_Document;
 
 /**
@@ -80,19 +83,21 @@ typedef void (*QAJ4C_fatal_error_fn)( const char* function_name, const char* ass
  */
 typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
 
-
+/**
+ * Error codes that can be expected from the qa json parser.
+ */
 typedef enum QAJ4C_ERROR_CODES {
-    QAJ4C_ERROR_DEPTH_OVERFLOW = 1,
-    QAJ4C_ERROR_UNEXPECTED_CHAR = 2,
-    QAJ4C_ERROR_BUFFER_TRUNCATED = 3,
-    QAJ4C_ERROR_INVALID_STRING_START = 4,
-    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 5,
-    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 6,
-    QAJ4C_ERROR_ARRAY_MISSING_COMMA = 7,
-    QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,
-    QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,
-    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,
-    QAJ4C_ERROR_ALLOCATION_ERROR = 11 // only when using parse_dynamic
+    QAJ4C_ERROR_DEPTH_OVERFLOW = 1,          //!< The amount of nested elements exceed the limit
+    QAJ4C_ERROR_UNEXPECTED_CHAR = 2,         //!< Unexpected char was processed
+    QAJ4C_ERROR_BUFFER_TRUNCATED = 3,        //!< Json message was incomplete
+    QAJ4C_ERROR_INVALID_STRING_START = 4,    //!< String value was expected but did not start with '"'
+    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 5,   //!< Numeric values was expected but had invalid format
+    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 6,//!< Json message did not stop at the end of the buffer
+    QAJ4C_ERROR_ARRAY_MISSING_COMMA = 7,     //!< Array elements were not separated by comma
+    QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,    //!< Object entry misses ':' after key declaration
+    QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,      //!< A fatal error occurred (no other classification possible)
+    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,//!< DOM storage buffer is too small to store DOM.
+    QAJ4C_ERROR_ALLOCATION_ERROR = 11        //!< Realloc failed (parse_dynamic only).
 } QAJ4C_ERROR_CODES;
 
 /**
@@ -138,7 +143,7 @@ const QAJ4C_Document* QAJ4C_parse( const char* json, void* buffer, size_t buffer
  * @returns NULL, in case no memory could ever get allocated at all. In all other cases
  * a valid instance (that may contain an error instead of parsed content).
  */
-const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback);
+const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback );
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM.
@@ -164,6 +169,7 @@ const QAJ4C_Value* QAJ4C_get_root_value( const QAJ4C_Document* document );
 
 /**
  * This method will return true, in case the value can be read out as string.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_string( const QAJ4C_Value* value_ptr );
 
@@ -224,16 +230,19 @@ static inline bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char
 
 /**
  * This method will return true, in case the value can be read out as object.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_object( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as array.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_array( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as int32_t.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_int( const QAJ4C_Value* value_ptr );
 
@@ -247,6 +256,7 @@ int32_t QAJ4C_get_int( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as int64_t.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_int64( const QAJ4C_Value* value_ptr );
 
@@ -260,6 +270,7 @@ int64_t QAJ4C_get_int64( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as uint32_t.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_uint( const QAJ4C_Value* value_ptr );
 
@@ -273,6 +284,7 @@ uint32_t QAJ4C_get_uint( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value can be read out as uint64_t.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_uint64( const QAJ4C_Value* value_ptr );
 
@@ -288,6 +300,7 @@ uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value_ptr );
  * This method will return true, in case the value can be read out as double.
  *
  * @note this will return true for all parsed numeric values.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_double( const QAJ4C_Value* value_ptr );
 
@@ -301,6 +314,7 @@ double QAJ4C_get_double( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the type can be read out as boolean.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_bool( const QAJ4C_Value* value_ptr );
 
@@ -313,8 +327,15 @@ bool QAJ4C_is_bool( const QAJ4C_Value* value_ptr );
 bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr );
 
 /**
+ * This method will return true, in case the value pointer is not set (thus the NULL-pointer).
+ * @note This method is NULL-safe!
+ */
+bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr);
+
+/**
  * This method will return true, in case the value pointer is null
  * but also in case the value's type is null.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_null( const QAJ4C_Value* value_ptr );
 
@@ -324,6 +345,7 @@ bool QAJ4C_is_null( const QAJ4C_Value* value_ptr );
  * @note In case the parse method will fail and the buffer size is sufficient.
  * The root value will contain an error value, that can be 'queried' for
  * detailed error information.
+ * @note This method is NULL-safe!
  */
 bool QAJ4C_is_error( const QAJ4C_Value* value_ptr );
 
@@ -554,6 +576,17 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
 static inline QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
     return QAJ4C_object_create_member_by_copy2(value_ptr, builder, str, strlen(str));
 }
+
+/**
+ * This method creates a deep copy of the source value to the destination value using the
+ * handed over builder.
+ */
+void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder );
+
+/**
+ * This method checks if two elements are equal to each other.
+ */
+bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 
 /**
  * This method calculates the size of the QAJ4C_Value DOM.
