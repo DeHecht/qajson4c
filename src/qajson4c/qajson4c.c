@@ -1462,6 +1462,15 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         break;
     case QAJ4C_OBJECT:
     case QAJ4C_OBJECT_SORTED:
+        QAJ4C_set_object(dest, QAJ4C_object_size(src), builder);
+        QAJ4C_Object* dest_object = (QAJ4C_Object*)dest;
+        for(unsigned i = 0; i < QAJ4C_object_size(src); ++i) {
+            const QAJ4C_Member* src_member = QAJ4C_object_get_member(src, i);
+            QAJ4C_Member* dest_member = &dest_object->top[i];
+
+            QAJ4C_copy(&src_member->key, &dest_member->key, builder);
+            QAJ4C_copy(&src_member->value, &dest_member->value, builder);
+        }
         break;
     case QAJ4C_ARRAY:
         QAJ4C_set_array(dest, QAJ4C_array_size(src), builder);
