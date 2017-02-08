@@ -473,6 +473,11 @@ void QAJ4C_set_uint64( QAJ4C_Value* value_ptr, uint64_t value );
 void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value );
 
 /**
+ * This method will set the value to the JSON null type.
+ */
+void QAJ4C_set_null( QAJ4C_Value* value_ptr );
+
+/**
  * This method will set the value to string with a pointer to the handed over
  * string with the given size.
  *
