@@ -1458,16 +1458,18 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         *dest = *src;
         break;
     case QAJ4C_STRING:
-        QAJ4C_set_string_copy2(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
+        QAJ4C_set_string_copy2(dest, builder, QAJ4C_get_string(src), QAJ4C_get_string_length(src));
         break;
     case QAJ4C_OBJECT:
     case QAJ4C_OBJECT_SORTED:
         break;
     case QAJ4C_ARRAY:
-        QAJ4C_set_array(dest, QAJ4C_array_size(src));
+        QAJ4C_set_array(dest, QAJ4C_array_size(src), builder);
         for (unsigned i = 0; i < QAJ4C_array_size(src); ++i) {
-            QAJ4C_copy(QAJ4C_array_get(src), i), QAJ4C_array_get_rw(dest, i);
+            QAJ4C_copy(QAJ4C_array_get(src, i), QAJ4C_array_get_rw(dest, i), builder);
         }
+        break;
+    default:
         break;
     }
 }
