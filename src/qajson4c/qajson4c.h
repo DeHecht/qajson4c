@@ -33,6 +33,12 @@
 extern "C" {
 #endif
 
+#if (__STDC_VERSION__ >= 199901L)
+#define QAJ4C_INLINE inline
+#else
+#define QAJ4C_INLINE
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -87,17 +93,17 @@ typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
  * Error codes that can be expected from the qa json parser.
  */
 typedef enum QAJ4C_ERROR_CODES {
-    QAJ4C_ERROR_DEPTH_OVERFLOW = 1,          //!< The amount of nested elements exceed the limit
-    QAJ4C_ERROR_UNEXPECTED_CHAR = 2,         //!< Unexpected char was processed
-    QAJ4C_ERROR_BUFFER_TRUNCATED = 3,        //!< Json message was incomplete
-    QAJ4C_ERROR_INVALID_STRING_START = 4,    //!< String value was expected but did not start with '"'
-    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 5,   //!< Numeric values was expected but had invalid format
-    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 6,//!< Json message did not stop at the end of the buffer
-    QAJ4C_ERROR_ARRAY_MISSING_COMMA = 7,     //!< Array elements were not separated by comma
-    QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,    //!< Object entry misses ':' after key declaration
-    QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,      //!< A fatal error occurred (no other classification possible)
-    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,//!< DOM storage buffer is too small to store DOM.
-    QAJ4C_ERROR_ALLOCATION_ERROR = 11        //!< Realloc failed (parse_dynamic only).
+    QAJ4C_ERROR_DEPTH_OVERFLOW = 1,
+    QAJ4C_ERROR_UNEXPECTED_CHAR = 2,
+    QAJ4C_ERROR_BUFFER_TRUNCATED = 3,
+    QAJ4C_ERROR_INVALID_STRING_START = 4,
+    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 5,
+    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 6,
+    QAJ4C_ERROR_ARRAY_MISSING_COMMA = 7,
+    QAJ4C_ERROR_OBJECT_MISSING_COLON = 8,
+    QAJ4C_ERROR_FATAL_PARSER_ERROR = 9,
+    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 10,
+    QAJ4C_ERROR_ALLOCATION_ERROR = 11
 } QAJ4C_ERROR_CODES;
 
 /**
@@ -107,13 +113,6 @@ typedef enum QAJ4C_ERROR_CODES {
  * The default behavior is to raise a SIGABRT signal.
  */
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );
-
-/**
- * This method can be used to print some stats about the internal object sizes.
- * This is more a debug method for integration testing and might get removed
- * later on.
- */
-void QAJ4C_print_stats();
 
 /**
  * This method will walk through the json message and analyue what buffer size would be required
@@ -208,7 +207,7 @@ int QAJ4C_string_cmp2( const QAJ4C_Value* value_ptr, const char* str, size_t len
  *
  * Has the same return behavior like strcmp.
  */
-static inline bool QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str ) {
+static QAJ4C_INLINE bool QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str ) {
     return QAJ4C_string_cmp2(value_ptr, str, strlen(str));
 }
 
@@ -216,7 +215,7 @@ static inline bool QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* s
  * This method will return true, in case the handed over string with the given size
  * is equal to the value's string.
  */
-static inline bool QAJ4C_string_equals2( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+static QAJ4C_INLINE bool QAJ4C_string_equals2( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     return QAJ4C_string_cmp2(value_ptr, str, len) == 0;
 }
 
@@ -224,7 +223,7 @@ static inline bool QAJ4C_string_equals2( const QAJ4C_Value* value_ptr, const cha
  * This method will return true, in case the handed over string is equal to the
  * value's string. The string's length is determined using strlen.
  */
-static inline bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str ) {
+static QAJ4C_INLINE bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str ) {
     return QAJ4C_string_equals2(value_ptr, str, strlen(str));
 }
 
@@ -407,7 +406,7 @@ const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value_ptr, const char* 
  * In case the value is an object this method will retrieve a member by name (using strlen
  * to determine the size) and return the value of the member.
  */
-static inline const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str ) {
+static QAJ4C_INLINE const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str ) {
     return QAJ4C_object_get2(value_ptr, str, strlen(str));
 }
 
@@ -493,7 +492,7 @@ void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len 
  * @note As the string is a reference, the lifetime of the string must at least
  * be as long as the lifetime of the DOM object.
  */
-static inline void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str ) {
+static QAJ4C_INLINE void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str ) {
     QAJ4C_set_string_ref2(value_ptr, str, strlen(str));
 }
 
@@ -507,7 +506,7 @@ void QAJ4C_set_string_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, con
  * This method will copy the handed over string using the builder. The string
  * size is determined by using strlen.
  */
-static inline void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
+static QAJ4C_INLINE void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
     QAJ4C_set_string_copy2(value_ptr, builder, str, strlen(str));
 }
 
@@ -561,7 +560,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const c
  * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref2 method, using
  * strlen to calculate the string length.
  */
-static inline QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str ) {
+static QAJ4C_INLINE QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str ) {
     return QAJ4C_object_create_member_by_ref2(value_ptr, str, strlen(str));
 }
 
@@ -578,7 +577,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
  * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy2 method, using
  * strlen to calculate the string length.
  */
-static inline QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
+static QAJ4C_INLINE QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
     return QAJ4C_object_create_member_by_copy2(value_ptr, builder, str, strlen(str));
 }
 

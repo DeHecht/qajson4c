@@ -38,7 +38,28 @@ endfunction ( register_build_type_coverage )
 
 register_build_type_coverage()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -pedantic -pedantic-errors -Wall -Wextra")
+set(CMAKE_C_FLAGS "-ansi -pedantic -pedantic-errors -Wall -Wextra")
+
+find_package(Doxygen)
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+if(BUILD_DOCUMENTATION)
+    if(NOT DOXYGEN_FOUND)
+        message(FATAL_ERROR "Doxygen is needed to build the documentation.")
+    endif()
+
+    set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+    set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+    configure_file(${doxyfile_in} ${doxyfile} @ONLY)
+
+    add_custom_target(doc
+        COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM)
+
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION doc)
+endif()
 
 if( EXISTS ${CMAKE_TOOLCHAIN_FILE} )
     get_filename_component(USE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE} NAME)
@@ -65,5 +86,5 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/lib CACHE INTERNAL "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/bin CACHE INTERNAL "")
 
 add_subdirectory(src)
-add_subdirectory(src-test)
+#add_subdirectory(src-test)
 
