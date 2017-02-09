@@ -1,4 +1,5 @@
 
+set(CMAKE_C_FLAGS "-std=c99")
 
 add_executable(qajson4c-test "minimal-tests.c")
 add_executable(simple-processor "simple-test.c")

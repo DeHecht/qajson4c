@@ -142,7 +142,7 @@ int main() {
 	char empty[] = "";
 	char arrayWithObjects[] = "[{\"id\":1, },{\"id\":2},{\"id\":3}]";
 
-	QAJ4C_print_stats();
+	//QAJ4C_print_stats();
 
 	test_dom_access();
 

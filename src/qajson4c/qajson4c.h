@@ -106,6 +106,11 @@ typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_ALLOCATION_ERROR = 11
 } QAJ4C_ERROR_CODES;
 
+typedef enum QAJ4C_PARSE_OPTS {
+	/* enum value 1 is reserved! */
+	QAJ4C_PARSE_OPTS_STRICT = 2
+} QAJ4C_PARSE_OPTS;
+
 /**
  * With this method a fatal error handler can be registered to have a custom
  * way of handling invalid access behavior (like integer access on a string).
@@ -153,6 +158,37 @@ const QAJ4C_Document* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn re
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  */
 const QAJ4C_Document* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size );
+
+/**
+ * This method will parse the json message and will use the handed over buffer to store the DOM
+ * and the strings. Additionally the method will modify the buffer_size to the actual amount written
+ * to the buffer and will accept parsing options.
+ *
+ * @note In case the json_len is set to 0, the size of the message is autodetected.
+ */
+const QAJ4C_Document* QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t* buffer_size );
+
+/**
+ * This method will parse the json message  without a handed over buffer but with a realloc
+ * callback method. The realloc method will called each time allocated buffer is insufficient.
+ * Additionally will accept parsing options.
+ *
+ * @note In case the json_len is set to 0, the size of the message is autodetected.
+ */
+const QAJ4C_Document* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback );
+
+/**
+ * This method will parse the json message and will use the handed over buffer to store the DOM.
+ * The strings will not be copied within the buffer and will be referenced to the json message.
+ * Just like strtok, the json message will be adjusted in place. Additionally the method will modify
+ * the buffer_size to the actual amount written to the buffer and will accept parsing options.
+ *
+ * In case the parse fails the document's root value will contain an error value. Usually, a
+ * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
+ *
+ * @note In case the json_len is set to 0, the size of the message is autodetected.
+ */
+const QAJ4C_Document* QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buffer, size_t* buffer_size );
 
 /**
  * This method prints the DOM as JSON in the handed over buffer.

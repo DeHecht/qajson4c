@@ -39,6 +39,7 @@ endfunction ( register_build_type_coverage )
 register_build_type_coverage()
 
 set(CMAKE_C_FLAGS "-ansi -pedantic -pedantic-errors -Wall -Wextra")
+#set(CMAKE_C_FLAGS " -pedantic -pedantic-errors -Wall -Wextra")
 
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
@@ -86,5 +87,5 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/lib CACHE INTERNAL "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/bin CACHE INTERNAL "")
 
 add_subdirectory(src)
-#add_subdirectory(src-test)
+add_subdirectory(src-test)
 
