@@ -33,15 +33,7 @@
 extern "C" {
 #endif
 
-#if (__STDC_VERSION__ >= 199901L)
-#define QAJ4C_INLINE inline
-#else
-#define QAJ4C_INLINE
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
+#include <qajson4c/qajson_stdwrap.h>
 
 /**
  * Document type
@@ -93,6 +85,7 @@ typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
  * Error codes that can be expected from the qa json parser.
  */
 typedef enum QAJ4C_ERROR_CODES {
+	QAJ4C_ERROR_INVALID_ERROR_CODE = 0,
     QAJ4C_ERROR_DEPTH_OVERFLOW = 1,
     QAJ4C_ERROR_UNEXPECTED_CHAR = 2,
     QAJ4C_ERROR_BUFFER_TRUNCATED = 3,
@@ -106,6 +99,16 @@ typedef enum QAJ4C_ERROR_CODES {
     QAJ4C_ERROR_ALLOCATION_ERROR = 11
 } QAJ4C_ERROR_CODES;
 
+typedef enum QAJ4C_TYPE {
+	QAJ4C_TYPE_INVALID = -1,
+    QAJ4C_TYPE_NULL,
+    QAJ4C_TYPE_OBJECT,
+    QAJ4C_TYPE_ARRAY,
+    QAJ4C_TYPE_STRING,
+    QAJ4C_TYPE_NUMBER,
+    QAJ4C_TYPE_BOOL
+} QAJ4C_TYPE;
+
 typedef enum QAJ4C_PARSE_OPTS {
 	/* enum value 1 is reserved! */
 	QAJ4C_PARSE_OPTS_STRICT = 2
@@ -115,21 +118,40 @@ typedef enum QAJ4C_PARSE_OPTS {
  * With this method a fatal error handler can be registered to have a custom
  * way of handling invalid access behavior (like integer access on a string).
  *
- * The default behavior is to raise a SIGABRT signal.
+ * The default behavior is print the an error message to stderr.
  */
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );
 
 /**
- * This method will walk through the json message and analyue what buffer size would be required
+ * This method will walk through the json message (with a given size) and analyze what buffer
+ * size would be required to store the complete DOM.
+ */
+size_t QAJ4C_calculate_max_buffer_size_n( const char* json, size_t n );
+
+/**
+ * This method will walk through the json message and analyze what buffer size would be required
  * to store the complete DOM.
  */
-unsigned QAJ4C_calculate_max_buffer_size( const char* json );
+static QAJ4C_INLINE size_t QAJ4C_calculate_max_buffer_size( const char* json )
+{
+	return QAJ4C_calculate_max_buffer_size_n(json, 0);
+}
+
+/**
+ * This method will walk through the json message (with a given size and analyze the maximum
+ * required buffer size that would be required to store the DOM (in case the strings do not
+ * have to be copied into the buffer)
+ */
+size_t QAJ4C_calculate_max_buffer_size_insitu_n( const char* json, size_t n );
 
 /**
  * This method will walk through the json message and analyze the maximum required buffer size that
  * would be required to store the DOM (in case the strings do not have to be copied into the buffer)
  */
-unsigned QAJ4C_calculate_max_buffer_size_insitu( const char* json );
+static QAJ4C_INLINE size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json )
+{
+	return QAJ4C_calculate_max_buffer_size_insitu_n(json, 0);
+}
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM
@@ -227,13 +249,14 @@ const char* QAJ4C_get_string( const QAJ4C_Value* value_ptr );
  * For this reason all string operations are also available with a defined
  * string size.
  */
-unsigned QAJ4C_get_string_length( const QAJ4C_Value* value_ptr );
+size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will compare the value's string value with the handed over string
  * with the given length.
  *
- * Has the same behavior like strcmp.
+ * @note: The length of the string will be compared first ... so the results will
+ * most likely differ to the c library strcmp.
  */
 int QAJ4C_string_cmp2( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
@@ -241,10 +264,11 @@ int QAJ4C_string_cmp2( const QAJ4C_Value* value_ptr, const char* str, size_t len
  * This method will compare the value's string value with the handed over string
  * using strlen to determine the strings size.
  *
- * Has the same return behavior like strcmp.
+ * @note: The length of the string will be compared first ... so the results will
+ * most likely differ to the c library strcmp.
  */
 static QAJ4C_INLINE bool QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_string_cmp2(value_ptr, str, strlen(str));
+    return QAJ4C_string_cmp2(value_ptr, str, QAJ4C_strlen(str));
 }
 
 /**
@@ -260,7 +284,7 @@ static QAJ4C_INLINE bool QAJ4C_string_equals2( const QAJ4C_Value* value_ptr, con
  * value's string. The string's length is determined using strlen.
  */
 static QAJ4C_INLINE bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_string_equals2(value_ptr, str, strlen(str));
+    return QAJ4C_string_equals2(value_ptr, str, QAJ4C_strlen(str));
 }
 
 /**
@@ -375,6 +399,13 @@ bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr);
 bool QAJ4C_is_null( const QAJ4C_Value* value_ptr );
 
 /**
+ * This method will return the type of the "value".
+ *
+ * @note if value_ptr is NULL the method will return QAJ4C_TYPE_NULL.
+ */
+QAJ4C_TYPE QAJ4C_get_type( const QAJ4C_Value* value_ptr );
+
+/**
  * Checks if the value is an error (not a valid json type)
  *
  * @note In case the parse method will fail and the buffer size is sufficient.
@@ -405,13 +436,13 @@ QAJ4C_ERROR_CODES QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr );
  *
  * @note This method will fail in case the value is not an error!
  */
-unsigned QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr );
+size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr );
 
 
 /**
  * In case the value is an object, this method will retrieve the object member count.
  */
-unsigned QAJ4C_object_size( const QAJ4C_Value* value_ptr );
+size_t QAJ4C_object_size( const QAJ4C_Value* value_ptr );
 
 /**
  * In case the value is an object, this method will get the member (containing of key and value).
@@ -420,7 +451,7 @@ unsigned QAJ4C_object_size( const QAJ4C_Value* value_ptr );
  * @note the object is internally organized as c-array. This way random access on index is
  * cheap.
  */
-const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, unsigned index );
+const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, size_t index );
 
 /**
  * This method will return the key's value of the member.
@@ -443,13 +474,13 @@ const QAJ4C_Value* QAJ4C_object_get2( const QAJ4C_Value* value_ptr, const char* 
  * to determine the size) and return the value of the member.
  */
 static QAJ4C_INLINE const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_object_get2(value_ptr, str, strlen(str));
+    return QAJ4C_object_get2(value_ptr, str, QAJ4C_strlen(str));
 }
 
 /**
  * In case the value is an array, this method will return the array size.
  */
-unsigned QAJ4C_array_size( const QAJ4C_Value* value_ptr );
+size_t QAJ4C_array_size( const QAJ4C_Value* value_ptr );
 
 /**
  * In case the value is an array, this method will return the value at the given
@@ -458,7 +489,7 @@ unsigned QAJ4C_array_size( const QAJ4C_Value* value_ptr );
  * @note a QAJ4C_array is organized as a c-array internally, thus random access
  * is possible with low cost.
  */
-const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, unsigned index );
+const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, size_t index );
 
 /**
  * Initializes the builder with the given buffer.
@@ -529,21 +560,21 @@ void QAJ4C_set_string_ref2( QAJ4C_Value* value_ptr, const char* str, size_t len 
  * be as long as the lifetime of the DOM object.
  */
 static QAJ4C_INLINE void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str ) {
-    QAJ4C_set_string_ref2(value_ptr, str, strlen(str));
+    QAJ4C_set_string_ref2(value_ptr, str, QAJ4C_strlen(str));
 }
 
 /**
  * This method will copy the handed over string with the given string size
  * using the builder.
  */
-void QAJ4C_set_string_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str, size_t len );
+void QAJ4C_set_string_copy2( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
 
 /**
  * This method will copy the handed over string using the builder. The string
  * size is determined by using strlen.
  */
-static QAJ4C_INLINE void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
-    QAJ4C_set_string_copy2(value_ptr, builder, str, strlen(str));
+static QAJ4C_INLINE void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder ) {
+    QAJ4C_set_string_copy2(value_ptr, str, QAJ4C_strlen(str), builder);
 }
 
 /**
@@ -553,7 +584,7 @@ static QAJ4C_INLINE void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, QAJ4C_Bu
  * @note objects and arrays cannot be resized. Thus in case invoking this function twice
  * on the same value will cause the memory allocated for the old "members" to be wasted!
  */
-void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder );
+void QAJ4C_set_array( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder );
 
 /**
  * Will retrieve the entry of the array at the given index.
@@ -561,7 +592,7 @@ void QAJ4C_set_array( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* bui
  * @note a QAJ4C_array is organized as a c-array internally, thus random access
  * is possible with low cost.
  */
-QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index );
+QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, size_t index );
 
 /**
  * This method will set the values type to object with the given member count. The
@@ -570,7 +601,7 @@ QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, unsigned index );
  * @note objects and arrays cannot be resized. Thus in case invoking this function twice
  * on the same value will cause the memory allocated for the old "members" to be wasted!
  */
-void QAJ4C_set_object( QAJ4C_Value* value_ptr, unsigned count, QAJ4C_Builder* builder );
+void QAJ4C_set_object( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder );
 
 /**
  * This method will optimize the current content on of the object (for faster DOM access).
@@ -597,14 +628,14 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref2( QAJ4C_Value* value_ptr, const c
  * strlen to calculate the string length.
  */
 static QAJ4C_INLINE QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_object_create_member_by_ref2(value_ptr, str, strlen(str));
+    return QAJ4C_object_create_member_by_ref2(value_ptr, str, QAJ4C_strlen(str));
 }
 
 /**
  * This method creates a member within the object doing a copy of the handed over string.
  * The allocation will be performed on the handed over builder.
  */
-QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str, size_t len );
+QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
 
 /**
  * This method creates a member within the object doing a copy of the handed over string.
@@ -613,8 +644,8 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy2( QAJ4C_Value* value_ptr, QAJ4C_
  * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy2 method, using
  * strlen to calculate the string length.
  */
-static QAJ4C_INLINE QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, QAJ4C_Builder* builder, const char* str ) {
-    return QAJ4C_object_create_member_by_copy2(value_ptr, builder, str, strlen(str));
+static QAJ4C_INLINE QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder ) {
+    return QAJ4C_object_create_member_by_copy2(value_ptr, str, QAJ4C_strlen(str), builder);
 }
 
 /**
