@@ -29,16 +29,16 @@
 #ifndef QAJ4C_H_
 #define QAJ4C_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef NO_STDLIB
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /**

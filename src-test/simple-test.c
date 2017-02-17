@@ -159,13 +159,13 @@ int main(int argc, char **argv) {
 
 	char* buffer = malloc(arguments.buffer_size);
 
-	const QAJ4C_Document* document = NULL;
+	const QAJ4C_Value* document = NULL;
 	if( arguments.insitu_parsing ) {
 		document = QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size);
 	} else {
 		document = QAJ4C_parse(input_string, buffer, arguments.buffer_size);
         if (arguments.verbose) {
-            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof_as_document(QAJ4C_get_root_value(document)));
+            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof(document));
         }
 	}
 

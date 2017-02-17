@@ -20,8 +20,8 @@
 #define OBJECT_SORTED_TYPE_CONSTANT ((QAJ4C_OBJECT_SORTED << 8) | QAJ4C_TYPE_OBJECT)
 #define ARRAY_TYPE_CONSTANT  ((QAJ4C_ARRAY << 8) | QAJ4C_TYPE_ARRAY)
 #define STRING_TYPE_CONSTANT ((QAJ4C_STRING << 8) | QAJ4C_TYPE_STRING)
-#define STRING_REF_TYPE_CONSTANT ((QAJ4C_INLINE_STRING << 8) | QAJ4C_TYPE_STRING)
-#define INLINE_STRING_TYPE_CONSTANT ((QAJ4C_STRING_REF << 8) | QAJ4C_TYPE_STRING)
+#define STRING_REF_TYPE_CONSTANT ((QAJ4C_STRING_REF << 8) | QAJ4C_TYPE_STRING)
+#define INLINE_STRING_TYPE_CONSTANT ((QAJ4C_INLINE_STRING << 8) | QAJ4C_TYPE_STRING)
 #define ERROR_DESCRIPTION_TYPE_CONSTANT ((QAJ4C_ERROR_DESCRIPTION << 8) | QAJ4C_TYPE_INVALID)
 
 #define NUMBER_TYPE_CONSTANT ((QAJ4C_PRIMITIVE << 8) | QAJ4C_TYPE_NUMBER)
@@ -109,7 +109,6 @@ typedef struct QAJ4C_Primitive {
         uint64_t u;
         int64_t i;
         bool b;
-		uint8_t pad[sizeof(uintptr_t) + sizeof(size_type)];
     } data;
     size_type type;
 } QAJ4C_Primitive;
@@ -132,6 +131,8 @@ extern QAJ4C_fatal_error_fn QAJ4C_ERR_FUNCTION;
 
 
 QAJ4C_Value* QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback);
+size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
+
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
 char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );

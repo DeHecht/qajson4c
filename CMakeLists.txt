@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 
-project(libqajson4c C)
+project(libqajson4c C CXX) # unfortunately the tests are written c++ like
 
 function ( register_build_type_coverage )
     message( STATUS "** Adding build type: Coverage")

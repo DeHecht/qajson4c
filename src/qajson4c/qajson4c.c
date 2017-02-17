@@ -41,7 +41,7 @@ void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
 }
 
 size_t QAJ4C_calculate_max_buffer_size_n( const char* json, size_t n ) {
-	return 0;
+	return QAJ4C_calculate_max_buffer_generic(json, n, 0);
 }
 
 size_t QAJ4C_calculate_max_buffer_size( const char* json ) {
@@ -49,7 +49,7 @@ size_t QAJ4C_calculate_max_buffer_size( const char* json ) {
 }
 
 size_t QAJ4C_calculate_max_buffer_size_insitu_n( const char* json, size_t n ) {
-	return 0;
+    return QAJ4C_calculate_max_buffer_generic(json, n, 1);
 }
 
 size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json ) {
@@ -89,7 +89,9 @@ const QAJ4C_Value* QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts
 	return QAJ4C_parse_opt(json, json_len, opts | 1, buffer, buffer_size);
 }
 
-size_t QAJ4C_sprint( const QAJ4C_Value* document, char* buffer, size_t buffer_size );
+size_t QAJ4C_sprint( const QAJ4C_Value* document, char* buffer, size_t buffer_size ) {
+    return 0;  /* FIXME: Implement */
+}
 
 bool QAJ4C_is_string(const QAJ4C_Value* value_ptr) {
 	return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_STRING;
