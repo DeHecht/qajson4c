@@ -119,6 +119,10 @@ QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size
 
     QAJ4C_first_pass_process(&parser, 0);
 
+    if ( parser.err_code != QAJ4C_ERROR_NO_ERROR ) {
+        return QAJ4C_create_error_description(&parser);
+    }
+
     required_size = parser.amount_nodes * sizeof(QAJ4C_Value) + parser.complete_string_length;
     if (required_size > parser.builder->buffer_size) {
         if (parser.realloc_callback != NULL) {
@@ -177,9 +181,11 @@ static void QAJ4C_first_pass_parser_init( QAJ4C_First_pass_parser* parser, QAJ4C
 }
 
 static void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* parser, QAJ4C_ERROR_CODE error ) {
-	parser->err_code = error;
-	/* set the length of the json message to the current position to avoid the parser will continue parsing */
-	parser->msg->json_len = parser->msg->json_pos;
+	if( parser->err_code == QAJ4C_ERROR_NO_ERROR) {
+		parser->err_code = error;
+		/* set the length of the json message to the current position to avoid the parser will continue parsing */
+		parser->msg->json_len = parser->msg->json_pos;
+	}
 }
 
 static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth) {
@@ -191,6 +197,7 @@ static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth
         QAJ4C_first_pass_object(parser, depth);
     	break;
     case '[':
+    	QAJ4C_json_message_forward(parser->msg);
     	QAJ4C_first_pass_array(parser, depth);
     	break;
     case '"':
@@ -282,6 +289,11 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
         QAJ4C_skip_whitespaces_and_comments(parser->msg);
     }
 
+    if ( json_char == '\0' ) {
+    	QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+    	return;
+    }
+
     if (parser->builder != NULL) {
     	size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer( parser, storage_pos );
     	if ( obj_data != NULL ) {
@@ -301,15 +313,16 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
     }
 
     QAJ4C_skip_whitespaces_and_comments(parser->msg);
-    for (json_char = QAJ4C_json_message_read(parser->msg); json_char != '\0' && json_char != ']'; json_char = QAJ4C_json_message_read(parser->msg)) {
+    for (json_char = QAJ4C_json_message_peek(parser->msg); json_char != '\0' && json_char != ']'; json_char = QAJ4C_json_message_peek(parser->msg)) {
         if (member_count > 0) {
             if (json_char != ',') {
         		QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COMMA);
                 return;
             }
+            QAJ4C_json_message_forward(parser->msg);
             QAJ4C_skip_whitespaces_and_comments(parser->msg);
+            json_char = QAJ4C_json_message_peek( parser->msg );
         }
-        json_char = QAJ4C_json_message_peek( parser->msg );
         if (json_char != ']') {
             QAJ4C_first_pass_process(parser, depth + 1);
             ++member_count;
@@ -317,6 +330,11 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
         	QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_TRAILING_COMMA);
         }
         QAJ4C_skip_whitespaces_and_comments(parser->msg);
+    }
+
+    if ( json_char == '\0' ) {
+    	QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+    	return;
     }
 
     if (parser->builder != NULL) {
@@ -690,10 +708,10 @@ static char QAJ4C_json_message_peek_ahead( QAJ4C_Json_message* msg, unsigned cha
 
 static char QAJ4C_json_message_read( QAJ4C_Json_message* msg ) {
 	char result = QAJ4C_json_message_peek( msg );
+	++msg->json_pos;
 	if ( result == '\0' ) {
 		msg->json_len = msg->json_pos;
 	}
-	++msg->json_pos;
 	return result;
 }
 
@@ -781,7 +799,7 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
     document = QAJ4C_builder_get_document(parser->builder);
     document->type = ERROR_DESCRIPTION_TYPE_CONSTANT;
 
-    err_info = (QAJ4C_Error_information*)(parser->builder->buffer + parser->builder->cur_obj_pos);
+    err_info = (QAJ4C_Error_information*)(parser->builder->buffer + sizeof(QAJ4C_Value));
     err_info->err_no = parser->err_code;
     err_info->json = parser->msg->json;
     err_info->json_pos = parser->msg->json_pos;
