@@ -143,8 +143,7 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
 /**
  * Ensure the library will crash in case an error occurs.
  */
-void custom_error_function( const char* function_name, const char* assertion_msg ) {
-    fprintf(stderr, "%s: %s\n", function_name, assertion_msg);
+void custom_error_function() {
     raise(6);
 }
 
@@ -179,18 +178,20 @@ TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
 }
 
-TEST(Statistics, PrintStats) {
-    printf("Sizeof QAJ4C_Value: %zu\n", sizeof(QAJ4C_Value));
-    printf("Sizeof QAJ4C_Member: %zu\n", sizeof(QAJ4C_Member));
-    printf("Sizeof QAJ4C_Object: %zu\n", sizeof(QAJ4C_Object));
-    printf("Sizeof QAJ4C_Array: %zu\n", sizeof(QAJ4C_Array));
-    printf("Sizeof QAJ4C_String: %zu\n", sizeof(QAJ4C_String));
-    printf("Sizeof QAJ4C_Short_string: %zu\n", sizeof(QAJ4C_Short_string));
-    printf("Sizeof QAJ4C_Primitive: %zu\n", sizeof(QAJ4C_Primitive));
-    printf("Sizeof QAJ4C_Error: %zu\n", sizeof(QAJ4C_Error));
-    printf("Sizeof double: %zu\n", sizeof(double));
-    printf("Sizeof int64: %zu\n", sizeof(int64_t));
-    printf("Sizeof uint64: %zu\n", sizeof(uint64_t));
+TEST(Statistics, CheckSizes) {
+
+	assert(sizeof(double) == 8);
+	assert(sizeof(int64_t) == 8);
+	assert(sizeof(uint64_t) == 8);
+
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Array));
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_String));
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Short_string));
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Primitive));
+	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Error));
+
+	assert(sizeof(QAJ4C_Member) == 2 * sizeof(QAJ4C_Value));
 }
 
 TEST(SimpleParsingTests, ParseObjectWithOneNumericMember) {
@@ -273,6 +274,19 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
     assert(strcmp(QAJ4C_get_string(object_entry), "blahblubbhubbeldipup") == 0);
 }
 
+TEST(ASimpleParsingTests, ParseStringWithNewLine) {
+    char json[] = R"(["Hello\nWorld"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    // Now compare with the non-raw string (as the \n should be interpeted)
+    assert(strcmp(QAJ4C_get_string(array_entry), "Hello\nWorld") == 0);
+
+}
+
 TEST(SimpleParsingTests, ParseEmptyObject) {
     const char json[] = R"({})";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -321,6 +335,44 @@ TEST(SimpleParsingTests, ParseNumberArray) {
 
     free((void*)value);
 }
+
+TEST(SimpleParsingTests, ParseNumberArrayWithComments) {
+    const char json[] = R"([/* HO */1, /* HO **/ 2, /**/ 3, /***/4,5,6])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 6);
+
+    assert(1 == QAJ4C_get_uint(QAJ4C_array_get(value, 0)));
+    assert(2 == QAJ4C_get_uint(QAJ4C_array_get(value, 1)));
+    assert(3 == QAJ4C_get_uint(QAJ4C_array_get(value, 2)));
+    assert(4 == QAJ4C_get_uint(QAJ4C_array_get(value, 3)));
+    assert(5 == QAJ4C_get_uint(QAJ4C_array_get(value, 4)));
+    assert(6 == QAJ4C_get_uint(QAJ4C_array_get(value, 5)));
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
+	const char json[] = R"([// HO 
+1, // HO 
+ 2, //
+ 3, //
+4,5,6])";
+
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 6);
+
+    assert(1 == QAJ4C_get_uint(QAJ4C_array_get(value, 0)));
+    assert(2 == QAJ4C_get_uint(QAJ4C_array_get(value, 1)));
+    assert(3 == QAJ4C_get_uint(QAJ4C_array_get(value, 2)));
+    assert(4 == QAJ4C_get_uint(QAJ4C_array_get(value, 3)));
+    assert(5 == QAJ4C_get_uint(QAJ4C_array_get(value, 4)));
+    assert(6 == QAJ4C_get_uint(QAJ4C_array_get(value, 5)));
+
+    free((void*)value);
+}
+
 
 TEST(SimpleParsingTests, ParseNumberArrayTrailingComma) {
     const char json[] = R"([1,2,])";
@@ -371,6 +423,15 @@ TEST(ErrorHandlingTests, ParseIncompleteString) {
     free((void*)value);
 }
 
+TEST(ErrorHandlingTests, ParseObjectKeyWithoutStartingQuotes) {
+    const char json[] = R"({id":1})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_CHAR);
+    free((void*)value);
+}
+
+
 TEST(ErrorHandlingTests, ParseBombasticArray) {
 	char json[] = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -387,3 +448,14 @@ TEST(ErrorHandlingTests, ParseBombasticObject) {
     free((void*)value);
 }
 
+TEST(PrintTests, PrintEmtpyObject) {
+	char json[] = "{}";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+	assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}

@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <signal.h>
 
 #if (__STDC_VERSION__ >= 199901L)
 #define QAJ4C_SNPRINTF snprintf
@@ -76,7 +77,7 @@
 #define QAJ4C_strtod strtod
 #define QAJ4C_qsort qsort
 #define QAJ4C_bsearch bsearch
-#define QAJ4C_fprintf fprintf
+#define QAJ4C_raise raise
 
 #endif
 

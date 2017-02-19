@@ -69,7 +69,7 @@ typedef struct QAJ4C_Builder QAJ4C_Builder;
  * This method will get called in case of a fatal error
  * (array access on not array QAJ4C_Value).
  */
-typedef void (*QAJ4C_fatal_error_fn)( const char* function_name, const char* assertion_msg );
+typedef void (*QAJ4C_fatal_error_fn)();
 
 /**
  * This type defines a realloc like method that can be handed over with the according parse
@@ -215,7 +215,7 @@ const QAJ4C_Value* QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts
 /**
  * This method prints the DOM as JSON in the handed over buffer.
  */
-size_t QAJ4C_sprint( const QAJ4C_Value* document, char* buffer, size_t buffer_size );
+size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size );
 
 /**
  * This method will return true, in case the value can be read out as string.

@@ -5,13 +5,7 @@
 #ifndef QAJSON4C_INTERNAL_H_
 #define QAJSON4C_INTERNAL_H_
 
-
-#if (__STDC_VERSION__ >= 199901L)
-#define QAJ4C_ASSERT(arg) if (QAJ4C_ERR_FUNCTION && !(arg)) (*QAJ4C_ERR_FUNCTION)(__func__, #arg)
-#else
-/* __func__ not available with ansi */
-#define QAJ4C_ASSERT(arg) if (QAJ4C_ERR_FUNCTION && !(arg)) (*QAJ4C_ERR_FUNCTION)("", #arg)
-#endif
+#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_ERR_FUNCTION && !(arg)) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
 
 #define INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
 
@@ -34,6 +28,10 @@
 #define INT64_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT64 << 24) | ((QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (NUMBER_TYPE_CONSTANT))
 #define INT32_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT << 24) | ((QAJ4C_PRIMITIVE_UINT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (NUMBER_TYPE_CONSTANT))
 #define DOUBLE_TYPE_CONSTANT (((QAJ4C_PRIMITIVE_DOUBLE << 24) | (QAJ4C_PRIMITIVE_DOUBLE << 16)) | (NUMBER_TYPE_CONSTANT))
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef uint32_t size_type;
 typedef uint16_t half_size_type;
@@ -149,5 +147,12 @@ const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* 
 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
+
+size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* QAJSON4C_INTERNAL_H_ */
