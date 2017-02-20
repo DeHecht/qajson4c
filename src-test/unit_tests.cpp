@@ -48,7 +48,7 @@
 
 #define ARRAY_COUNT(x)  (sizeof(x) / sizeof(x[0]))
 
-#define DEBUGGING false
+#define DEBUGGING true
 
 typedef struct QAJ4C_TEST_DEF {
     const char* subject_name;
@@ -274,7 +274,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
     assert(strcmp(QAJ4C_get_string(object_entry), "blahblubbhubbeldipup") == 0);
 }
 
-TEST(ASimpleParsingTests, ParseStringWithNewLine) {
+TEST(SimpleParsingTests, ParseStringWithNewLine) {
     char json[] = R"(["Hello\nWorld"])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
@@ -284,6 +284,18 @@ TEST(ASimpleParsingTests, ParseStringWithNewLine) {
 
     // Now compare with the non-raw string (as the \n should be interpeted)
     assert(strcmp(QAJ4C_get_string(array_entry), "Hello\nWorld") == 0);
+}
+
+TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
+    char json[] = R"(["Hello\"World"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    // Now compare with the non-raw string (as the \n should be interpeted)
+    assert(strcmp(QAJ4C_get_string(array_entry), "Hello\"World") == 0);
 
 }
 
@@ -321,7 +333,7 @@ TEST(SimpleParsingTests, ParseEmptyArrayWhitespaces) {
 
 
 TEST(SimpleParsingTests, ParseNumberArray) {
-    const char json[] = R"([1,2,3,4,5,6])";
+    const char json[] = R"([1,2,3,-4,5,6])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
@@ -329,7 +341,7 @@ TEST(SimpleParsingTests, ParseNumberArray) {
     assert(1 == QAJ4C_get_uint(QAJ4C_array_get(value, 0)));
     assert(2 == QAJ4C_get_uint(QAJ4C_array_get(value, 1)));
     assert(3 == QAJ4C_get_uint(QAJ4C_array_get(value, 2)));
-    assert(4 == QAJ4C_get_uint(QAJ4C_array_get(value, 3)));
+    assert(-4 == QAJ4C_get_int(QAJ4C_array_get(value, 3)));
     assert(5 == QAJ4C_get_uint(QAJ4C_array_get(value, 4)));
     assert(6 == QAJ4C_get_uint(QAJ4C_array_get(value, 5)));
 
@@ -373,6 +385,31 @@ TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseMultilayeredObject) {
+    const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 2);
+
+    const QAJ4C_Value* id_node = QAJ4C_object_get(value, "id");
+    assert(QAJ4C_is_uint(id_node));
+    assert(QAJ4C_get_uint(id_node) == 1);
+
+    const QAJ4C_Value* data_node = QAJ4C_object_get(value, "data");
+    assert(QAJ4C_is_object(data_node));
+    assert(QAJ4C_object_size(data_node) == 2);
+
+    const QAJ4C_Value* data_name_node = QAJ4C_object_get(data_node, "name");
+    assert(QAJ4C_is_string(data_name_node));
+    assert(strcmp(QAJ4C_get_string(data_name_node), "foo") == 0);
+
+    const QAJ4C_Value* data_param_node = QAJ4C_object_get(data_node, "param");
+    assert(QAJ4C_is_uint(data_param_node));
+    assert(QAJ4C_get_uint(data_param_node) == 12);
+
+    free((void*)value);
+}
 
 TEST(SimpleParsingTests, ParseNumberArrayTrailingComma) {
     const char json[] = R"([1,2,])";
@@ -398,6 +435,29 @@ TEST(SimpleParsingTests, ParseNumberArrayWhitespaces) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseObjectArrayObjectCombination) {
+    const char json[] = R"({"services":[{"id":1},{"id":2},{"id":3}]})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 1);
+
+    const QAJ4C_Value* services_node = QAJ4C_object_get(value, "services");
+    assert(QAJ4C_is_array(services_node));
+    assert(QAJ4C_array_size(services_node) == 3);
+
+    free((void*)value);
+}
+
+/**
+ * In this test case a scenario where the memory was corrupted internally is
+ * reconstructed.
+ */
+TEST(SimpleParsingTests, ParseMemoryCornerCase) {
+    const char json[] = R"({"b":[1],"c":"d"})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(!QAJ4C_is_error(value));
+    free((void*)value);
+}
 
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
@@ -448,9 +508,12 @@ TEST(ErrorHandlingTests, ParseBombasticObject) {
     free((void*)value);
 }
 
+
 TEST(PrintTests, PrintEmtpyObject) {
 	char json[] = "{}";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
 
     char output[ARRAY_COUNT(json)];
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
@@ -459,3 +522,48 @@ TEST(PrintTests, PrintEmtpyObject) {
 
     free((void*)value);
 }
+
+TEST(PrintTests, PrintNumericArray) {
+    const char json[] = R"([1,2,3,4,5,6])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+TEST(PrintTests, PrintStringArray) {
+    const char json[] = R"(["1","22","333","4444","55555","666666"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+TEST(PrintTests, PrintMultiLayerObject) {
+    const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+
+}
+

@@ -588,7 +588,7 @@ size_t QAJ4C_value_sizeof( const QAJ4C_Value* value_ptr ) {
         break;
     }
     default:
-    	QAJ4C_ERR_FUNCTION();
+        QAJ4C_ASSERT(QAJ4C_get_internal_type(value_ptr) != QAJ4C_UNSPECIFIED, {});
     	break;
     }
     return size;

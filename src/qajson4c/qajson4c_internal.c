@@ -44,6 +44,7 @@ typedef struct QAJ4C_First_pass_parser {
 
     bool strict_parsing;
     bool insitu_parsing;
+    bool optimize_object;
 
     int max_depth;
     size_type amount_nodes;
@@ -59,6 +60,7 @@ typedef struct QAJ4C_Second_pass_parser {
     QAJ4C_Builder* builder;
     QAJ4C_realloc_fn realloc_callback;
     bool insitu_parsing;
+    bool optimize_object;
 
     bool fatal_fault;
 
@@ -77,13 +79,14 @@ static void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* parser, 
 static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth );
 static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth );
 static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth );
-/** Analyze the string value (and store the size and if escaping is required) */
 static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser );
-/** Analyze the numeric value (and store the storage type in buffer) */
 static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser );
 
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* parser, size_type storage_pos );
 static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* me );
+
+size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser );
+
 
 static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_First_pass_parser* parser);
 static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr );
@@ -128,7 +131,7 @@ QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size
         return QAJ4C_create_error_description(&parser);
     }
 
-    required_size = parser.amount_nodes * sizeof(QAJ4C_Value) + parser.complete_string_length;
+    required_size = QAJ4C_calculate_max_buffer_parser(&parser);
     if (required_size > parser.builder->buffer_size) {
         if (parser.realloc_callback != NULL) {
             void* tmp = parser.realloc_callback(parser.builder->buffer, required_size);
@@ -162,6 +165,10 @@ QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size
     return result;
 }
 
+size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser ) {
+    return parser->amount_nodes * sizeof(QAJ4C_Value) + parser->complete_string_length + 1;
+}
+
 size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts ) {
     QAJ4C_First_pass_parser parser;
     QAJ4C_Json_message msg;
@@ -172,7 +179,7 @@ size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, in
     QAJ4C_first_pass_parser_init(&parser, NULL, &msg, opts, NULL);
     QAJ4C_first_pass_process(&parser, 0);
 
-    return parser.amount_nodes * sizeof(QAJ4C_Value) + parser.complete_string_length;
+    return QAJ4C_calculate_max_buffer_parser(&parser);
 }
 
 static void QAJ4C_first_pass_parser_init( QAJ4C_First_pass_parser* parser, QAJ4C_Builder* builder, QAJ4C_Json_message* msg, int opts, QAJ4C_realloc_fn realloc_callback ) {
@@ -182,6 +189,7 @@ static void QAJ4C_first_pass_parser_init( QAJ4C_First_pass_parser* parser, QAJ4C
 	parser->realloc_callback = realloc_callback;
 
 	parser->strict_parsing = (opts & QAJ4C_PARSE_OPTS_STRICT) != 0;
+	parser->optimize_object = (opts & QAJ4C_PARSE_OPTS_SORT_OBJECT_MEMBERS) != 0;
 	parser->insitu_parsing = (opts & 1) != 0;
 
 	parser->max_depth = 32;
@@ -280,7 +288,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
                 return;
             }
             QAJ4C_skip_whitespaces_and_comments(parser->msg);
-            json_char = QAJ4C_json_message_peek( parser->msg );
+            json_char = QAJ4C_json_message_read( parser->msg );
 		}
         if (json_char == '"') {
             parser->amount_nodes++; /* count the string as node */
@@ -354,6 +362,8 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
     	return;
     }
 
+    QAJ4C_json_message_forward(parser->msg);
+
     if (parser->builder != NULL) {
     	size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer( parser, storage_pos );
     	if ( obj_data != NULL ) {
@@ -364,7 +374,6 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
 
 static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
     char json_char;
-    size_type storage_pos = parser->storage_counter++;
     bool escape_char = false;
     size_type chars = 0;
 
@@ -389,6 +398,7 @@ static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
 			case 'n':
 			case 'r':
 			case 't':
+			case '"':
 				break;
 			default:
         		QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
@@ -403,26 +413,20 @@ static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
 		return;
 	}
 
-    if (parser->builder != NULL) {
-    	size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer( parser, storage_pos );
-    	if ( obj_data != NULL ) {
-    		*obj_data = chars;
-    	}
-    }
     if (!parser->insitu_parsing && chars > INLINE_STRING_SIZE) {
         parser->complete_string_length += chars + 1; /* count the \0 to the complete string length! */
     }
 }
 
 static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
-    size_type storage_pos = parser->storage_counter++;
     size_type num_type = 0; /* 1 => uint, 2 = int, 3 = double */
     char json_char = QAJ4C_json_message_peek(parser->msg);
     bool is_signed = false;
 
     if ( json_char == '-' ) {
     	is_signed = true;
-    	json_char = QAJ4C_json_message_read(parser->msg);
+        QAJ4C_json_message_forward(parser->msg);
+    	json_char = QAJ4C_json_message_peek(parser->msg);
 	} else if (json_char == '+' && !parser->strict_parsing) {
     	json_char = QAJ4C_json_message_read(parser->msg);
     }
@@ -482,20 +486,12 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
 		    }
 		}
 	}
-
-
-    if (parser->builder != NULL) {
-    	size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer( parser, storage_pos );
-    	if ( obj_data != NULL ) {
-    		*obj_data = num_type;
-    	}
-    }
 }
 
 static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_First_pass_parser* parser ) {
     QAJ4C_Builder* builder = parser->builder;
     size_type required_object_storage = parser->amount_nodes * sizeof(QAJ4C_Value);
-    size_type required_tempoary_storage = parser->storage_counter *  sizeof(size_type) + sizeof(size_type);
+    size_type required_tempoary_storage = parser->storage_counter *  sizeof(size_type);
     size_type copy_to_index = required_object_storage - required_tempoary_storage;
 
     memmove(builder->buffer + copy_to_index, builder->buffer, required_tempoary_storage);
@@ -503,6 +499,7 @@ static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_F
     me->builder = parser->builder;
     me->realloc_callback = parser->realloc_callback;
     me->insitu_parsing = parser->insitu_parsing;
+    me->optimize_object = parser->optimize_object;
     me->curr_buffer_pos = copy_to_index;
     me->fatal_fault = false;
 
@@ -563,7 +560,14 @@ static void QAJ4C_second_pass_object( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
     size_type index;
     QAJ4C_Member* top;
 
-    QAJ4C_set_object(result_ptr, elements, me->builder);
+    /*
+     * Do not use set_object as it would initialize memory and thus corrupt the buffer
+     * that stores string sizes and integer types
+     */
+    result_ptr->type = OBJECT_TYPE_CONSTANT;
+    ((QAJ4C_Object*)result_ptr)->count = elements;
+    ((QAJ4C_Object*)result_ptr)->top = (QAJ4C_Member*)(&me->builder->buffer[me->builder->cur_obj_pos]);
+    me->builder->cur_obj_pos += sizeof(QAJ4C_Member) * elements;
     top = ((QAJ4C_Object*)result_ptr)->top;
 
     me->json_char = QAJ4C_skip_whitespaces_and_comments_second_pass(me->json_char);
@@ -586,7 +590,7 @@ static void QAJ4C_second_pass_object( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
         me->json_char = QAJ4C_skip_whitespaces_and_comments_second_pass(++me->json_char);
     }
 
-    if (elements > 2) {
+    if (me->optimize_object && elements > 2) {
         QAJ4C_object_optimize(result_ptr);
     }
     ++me->json_char; /* walk over the } */
@@ -597,7 +601,14 @@ static void QAJ4C_second_pass_array( QAJ4C_Second_pass_parser* me, QAJ4C_Value* 
     size_type index;
     QAJ4C_Value* top;
 
-    QAJ4C_set_array(result_ptr, elements, me->builder);
+    /*
+     * Do not use set_array as it would initialize memory and thus corrupt the buffer
+     * that stores string sizes and integer types
+     */
+    result_ptr->type = ARRAY_TYPE_CONSTANT;
+    ((QAJ4C_Array*)result_ptr)->count = elements;
+    ((QAJ4C_Array*)result_ptr)->top = (QAJ4C_Value*)(&me->builder->buffer[me->builder->cur_obj_pos]);
+    me->builder->cur_obj_pos += sizeof(QAJ4C_Value) * elements;
     top = ((QAJ4C_Array*)result_ptr)->top;
 
     me->json_char = QAJ4C_skip_whitespaces_and_comments_second_pass(me->json_char);
@@ -618,14 +629,24 @@ static void QAJ4C_second_pass_array( QAJ4C_Second_pass_parser* me, QAJ4C_Value* 
 }
 
 static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr  ) {
-    size_type chars = QAJ4C_second_pass_fetch_stats_data(me);
+    size_type chars = 0;
     char* put_str = NULL;
+
+    /* determine the storage string size! */
+    const char* c = me->json_char;
+    while (*c != '\"') {
+        if (*c == '\\') {
+            ++c;
+        }
+        ++c;
+        ++chars;
+    }
 
     if (me->insitu_parsing) {
         result_ptr->type = STRING_REF_TYPE_CONSTANT;
         ((QAJ4C_String*)result_ptr)->count = chars;
         ((QAJ4C_String*)result_ptr)->s = me->json_char;
-    } else if (INLINE_STRING_SIZE > chars) {
+    } else if (INLINE_STRING_SIZE >= chars) {
         result_ptr->type = INLINE_STRING_TYPE_CONSTANT;
         ((QAJ4C_Short_string*)result_ptr)->count = chars;
     } else {
@@ -684,7 +705,17 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
 }
 
 static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr  ) {
-    size_type number_type = QAJ4C_second_pass_fetch_stats_data(me);
+    size_type number_type;
+    bool sign = *me->json_char == '-';
+    bool double_value = false;
+    const char* c = me->json_char;
+
+    do {
+        ++c;
+    } while (*c >= '0' && *c <= '9');
+    double_value = *c == '.' || *c == 'E' || *c == 'e';
+    number_type = double_value ? 3 : (sign ? 2 : 1);
+
     /* 1 => uint, 2 = int, 3 = double */
     switch (number_type) {
     case 1:
@@ -700,7 +731,7 @@ static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
-    size_type data = *((size_type*)&me->builder->buffer[me->curr_buffer_pos]);
+    size_type data = *((size_type*)(me->builder->buffer + me->curr_buffer_pos));
     me->curr_buffer_pos += sizeof(size_type);
     return data;
 }
@@ -1038,9 +1069,9 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
         switch (QAJ4C_get_storage_type(value_ptr)) {
         case QAJ4C_PRIMITIVE_BOOL:
         	if (((QAJ4C_Primitive*)value_ptr)->data.b) {
-        		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_TRUE_STR, QAJ4C_TRUE_STR_LEN);
+        		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_TRUE_STR, QAJ4C_TRUE_STR_LEN - 1);
         	} else {
-        		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_FALSE_STR, QAJ4C_FALSE_STR_LEN);
+        		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_FALSE_STR, QAJ4C_FALSE_STR_LEN - 1);
         	}
             break;
         case QAJ4C_PRIMITIVE_INT:
@@ -1060,7 +1091,7 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
         break;
     }
     case QAJ4C_NULL: {
-		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN);
+		index = QAJ4C_copy_string(buffer, buffer_size, index, QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN - 1);
         break;
     }
     case QAJ4C_STRING_REF:

@@ -176,6 +176,11 @@ int main(int argc, char **argv) {
 	size_t output_string_size = sizeof(char) * input_string_size;
 	char* output_string = malloc(output_string_size);
 
+    if (QAJ4C_is_error(document)) {
+        output_string[0] = '\0';
+    }
+    fwrite(output_string, sizeof(char), strlen(output_string), output_file);
+
 	QAJ4C_sprint(document, output_string, output_string_size);
 	fwrite(output_string, sizeof(char), strlen(output_string), output_file);
 
