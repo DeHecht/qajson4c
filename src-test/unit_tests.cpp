@@ -280,22 +280,6 @@ TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
 }
 
-TEST(Statistics, CheckSizes) {
-
-	assert(sizeof(double) == 8);
-	assert(sizeof(int64_t) == 8);
-	assert(sizeof(uint64_t) == 8);
-
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Array));
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_String));
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Short_string));
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Primitive));
-	assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Error));
-
-	assert(sizeof(QAJ4C_Member) == 2 * sizeof(QAJ4C_Value));
-}
-
 TEST(SimpleParsingTests, ParseObjectWithOneNumericMember) {
     const char json[] = R"({"id":1})";
 
@@ -666,6 +650,58 @@ TEST(PrintTests, PrintMultiLayerObject) {
     assert(strcmp(json, output) == 0);
 
     free((void*)value);
+}
 
+/**
+ * Parse the same message twice and compare the results with each other.
+ * It is expected that the two results are equal!
+ */
+TEST(VariousTests, ComparisonTest) {
+    const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
+    const QAJ4C_Value* value_1 = QAJ4C_parse_dynamic(json, realloc);
+    const QAJ4C_Value* value_2 = QAJ4C_parse_dynamic(json, realloc);
+
+    assert(QAJ4C_equals(value_1, value_2));
+
+    free((void*) value_1);
+    free((void*) value_2);
+}
+
+/**
+ * Parse the message once and then copy the result.
+ * It is expected that the copy and the original are equal!
+ */
+TEST(VariousTests, ComparisonAndCopyTest) {
+    const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
+    const QAJ4C_Value* value_1 = QAJ4C_parse_dynamic(json, realloc);
+    char buff[2000];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_2 = QAJ4C_builder_pop_values(&builder, 1);
+    QAJ4C_copy(value_1, value_2, &builder);
+
+    assert(QAJ4C_equals(value_1, value_2));
+    free((void*) value_1);
+}
+
+
+/**
+ * The parser is build on some "assumptions" and this test should verify this
+ * for the different platform.
+ */
+TEST(VariousTests, CheckSizes) {
+    assert(sizeof(double) == 8);
+    assert(sizeof(int64_t) == 8);
+    assert(sizeof(uint64_t) == 8);
+
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Array));
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_String));
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Short_string));
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Primitive));
+    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Error));
+
+    assert(sizeof(QAJ4C_Member) == 2 * sizeof(QAJ4C_Value));
 }
 
