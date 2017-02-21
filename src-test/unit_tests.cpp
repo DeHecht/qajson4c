@@ -48,14 +48,15 @@
 
 #define ARRAY_COUNT(x)  (sizeof(x) / sizeof(x[0]))
 
-#define DEBUGGING true
+#define DEBUGGING false
 
 typedef struct QAJ4C_TEST_DEF {
     const char* subject_name;
     const char* test_name;
     void (*test_func)( void );
     struct QAJ4C_TEST_DEF* next;
-    bool status;
+    char* failure_message;
+    char* error_message;
     time_t execution;
 } QAJ4C_TEST_DEF;
 
@@ -72,7 +73,8 @@ static QAJ4C_TEST_DEF* create_test( const char* subject, const char* test, void 
     tmp->test_func = test_func;
     tmp->subject_name = subject;
     tmp->test_name = test;
-    tmp->status = false;
+    tmp->failure_message = NULL;
+    tmp->error_message = NULL;
     tmp->execution = 0;
 
     // sort the tests correctly!
@@ -101,6 +103,9 @@ static QAJ4C_TEST_DEF* create_test( const char* subject, const char* test, void 
 }
 
 int fork_and_run( QAJ4C_TEST_DEF* test ) {
+    char buff[256];
+    buff[0] = '\0';
+
     if ( DEBUGGING ) {
         test->test_func();
     }
@@ -116,20 +121,18 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
             int status;
             pid_t wait_pid;
             while ((wait_pid = wait(&status)) > 0) {
-                if (WIFEXITED(status)) {
-                    printf("Exit status of %s.%s was %d\n", test->subject_name,
-                           test->test_name, WEXITSTATUS(status));
-                } else if (WIFSIGNALED(status)) {
-                    printf("Signaled status of %s.%s was %d\n", test->subject_name,
-                           test->test_name, WTERMSIG(status));
-                } else {
-                    printf("Process %d seems to be stopped!\n", (int)wait_pid);
-                    continue;
-                }
-
-                if ( WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
                     tests_passed++;
                 } else {
+                    if (WIFEXITED(status)) {
+                        snprintf(buff, ARRAY_COUNT(buff), "Test exited with code %d", WEXITSTATUS(status));
+                        test->failure_message = strdup(buff);
+                    } else if (WIFSIGNALED(status)) {
+                        snprintf(buff, ARRAY_COUNT(buff), "Test exited with signal %d", WTERMSIG(status));
+                        test->error_message = strdup(buff);
+                    } else {
+                        continue;
+                    }
                     tests_failed++;
                 }
             }
@@ -149,16 +152,115 @@ void custom_error_function() {
 
 #define STATIC_FWRITE(str, file) fwrite(str, sizeof(char), ARRAY_COUNT(str), file)
 
+struct test_suite_stats {
+    size_t fails = 0;
+    size_t pass = 0;
+    size_t errors = 0;
+    size_t total_time = 0;
+
+    void reset() {
+        fails = 0;
+        pass = 0;
+        errors = 0;
+        total_time = 0;
+    }
+};
+
+void flush_test_suite( FILE* fp, const char* suite_name, char* buff, size_t buff_size, test_suite_stats* stats) {
+    char testsuite_buffer[1024];
+    int w = snprintf(testsuite_buffer, ARRAY_COUNT(testsuite_buffer), R"(<testsuite errors="%zu" failures="%zu" name="%s" skips="%zu" tests="%zu" time="%zu">%c)", stats->errors, stats->fails, suite_name, (size_t)0, (size_t)(stats->errors + stats->fails + stats->pass), stats->total_time, '\n');
+    fwrite(testsuite_buffer, w, sizeof(char), fp);
+    fwrite(buff, sizeof(char), buff_size , fp);
+    fwrite("</testsuite>\n", sizeof(char), ARRAY_COUNT("</testsuite>\n") - 1, fp);
+    fflush(fp);
+}
+
 int main( int argc, char **argv ) {
+    // output=xml:gtestresults.xml
+    static const char* gtest_xml_notation = "xml:";
+
+    const char* filename = "test.xml";
+    for ( int i = 0; i < argc; ++i ) {
+        char* candidate = NULL;
+        if( strstr(argv[i], "output=") != NULL) {
+            candidate = (strstr(argv[i], "output=") + strlen("output="));
+        } else if(strstr(argv[i], "output") != NULL) {
+            if (i + 1 < argc) {
+                candidate = argv[i+1];
+            }
+        }
+        if( candidate != NULL ) {
+            if ( strncmp(candidate, gtest_xml_notation, strlen(gtest_xml_notation)) == 0) {
+                filename = candidate + strlen(gtest_xml_notation);
+            }
+            else{
+                filename = candidate;
+            }
+        }
+    }
+
     QAJ4C_register_fatal_error_function(custom_error_function);
+
+    const char* all_suites_start = "<testsuites name=\"AllTests\">\n";
+    char all_suites_end[] = "</testsuites>\n";
+    const char* current_testsuite_name = NULL;
+    test_suite_stats test_suite_stats;
+
+
+    FILE* out = fopen(filename, "w");
+    fwrite(all_suites_start, sizeof(char), strlen(all_suites_start), out);
+    fflush(out);
+    uint32_t testsuite_content_buffer_size = 4096;
+    char* testsuite_content_buffer = (char*)realloc(0, testsuite_content_buffer_size);
+    int pos = 0;
+    char testsuite_buffer[1024];
 
     QAJ4C_TEST_DEF* curr_test = TOP_POINTER;
     while (curr_test != NULL) {
         fork_and_run(curr_test);
+
+        if (current_testsuite_name == NULL) {
+            current_testsuite_name = curr_test->subject_name;
+        } else if (strcmp(current_testsuite_name, curr_test->subject_name) != 0) {
+            flush_test_suite(out, current_testsuite_name, testsuite_content_buffer, pos, &test_suite_stats);
+            pos = 0;
+            current_testsuite_name = curr_test->subject_name;
+            test_suite_stats.reset();
+        }
+        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<testcase classname="%s" name="%s" time="%zu">)", curr_test->subject_name, curr_test->test_name, curr_test->execution);
+        if ( curr_test->failure_message != NULL ) {
+            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<failure message="test failure">%s</failure>)", curr_test->failure_message);
+            test_suite_stats.fails += 1;
+        } else if( curr_test->error_message != NULL ) {
+            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<error message="test failure">%s</error>)", curr_test->error_message);
+            test_suite_stats.errors += 1;
+        } else {
+            test_suite_stats.pass += 1;
+        }
+        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(</testcase>)");
+
+        test_suite_stats.total_time += curr_test->execution;
+
+        if (testsuite_content_buffer_size - pos < 1024) {
+            testsuite_content_buffer = (char*)realloc(testsuite_content_buffer, testsuite_content_buffer_size * 2);
+            testsuite_content_buffer_size *= 2;
+        }
+        free( curr_test->error_message );
+        free( curr_test->failure_message );
+
+        auto tmp = curr_test;
         curr_test = curr_test->next;
+        free ( tmp );
     }
 
+    flush_test_suite(out, current_testsuite_name, testsuite_content_buffer, pos, &test_suite_stats);
+
     printf("%d tests of %d total tests passed (%d failed)\n", tests_passed, tests_total, tests_failed);
+
+    fwrite("</testsuites>", sizeof(char), ARRAY_COUNT("</testsuites>") - 1, out);
+
+    fclose(out);
+    free(testsuite_content_buffer);
 }
 
 #define TEST(a, b) \

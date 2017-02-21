@@ -297,7 +297,7 @@ void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size ) {
     /* objects grow from front to end (and always contains a document) */
     me->cur_obj_pos = 0;
     /* strings from end to front */
-    me->cur_str_pos = buff_size - 1;
+    me->cur_str_pos = buff_size;
 }
 
 QAJ4C_Value* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {

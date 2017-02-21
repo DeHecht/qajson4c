@@ -166,7 +166,7 @@ QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size
 }
 
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser ) {
-    return parser->amount_nodes * sizeof(QAJ4C_Value) + parser->complete_string_length + 1;
+    return parser->amount_nodes * sizeof(QAJ4C_Value) + parser->complete_string_length;
 }
 
 size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts ) {
