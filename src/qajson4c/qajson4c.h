@@ -69,7 +69,7 @@ typedef struct QAJ4C_Builder QAJ4C_Builder;
  * This method will get called in case of a fatal error
  * (array access on not array QAJ4C_Value).
  */
-typedef void (*QAJ4C_fatal_error_fn)();
+typedef void (*QAJ4C_fatal_error_fn)( void );
 
 /**
  * This type defines a realloc like method that can be handed over with the according parse
@@ -160,8 +160,10 @@ size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json );
  *
  * In case the parse fails the document's root value will contain an error value. Usually, a
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
+ *
+ * @return the amount of data written to the buffer
  */
-const QAJ4C_Value* QAJ4C_parse( const char* json, void* buffer, size_t buffer_size );
+size_t QAJ4C_parse( const char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
 
 /**
  * This method will parse the json message without a handed over buffer but with a realloc
@@ -179,8 +181,10 @@ const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn reall
  *
  * In case the parse fails the document's root value will contain an error value. Usually, a
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
+ *
+ * @return the amount of data written to the buffer
  */
-const QAJ4C_Value* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size );
+size_t QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM
@@ -188,8 +192,10 @@ const QAJ4C_Value* QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_s
  * to the buffer and will accept parsing options.
  *
  * @note In case the json_len is set to 0, the size of the message is autodetected.
+ *
+ * @return the amount of data written to the buffer
  */
-const QAJ4C_Value* QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t* buffer_size );
+size_t QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
 
 /**
  * This method will parse the json message  without a handed over buffer but with a realloc
@@ -210,8 +216,10 @@ const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, i
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  *
  * @note In case the json_len is set to 0, the size of the message is autodetected.
+ *
+ * @return the amount of data written to the buffer
  */
-const QAJ4C_Value* QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buffer, size_t* buffer_size );
+size_t QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
 
 /**
  * This method prints the DOM as JSON in the handed over buffer.

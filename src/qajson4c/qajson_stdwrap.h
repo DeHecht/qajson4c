@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <signal.h>
+#include <float.h>
 
 #if (__STDC_VERSION__ >= 199901L)
 #define QAJ4C_SNPRINTF snprintf
@@ -71,7 +72,6 @@
 #define QAJ4C_memcpy memcpy
 #define QAJ4C_itostrn(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%"FMT_INT64_T, value)
 #define QAJ4C_utostrn(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%"FMT_UINT64_T, value)
-#define QAJ4C_dtostrn(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%f", value)
 #define QAJ4C_strtol strtol
 #define QAJ4C_strtoul strtoul
 #define QAJ4C_strtod strtod

@@ -161,9 +161,9 @@ int main(int argc, char **argv) {
 
 	const QAJ4C_Value* document = NULL;
 	if( arguments.insitu_parsing ) {
-		document = QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size);
+		QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size, &document);
 	} else {
-		document = QAJ4C_parse(input_string, buffer, arguments.buffer_size);
+		QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, arguments.buffer_size, &document);
         if (arguments.verbose) {
             printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof(document));
         }
