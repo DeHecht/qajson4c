@@ -7,6 +7,9 @@
 
 #define QAJ4C_ASSERT(arg, alt) if (QAJ4C_ERR_FUNCTION && !(arg)) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
 
+#define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
+#define QAJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))
+
 #define QAJ4C_INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
 
 #define QAJ4C_NULL_TYPE_CONSTANT   ((QAJ4C_NULL << 8) | QAJ4C_TYPE_NULL)
@@ -61,19 +64,19 @@ typedef enum QAJ4C_Primitive_type {
 typedef struct QAJ4C_Object {
     QAJ4C_Member* top;
     size_type count;
-    size_type type;
+    char padding[sizeof(size_type)];
 } QAJ4C_Object;
 
 typedef struct QAJ4C_Array {
     QAJ4C_Value* top;
     size_type count;
-    size_type type;
+    char padding[sizeof(size_type)];
 } QAJ4C_Array;
 
 typedef struct QAJ4C_String {
     const char* s;
     size_type count;
-    size_type type;
+    char padding[sizeof(size_type)];
 } QAJ4C_String;
 
 typedef struct QAJ4C_Error_information {
@@ -84,8 +87,7 @@ typedef struct QAJ4C_Error_information {
 
 typedef struct QAJ4C_Error {
     QAJ4C_Error_information* info;
-    size_type padding;
-    size_type type;
+    char padding[sizeof(size_type) * 2];
 } QAJ4C_Error;
 
 /**
@@ -98,7 +100,7 @@ typedef struct QAJ4C_Error {
 typedef struct QAJ4C_Short_string {
     char s[QAJ4C_INLINE_STRING_SIZE + 1];
     uint8_t count;
-    size_type type;
+    char padding[sizeof(size_type)];
 } QAJ4C_Short_string;
 
 typedef struct QAJ4C_Primitive {
@@ -108,15 +110,13 @@ typedef struct QAJ4C_Primitive {
         int64_t i;
         bool b;
     } data;
-    size_type type;
+    /* Padding on 64 Bit => 8, 32 Bit => 4 */
+    char padding[sizeof(uintptr_t) + sizeof(size_type) * 2 - sizeof(uint64_t)];
+
 } QAJ4C_Primitive;
 
 struct QAJ4C_Value {
-    union {
-        uintptr_t padding_ptr;
-        uint32_t padding_min;
-    } pad;
-    size_type padding_2;
+	char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
     size_type type;
 }; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
 

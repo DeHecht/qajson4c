@@ -34,8 +34,8 @@
 #include <string.h>
 #include <time.h>
 
-#include <qajson4c/qajson4c.h>
-#include <qajson4c/qajson4c_internal.h>
+#include "qajson4c/qajson4c.h"
+#include "qajson4c/qajson4c_internal.h"
 
 /**
  * This has been copied from gtest
@@ -48,7 +48,7 @@
 
 #define ARRAY_COUNT(x)  (sizeof(x) / sizeof(x[0]))
 
-#define DEBUGGING false
+#define DEBUGGING true
 
 typedef struct QAJ4C_TEST_DEF {
     const char* subject_name;
@@ -371,6 +371,75 @@ TEST(SimpleParsingTests, ParseStringWithNewLine) {
 
     // Now compare with the non-raw string (as the \n should be interpeted)
     assert(strcmp(QAJ4C_get_string(array_entry), "Hello\nWorld") == 0);
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseStringWithNewLineUnicode) {
+    char json[] = R"(["Hello\u000AWorld"])";
+    char expected[] = "Hello\nWorld";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    // Now compare with the non-raw string (as the \n should be interpeted)
+    assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
+    assert(strcmp(QAJ4C_get_string(array_entry), expected) == 0);
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseStringWithEndOfStringUnicode) {
+    char json[] = R"(["Hello\u0000World"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    // Now compare with the non-raw string (as the \n should be interpeted)
+
+    const char* result_str = QAJ4C_get_string(array_entry);
+
+    const char expected[] = "Hello\0World";
+    assert(ARRAY_COUNT(expected) - 1 == QAJ4C_get_string_length(array_entry));
+
+    for( int i=0;i<ARRAY_COUNT(expected); i++) {
+    	assert(expected[i] == result_str[i]);
+    }
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseDollarSign) {
+	const char json[] = R"(["\u0024"])";
+	const char expected[] = "$";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    assert(strcmp(QAJ4C_get_string(array_entry), expected) == 0);
+    assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseBigUtf16) {
+	const char json[] = R"(["\uD834\uDD1E"])";
+	const char expected[] = "𝄞";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    assert(strcmp(QAJ4C_get_string(array_entry), expected) == 0);
+    assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
+
+    free((void*)value);
 }
 
 TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
@@ -383,7 +452,7 @@ TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
 
     // Now compare with the non-raw string (as the \n should be interpeted)
     assert(strcmp(QAJ4C_get_string(array_entry), "Hello\"World") == 0);
-
+    free((void*)value);
 }
 
 TEST(SimpleParsingTests, ParseEmptyObject) {
@@ -574,6 +643,36 @@ TEST(SimpleParsingTests, ParseNumericEValues) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseUint64Max) {
+	const char json[] = R"([18446744073709551615])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
+
+    assert(!QAJ4C_is_uint(array_value));
+    assert(!QAJ4C_is_int(array_value));
+    assert(!QAJ4C_is_int64(array_value));
+    assert(QAJ4C_is_uint64(array_value));
+    assert(QAJ4C_is_double(array_value));
+
+    assert(UINT64_MAX == QAJ4C_get_uint64(array_value));
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
+	const char json[] = R"([18446744073709551616])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(!QAJ4C_is_uint(QAJ4C_array_get(value, 0)));
+    assert(!QAJ4C_is_int(QAJ4C_array_get(value, 0)));
+    assert(!QAJ4C_is_int64(QAJ4C_array_get(value, 0)));
+    assert(!QAJ4C_is_uint64(QAJ4C_array_get(value, 0)));
+    assert(QAJ4C_is_double(QAJ4C_array_get(value, 0)));
+    free((void*)value);
+}
+
+
+
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -635,7 +734,7 @@ TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
 	char json[] = R"(["\u99XA"])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_CHAR);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
     free((void*)value);
 }
 
@@ -710,6 +809,36 @@ TEST(PrintTests, PrintDoubleArray) {
     free((void*)value);
 }
 
+TEST(PrintTests, PrintUint64Max) {
+	const char json[] = R"([18446744073709551615])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+TEST(PrintTests, PrintStringWithNewLine) {
+    char json[] = R"(["Hello\nWorld"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+
+
 /**
  * Parse the same message twice and compare the results with each other.
  * It is expected that the two results are equal!
@@ -753,6 +882,9 @@ TEST(VariousTests, CheckSizes) {
     assert(sizeof(int64_t) == 8);
     assert(sizeof(uint64_t) == 8);
 
+    printf("Sizeof QAJ4C_Value is: %zu\n", sizeof(QAJ4C_Value));
+
+    assert(sizeof(QAJ4C_Value) == (QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type) * 2));
     assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));
     assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Array));
     assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_String));
