@@ -48,7 +48,7 @@
 
 #define ARRAY_COUNT(x)  (sizeof(x) / sizeof(x[0]))
 
-#define DEBUGGING true
+static bool DEBUGGING = false;
 
 typedef struct QAJ4C_TEST_DEF {
     const char* subject_name;
@@ -108,6 +108,7 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
 
     if ( DEBUGGING ) {
         test->test_func();
+        tests_passed++;
     }
     else
     {
@@ -182,7 +183,9 @@ int main( int argc, char **argv ) {
     const char* filename = "test.xml";
     for ( int i = 0; i < argc; ++i ) {
         char* candidate = NULL;
-        if( strstr(argv[i], "output=") != NULL) {
+        if ( strstr(argv[i], "--debug") == argv[i] ) {
+            DEBUGGING = true;
+        } else if( strstr(argv[i], "output=") != NULL) {
             candidate = (strstr(argv[i], "output=") + strlen("output="));
         } else if(strstr(argv[i], "output") != NULL) {
             if (i + 1 < argc) {

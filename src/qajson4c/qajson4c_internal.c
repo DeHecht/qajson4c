@@ -1003,7 +1003,7 @@ static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* 
 
 
 static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
-    return !(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
+    return builder->cur_obj_pos - 1 <= builder->cur_str_pos;
 }
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
@@ -1015,9 +1015,7 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
     new_pointer = (QAJ4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
     builder->cur_obj_pos += count * sizeof(QAJ4C_Value);
 
-    if (QAJ4C_UNLIKELY(!QAJ4C_builder_validate_buffer(builder))) {
-        return NULL ;
-    }
+    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
 
     for (i = 0; i < count; i++) {
     	new_pointer->type = QAJ4C_NULL_TYPE_CONSTANT;
@@ -1027,10 +1025,7 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
 
 char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
     builder->cur_str_pos -= length * sizeof(char);
-    if (QAJ4C_UNLIKELY(!QAJ4C_builder_validate_buffer(builder))) {
-        return NULL ;
-    }
-
+    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
     return (char*)(&builder->buffer[builder->cur_str_pos]);
 }
 
