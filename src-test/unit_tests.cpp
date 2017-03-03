@@ -106,6 +106,8 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
     char buff[256];
     buff[0] = '\0';
 
+    QAJ4C_register_fatal_error_function(QAJ4C_ERR_FUNCTION);
+
     if ( DEBUGGING ) {
         test->test_func();
         tests_passed++;
@@ -674,8 +676,6 @@ TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
     free((void*)value);
 }
 
-
-
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -739,6 +739,46 @@ TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
     free((void*)value);
+}
+
+/**
+ * In this test it is verified that setting an array in case no memory is available anymore
+ * will invoke the fatal error handler function and not cause segmentation faults or whatever.
+ */
+TEST(ErrorHandlingTests, BuilderOverflowArray) {
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, NULL, 0);
+
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    QAJ4C_Value value;
+    QAJ4C_set_array(&value, 5, &builder);
+
+    assert(called == true);
+}
+
+/**
+ * In this test it is verified that setting an array in case no memory is available anymore
+ * will invoke the fatal error handler function and not cause segmentation faults or whatever.
+ */
+TEST(ErrorHandlingTests, BuilderOverflowObject) {
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, NULL, 0);
+
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    QAJ4C_Value value;
+    QAJ4C_set_object(&value, 5, &builder);
+
+    assert(called == true);
 }
 
 TEST(PrintTests, PrintEmtpyObject) {

@@ -1032,7 +1032,7 @@ QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count
     }
     new_pointer = (QAJ4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
     builder->cur_obj_pos += count * sizeof(QAJ4C_Member);
-    QAJ4C_builder_validate_buffer(builder);
+    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
 
     for (i = 0; i < count; i++) {
         new_pointer[i].key.type = QAJ4C_NULL_TYPE_CONSTANT;
