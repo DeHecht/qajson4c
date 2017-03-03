@@ -409,15 +409,15 @@ TEST(SimpleParsingTests, ParseStringWithEndOfStringUnicode) {
     assert(ARRAY_COUNT(expected) - 1 == QAJ4C_get_string_length(array_entry));
 
     for( int i=0;i<ARRAY_COUNT(expected); i++) {
-    	assert(expected[i] == result_str[i]);
+        assert(expected[i] == result_str[i]);
     }
 
     free((void*)value);
 }
 
 TEST(SimpleParsingTests, ParseDollarSign) {
-	const char json[] = R"(["\u0024"])";
-	const char expected[] = "$";
+    const char json[] = R"(["\u0024"])";
+    const char expected[] = "$";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
@@ -431,8 +431,8 @@ TEST(SimpleParsingTests, ParseDollarSign) {
 }
 
 TEST(SimpleParsingTests, ParseBigUtf16) {
-	const char json[] = R"(["\uD834\uDD1E"])";
-	const char expected[] = "𝄞";
+    const char json[] = R"(["\uD834\uDD1E"])";
+    const char expected[] = "𝄞";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
@@ -524,7 +524,7 @@ TEST(SimpleParsingTests, ParseNumberArrayWithComments) {
 }
 
 TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
-	const char json[] = R"([// HO 
+    const char json[] = R"([// HO 
 1, // HO 
  2, //
  3, //
@@ -638,7 +638,7 @@ TEST(SimpleParsingTests, ParseDoubleValues) {
 }
 
 TEST(SimpleParsingTests, ParseNumericEValues) {
-	const char json[] = R"([1e1,0.1e1])";
+    const char json[] = R"([1e1,0.1e1])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_is_double(QAJ4C_array_get(value, 0)));
@@ -647,7 +647,7 @@ TEST(SimpleParsingTests, ParseNumericEValues) {
 }
 
 TEST(SimpleParsingTests, ParseUint64Max) {
-	const char json[] = R"([18446744073709551615])";
+    const char json[] = R"([18446744073709551615])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
@@ -663,7 +663,7 @@ TEST(SimpleParsingTests, ParseUint64Max) {
 }
 
 TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
-	const char json[] = R"([18446744073709551616])";
+    const char json[] = R"([18446744073709551616])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(!QAJ4C_is_uint(QAJ4C_array_get(value, 0)));
@@ -710,7 +710,7 @@ TEST(ErrorHandlingTests, ParseObjectKeyWithoutStartingQuotes) {
 
 
 TEST(ErrorHandlingTests, ParseBombasticArray) {
-	char json[] = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    char json[] = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_DEPTH_OVERFLOW);
@@ -718,7 +718,7 @@ TEST(ErrorHandlingTests, ParseBombasticArray) {
 }
 
 TEST(ErrorHandlingTests, ParseBombasticObject) {
-	char json[] = R"({"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}})";
+    char json[] = R"({"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}})";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_DEPTH_OVERFLOW);
@@ -726,7 +726,7 @@ TEST(ErrorHandlingTests, ParseBombasticObject) {
 }
 
 TEST(ErrorHandlingTests, IncompleteNumberAfterComma) {
-	char json[] = R"([1.])";
+    char json[] = R"([1.])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
@@ -734,7 +734,7 @@ TEST(ErrorHandlingTests, IncompleteNumberAfterComma) {
 }
 
 TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
-	char json[] = R"(["\u99XA"])";
+    char json[] = R"(["\u99XA"])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -742,7 +742,7 @@ TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
 }
 
 TEST(PrintTests, PrintEmtpyObject) {
-	char json[] = "{}";
+    char json[] = "{}";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
@@ -750,9 +750,55 @@ TEST(PrintTests, PrintEmtpyObject) {
     char output[ARRAY_COUNT(json)];
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
     assert(ARRAY_COUNT(output) == out);
-	assert(strcmp(json, output) == 0);
+    assert(strcmp(json, output) == 0);
 
     free((void*)value);
+}
+
+TEST(ErrorHandlingTests, DoubleSmallPrintBuffer) {
+    char json[] = "[0.123456]";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
+}
+
+TEST(ErrorHandlingTests, MultipleDoublesSmallPrintBuffer) {
+    char json[] = "[0.123456,6.0]";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
 }
 
 TEST(PrintTests, PrintNumericArray) {
@@ -813,7 +859,7 @@ TEST(PrintTests, PrintDoubleArray) {
 }
 
 TEST(PrintTests, PrintUint64Max) {
-	const char json[] = R"([18446744073709551615])";
+    const char json[] = R"([18446744073709551615])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));

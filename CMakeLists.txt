@@ -86,5 +86,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/lib CACHE INTERNAL "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/bin CACHE INTERNAL "")
 
 add_subdirectory(src)
-add_subdirectory(src-test)
 
+# do not build the tests for windows (only work for *nix at the moment)
+if( NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+    add_subdirectory(src-test)
+endif()
