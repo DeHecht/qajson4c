@@ -56,15 +56,17 @@
 #if ((ULONG_MAX) == (UINT64_MAX))
 #define QAJ4C_strtoul strtoul
 #elif ((ULLONG_MAX) == (UINT64_MAX))
-#define QAJ4C_strtoull strtoull
+#define QAJ4C_strtoul strtoull
 #else
-#error ULONG_MAX >= UINT64_MAX
+#error "ULONG_MAX >= UINT64_MAX"
 #endif
 
 #if ((LONG_MAX) == (INT64_MAX))
 #define QAJ4C_strtol strtol
 #elif ((LLONG_MAX) == (INT64_MAX))
-#define QAJ4C_strtoll strtoll
+#define QAJ4C_strtol strtoll
+#else
+#error "LONG_MAX >= INT64_MAX"
 #endif
 
 #define QAJ4C_strlen strlen
