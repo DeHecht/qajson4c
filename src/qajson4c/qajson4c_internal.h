@@ -5,7 +5,16 @@
 #ifndef QAJSON4C_INTERNAL_H_
 #define QAJSON4C_INTERNAL_H_
 
-#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_ERR_FUNCTION && !(arg)) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
+/** Define unlikely macro to be used in asserts
+ *  Basically because the compiler should compile for the non-failure scenario.
+ **/
+#if __GNUC__ >= 3
+#define QAJ4C_UNLIKELY(expr) __builtin_expect(expr, 0)
+#else
+#define QAJ4C_UNLIKELY(expr) expr
+#endif
+
+#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg) && QAJ4C_ERR_FUNCTION)) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
 
 #define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
 #define QAJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))

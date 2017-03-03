@@ -861,7 +861,7 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
 
 static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg ) {
 	/* Also very unlikely to happen (only in case json is invalid) */
-	if ( msg->json_len > 0 && msg->json_pos >= msg->json_len ) {
+	if ( QAJ4C_UNLIKELY(msg->json_len > 0 && msg->json_pos >= msg->json_len) ) {
 		return '\0';
 	}
 	return msg->json[msg->json_pos];
@@ -870,7 +870,7 @@ static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg ) {
 static char QAJ4C_json_message_read( QAJ4C_Json_message* msg ) {
 	char result = QAJ4C_json_message_peek( msg );
 	++msg->json_pos;
-	if ( result == '\0' ) {
+	if ( QAJ4C_UNLIKELY(result == '\0') ) {
 		msg->json_len = msg->json_pos;
 	}
 	return result;
@@ -1002,8 +1002,8 @@ static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* 
 }
 
 
-static void QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
-    QAJ4C_ASSERT(builder->cur_obj_pos - 1 <= builder->cur_str_pos, {});
+static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
+    return !(builder->cur_obj_pos - 1 <= builder->cur_str_pos);
 }
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
@@ -1015,7 +1015,10 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
     new_pointer = (QAJ4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
     builder->cur_obj_pos += count * sizeof(QAJ4C_Value);
 
-    QAJ4C_builder_validate_buffer(builder);
+    if (QAJ4C_UNLIKELY(!QAJ4C_builder_validate_buffer(builder))) {
+        return NULL ;
+    }
+
     for (i = 0; i < count; i++) {
     	new_pointer->type = QAJ4C_NULL_TYPE_CONSTANT;
     }
@@ -1024,7 +1027,10 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
 
 char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
     builder->cur_str_pos -= length * sizeof(char);
-    QAJ4C_builder_validate_buffer(builder);
+    if (QAJ4C_UNLIKELY(!QAJ4C_builder_validate_buffer(builder))) {
+        return NULL ;
+    }
+
     return (char*)(&builder->buffer[builder->cur_str_pos]);
 }
 
@@ -1189,7 +1195,7 @@ static size_t QAJ4C_copy_custom_string(char* buffer, size_t buffer_size, const Q
 			break;
 
 		default:
-			if (char_value < 32) {
+            if (QAJ4C_UNLIKELY(char_value < 32)) {
 				replacement_string = replacement_buf[char_value];
 				replacement_string_len = replacement_len[char_value];
 			}
