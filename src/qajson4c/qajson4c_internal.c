@@ -61,7 +61,6 @@ typedef struct QAJ4C_Second_pass_parser {
     QAJ4C_realloc_fn realloc_callback;
     bool insitu_parsing;
     bool optimize_object;
-    uint8_t integer_parse_base;
 
     bool fatal_fault;
 
@@ -85,12 +84,10 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser );
 static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* parser );
 static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser );
 
-
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* parser, size_type storage_pos );
 static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* me );
 
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser );
-
 
 static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_First_pass_parser* parser);
 static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr );
@@ -105,10 +102,10 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
 static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg );
 static const char* QAJ4C_skip_whitespaces_and_comments_second_pass( const char* json );
 
-
 static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg );
 static char QAJ4C_json_message_read( QAJ4C_Json_message* msg );
 static void QAJ4C_json_message_forward( QAJ4C_Json_message* msg );
+static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg );
 
 static const char QAJ4C_NULL_STR[] = "null";
 static const char QAJ4C_TRUE_STR[] = "true";
@@ -120,7 +117,6 @@ static const unsigned QAJ4C_FALSE_STR_LEN = sizeof(QAJ4C_FALSE_STR) / sizeof(QAJ
 static int QAJ4C_xdigit( char c ) {
     return (c > '9')? (c &~ 0x20) - 'A' + 10: (c - '0');
 }
-
 
 size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback) {
     QAJ4C_First_pass_parser parser;
@@ -365,7 +361,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
             }
             QAJ4C_json_message_forward(parser->msg);
             QAJ4C_skip_whitespaces_and_comments(parser->msg);
-            json_char = QAJ4C_json_message_peek( parser->msg );
+            json_char = QAJ4C_json_message_peek(parser->msg);
         }
         if (json_char != ']') {
             QAJ4C_first_pass_process(parser, depth + 1);
@@ -487,24 +483,19 @@ static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser) {
 }
 
 static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
-    size_type num_type = 0; /* 1 => uint, 2 = int, 3 = double */
     char json_char = QAJ4C_json_message_peek(parser->msg);
-    bool is_signed = false;
 
-    // FIXME: Allow hex-notation in case not strictly parsing!
+    /* FIXME: Allow hex-notation in case not strictly parsing! */
 
     if ( json_char == '-' ) {
-        is_signed = true;
-        QAJ4C_json_message_forward(parser->msg);
-        json_char = QAJ4C_json_message_peek(parser->msg);
+        json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     } else if (json_char == '+' && !parser->strict_parsing) {
-        json_char = QAJ4C_json_message_read(parser->msg);
+        json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     }
 
-    if( parser->strict_parsing && json_char == '0' ) {
+    if (json_char == '0' && parser->strict_parsing) {
+        json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
         /* next char is not allowed to be numeric! */
-        QAJ4C_json_message_forward(parser->msg);
-        json_char = QAJ4C_json_message_peek(parser->msg);
         if (json_char >= '0' && json_char <= '9') {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
             return;
@@ -512,43 +503,27 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
     }
 
     while( json_char >= '0' && json_char <= '9' ) {
-        QAJ4C_json_message_forward(parser->msg);
-        json_char = QAJ4C_json_message_peek(parser->msg);
+        json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     }
 
-    switch( json_char ) {
-    case '.':
-    case 'e':
-    case 'E':
-        num_type = 3;
-        break;
-    default:
-        num_type = is_signed ? 2 : 1;
-        break;
-    }
-
-    if (3 == num_type) {
+    if (json_char == '.' || json_char == 'e' || json_char == 'E') {
         /* check the format! */
-        if( json_char == '.' ) {
-            QAJ4C_json_message_forward(parser->msg);
-            json_char = QAJ4C_json_message_peek(parser->msg);
+        if (json_char == '.') {
+            json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             /* expect at least one digit! */
             if (json_char < '0' || json_char > '9') {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
                 return;
             }
-            while( json_char >= '0' && json_char <= '9' ) {
-                QAJ4C_json_message_forward(parser->msg);
-                json_char = QAJ4C_json_message_peek(parser->msg);
+            while (json_char >= '0' && json_char <= '9') {
+                json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
         }
-        if( json_char == 'E' || json_char == 'e') {
+        if (json_char == 'E' || json_char == 'e') {
             /* next char can be a + or - */
-            QAJ4C_json_message_forward(parser->msg);
-            json_char = QAJ4C_json_message_peek(parser->msg);
-            if( json_char == '+' || json_char == '-') {
-                QAJ4C_json_message_forward(parser->msg);
-                json_char = QAJ4C_json_message_peek(parser->msg);
+            json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
+            if (json_char == '+' || json_char == '-') {
+                json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
             /* expect at least one digit! */
             if (json_char < '0' || json_char > '9') {
@@ -556,9 +531,8 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
                 return;
             }
             /* forward until the end! */
-            while( json_char >= '0' && json_char <= '9' ) {
-                QAJ4C_json_message_forward(parser->msg);
-                json_char = QAJ4C_json_message_peek(parser->msg);
+            while (json_char >= '0' && json_char <= '9') {
+                json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
         }
     }
@@ -575,13 +549,13 @@ static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_F
     me->builder = parser->builder;
     me->realloc_callback = parser->realloc_callback;
     me->insitu_parsing = parser->insitu_parsing;
-    me->integer_parse_base = parser->strict_parsing ? 10 : 0;
     me->optimize_object = parser->optimize_object;
     me->curr_buffer_pos = copy_to_index;
     me->fatal_fault = false;
 
     /* reset the builder to its original state! */
     QAJ4C_builder_init(builder, builder->buffer, builder->buffer_size);
+    builder->cur_str_pos = required_object_storage;
 }
 
 static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr ) {
@@ -706,55 +680,29 @@ static void QAJ4C_second_pass_array( QAJ4C_Second_pass_parser* me, QAJ4C_Value* 
 }
 
 static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr  ) {
-    size_type chars = 0;
+    char* base_put_str = NULL;
     char* put_str = NULL;
+    uintptr_t chars;
 
-    /* determine the storage string size! */
-    const char* c = me->json_char;
-    while (*c != '\"') {
-        if (*c == '\\') {
-            ++c;
-            if (*c == 'u') {
-                uint32_t value = QAJ4C_xdigit(c[1]) << 12 | QAJ4C_xdigit(c[2]) << 8 | QAJ4C_xdigit(c[3]) << 4 | QAJ4C_xdigit(c[4]);
-                int fwd = 0;
-                if (value < 0x80) {
-                    fwd = 1;
-                } else if (value < 0x800) {
-                    fwd = 2;
-                } else if (value < 0xd800 || value > 0xdfff) {
-                    fwd = 3;
-                } else {
-                    fwd = 4;
-                    c += 6;
-                }
-                c += 4;
-                chars += fwd - 1;
-            }
-        }
-        ++c;
-        ++chars;
-    }
+    bool check_size = true;
 
     if (me->insitu_parsing) {
         result_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
-        ((QAJ4C_String*)result_ptr)->count = chars;
         ((QAJ4C_String*)result_ptr)->s = me->json_char;
-    } else if (QAJ4C_INLINE_STRING_SIZE >= chars) {
-        result_ptr->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
-        ((QAJ4C_Short_string*)result_ptr)->count = chars;
+        put_str = (char*)me->json_char;
+        check_size = false;
     } else {
-        result_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
-        ((QAJ4C_String*)result_ptr)->count = chars;
-        ((QAJ4C_String*)result_ptr)->s = QAJ4C_builder_pop_string(me->builder, chars + 1);
+        result_ptr->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
+        put_str = ((QAJ4C_Short_string*)result_ptr)->s;
     }
 
-    put_str = (char*)QAJ4C_get_string(result_ptr);
+    base_put_str = put_str;
 
-    while( *me->json_char != '"' ) {
-        switch(*me->json_char) {
+    while (*me->json_char != '"') {
+        switch (*me->json_char) {
         case '\\':
             me->json_char += 1;
-            switch(*me->json_char) {
+            switch (*me->json_char) {
             case '"':
                 *put_str = '"';
                 break;
@@ -785,7 +733,7 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
                 uint32_t utf16 = QAJ4C_second_pass_utf16(me);
                 me->json_char--; /* FIXME: Function moves to far away */
                 if (utf16 < 0x80) {
-                    *put_str = (char) utf16;
+                    *put_str = (char)utf16;
                 } else if (utf16 < 0x800) {
                     *put_str++ = ((utf16 >> 6) & 0x1f) | 0xc0;
                     *put_str = (utf16 & 0x3f) | 0x80;
@@ -809,9 +757,32 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
         }
         put_str += 1;
         me->json_char += 1;
+
+        if (check_size) {
+            chars = ((uintptr_t)put_str) - ((uintptr_t)base_put_str);
+            if (chars > QAJ4C_INLINE_STRING_SIZE) {
+                put_str = (char*)&me->builder->buffer[me->builder->cur_str_pos];
+                // copy over to normal string
+                QAJ4C_memcpy(put_str, base_put_str, chars * sizeof(char));
+                result_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+                ((QAJ4C_String*)result_ptr)->s = put_str;
+                base_put_str = put_str;
+                put_str += chars;
+                check_size = false; /* now the copy has been performed, stop checking the length! */
+            }
+        }
     }
     *put_str = '\0';
     me->json_char += 1;
+    chars = ((uintptr_t)put_str) - ((uintptr_t)base_put_str);
+    if (QAJ4C_get_internal_type(result_ptr) == QAJ4C_INLINE_STRING) {
+        ((QAJ4C_Short_string*)result_ptr)->count = chars;
+    } else {
+        ((QAJ4C_String*)result_ptr)->count = chars;
+        if (!me->insitu_parsing) {
+            me->builder->cur_str_pos += chars;
+        }
+    }
 }
 
 static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me ) {
@@ -829,27 +800,26 @@ static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me ) {
 static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr ) {
     char* c = (char*)me->json_char;
     bool double_value = false;
-    if (*c == '-') {
-        int64_t i = QAJ4C_strtol(c, &c, me->integer_parse_base);
-        if ((i == INT64_MAX && errno == ERANGE) || *c == '.' || *c == 'E' || *c == 'e') {
+    if (*me->json_char == '-') {
+        int64_t i = QAJ4C_strtol(me->json_char, &c, 10);
+        if (*c == '.' || *c == 'E' || *c == 'e' || (i == INT64_MAX && errno == ERANGE)) {
             double_value = true;
         } else {
             QAJ4C_set_int64(result_ptr, i);
-            me->json_char = c;
         }
     } else {
-        uint64_t i = QAJ4C_strtoul(c, &c, me->integer_parse_base);
-        if ((i == UINT64_MAX && errno == ERANGE) || *c == '.' || *c == 'E' || *c == 'e') {
+        uint64_t i = QAJ4C_strtoul(me->json_char, &c, 10);
+        if (*c == '.' || *c == 'E' || *c == 'e' || (i == UINT64_MAX && errno == ERANGE)) {
             double_value = true;
         } else {
             QAJ4C_set_uint64(result_ptr, i);
-            me->json_char = c;
         }
 
     }
     if (double_value) {
-        QAJ4C_set_double(result_ptr, QAJ4C_strtod(me->json_char, (char**)&me->json_char));
+        QAJ4C_set_double(result_ptr, QAJ4C_strtod(me->json_char, &c));
     }
+    me->json_char = c;
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
@@ -860,10 +830,7 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
 
 static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg ) {
     /* Also very unlikely to happen (only in case json is invalid) */
-    if (QAJ4C_UNLIKELY(msg->json_len > 0 && msg->json_pos >= msg->json_len)) {
-        return '\0';
-    }
-    return msg->json[msg->json_pos];
+    return QAJ4C_UNLIKELY(msg->json_pos >= msg->json_len) ? '\0' : msg->json[msg->json_pos];
 }
 
 static char QAJ4C_json_message_read( QAJ4C_Json_message* msg ) {
@@ -876,9 +843,12 @@ static char QAJ4C_json_message_read( QAJ4C_Json_message* msg ) {
 }
 
 static void QAJ4C_json_message_forward( QAJ4C_Json_message* msg ) {
-    if (QAJ4C_json_message_peek(msg) != 0) {
-        ++msg->json_pos;
-    }
+    ++msg->json_pos;
+}
+
+static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg ) {
+    ++msg->json_pos;
+    return QAJ4C_json_message_peek(msg);
 }
 
 static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
@@ -894,19 +864,16 @@ static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
             break;
             /* also skip comments! */
         case '/':
-            QAJ4C_json_message_forward(msg);
-            if (QAJ4C_json_message_peek(msg) == '*') {
+            current_char = QAJ4C_json_message_forward_and_peek(msg);
+            if (current_char == '*') {
                 QAJ4C_json_message_forward(msg);
                 do {
                     current_char = QAJ4C_json_message_read(msg);
                 } while (current_char != '\0' && !(current_char == '*' && QAJ4C_json_message_peek(msg) == '/'));
-            } else if (QAJ4C_json_message_peek(msg) == '/') {
-                QAJ4C_json_message_forward(msg);
-                current_char = QAJ4C_json_message_peek(msg);
-                while (current_char != '\0' && current_char != '\n') {
-                    QAJ4C_json_message_forward(msg);
-                    current_char = QAJ4C_json_message_peek(msg);
-                }
+            } else if (current_char == '/') {
+                do {
+                    current_char = QAJ4C_json_message_forward_and_peek(msg);
+                } while (current_char != '\0' && current_char != '\n');
             } else {
                 return;
             }
@@ -914,21 +881,13 @@ static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
         default:
             return;
         }
-        QAJ4C_json_message_forward(msg);
-        current_char = QAJ4C_json_message_peek(msg);
+        current_char = QAJ4C_json_message_forward_and_peek(msg);
     }
 }
 
 static const char* QAJ4C_skip_whitespaces_and_comments_second_pass( const char* json ) {
-    while (*json != '\0') {
-        switch (*json) {
-        case '\t':
-        case '\n':
-        case '\b':
-        case '\r':
-        case ' ':
-            break;
-        case '/':
+    while ( true ) {
+        if (*json == '/') {
             ++json;
             /* It can either be a c-comment or a line comment*/
             if (*json == '*') {
@@ -941,11 +900,9 @@ static const char* QAJ4C_skip_whitespaces_and_comments_second_pass( const char* 
                 while (*json != '\n') {
                     ++json;
                 }
-
             }
+        } else if (*json > 0x20) {
             break;
-        default:
-            return json;
         }
         ++json;
     }
@@ -1019,6 +976,7 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
 }
 
 char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
+    QAJ4C_ASSERT(builder->cur_str_pos >= length * sizeof(char), {return NULL;});
     builder->cur_str_pos -= length * sizeof(char);
     QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
     return (char*)(&builder->buffer[builder->cur_str_pos]);
@@ -1302,6 +1260,9 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
         index += QAJ4C_copy_custom_string(buffer + index, buffer_size - index, value_ptr);
         break;
     }
+    case QAJ4C_ERROR_DESCRIPTION:
+        index += QAJ4C_snprintf(buffer + index, buffer_size - index, "{\"error\":\"Unable to parse json message. Error (%d) at position %d\"}", ((QAJ4C_Error*)value_ptr)->info->err_no, ((QAJ4C_Error*)value_ptr)->info->json_pos);
+        break;
     default:
         QAJ4C_ASSERT(false, {return 0;});
     }

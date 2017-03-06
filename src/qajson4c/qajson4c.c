@@ -56,15 +56,15 @@ size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json ) {
 }
 
 size_t QAJ4C_parse( const char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr ) {
-    return QAJ4C_parse_opt(json, 0, 0, buffer, buffer_size, result_ptr);
+    return QAJ4C_parse_opt(json, SIZE_MAX, 0, buffer, buffer_size, result_ptr);
 }
 
 const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback ) {
-    return QAJ4C_parse_opt_dynamic(json, 0, 0, realloc_callback);
+    return QAJ4C_parse_opt_dynamic(json, SIZE_MAX, 0, realloc_callback);
 }
 
 size_t QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr ) {
-    return QAJ4C_parse_opt_insitu(json, 0, 0, buffer, buffer_size, result_ptr);
+    return QAJ4C_parse_opt_insitu(json, SIZE_MAX, 0, buffer, buffer_size, result_ptr);
 }
 
 size_t QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr ) {
@@ -105,7 +105,7 @@ bool QAJ4C_is_string(const QAJ4C_Value* value_ptr) {
 }
 
 const char* QAJ4C_get_string( const QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return NULL;});
+    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return "";});
 
     if (QAJ4C_get_internal_type(value_ptr) == QAJ4C_INLINE_STRING) {
         return ((QAJ4C_Short_string*) value_ptr)->s;
@@ -254,7 +254,7 @@ size_t QAJ4C_object_size( const QAJ4C_Value* value_ptr ) {
 }
 
 const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, size_t index ) {
-    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr) && QAJ4C_object_size(value_ptr) > index, {return 0;});
+    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr) && QAJ4C_object_size(value_ptr) > index, {return NULL;});
     return &((QAJ4C_Object*) value_ptr)->top[index];
 }
 
@@ -320,7 +320,7 @@ void QAJ4C_set_int64( QAJ4C_Value* value_ptr, int64_t value ) {
     if (value > 0) {
         QAJ4C_set_uint64(value_ptr, value);
     }
-    if (value > INT32_MAX) {
+    if (value > INT32_MAX || value < INT32_MIN ) {
         value_ptr->type = QAJ4C_INT64_TYPE_CONSTANT;
     } else {
         value_ptr->type = QAJ4C_INT32_TYPE_CONSTANT;
@@ -377,6 +377,7 @@ void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t le
     } else {
         char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
         value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        QAJ4C_ASSERT(new_string != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
         ((QAJ4C_String*)value_ptr)->count = len;
         QAJ4C_memcpy(new_string, str, len);
         ((QAJ4C_String*)value_ptr)->s = new_string;
@@ -391,6 +392,9 @@ void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Build
 void QAJ4C_set_array( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder ) {
     value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
     ((QAJ4C_Array*)value_ptr)->top = QAJ4C_builder_pop_values(builder, count);
+    if (QAJ4C_UNLIKELY(((QAJ4C_Array*)value_ptr)->top==NULL)) {
+        count = 0;
+    }
     ((QAJ4C_Array*)value_ptr)->count = count;
 }
 
@@ -402,6 +406,9 @@ QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, size_t index ) {
 void QAJ4C_set_object( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder ) {
     value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
     ((QAJ4C_Object*)value_ptr)->top = QAJ4C_builder_pop_members(builder, count);
+    if (QAJ4C_UNLIKELY(((QAJ4C_Object*)value_ptr)->top==NULL)) {
+        count = 0;
+    }
     ((QAJ4C_Object*)value_ptr)->count = count;
 }
 
@@ -419,6 +426,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref_n( QAJ4C_Value* value_ptr, const 
             return &((QAJ4C_Object*) value_ptr)->top[i].value;
         }
     }
+    QAJ4C_ERR_FUNCTION();
     return NULL;
 }
 
@@ -440,7 +448,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy_n( QAJ4C_Value* value_ptr, const
             return &((QAJ4C_Object*) value_ptr)->top[i].value;
         }
     }
-
+    QAJ4C_ERR_FUNCTION();
     return NULL;
 }
 

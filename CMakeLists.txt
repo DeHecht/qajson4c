@@ -36,7 +36,43 @@ function ( register_build_type_coverage )
         CMAKE_SHARED_LINKER_FLAGS_COVERAGE )
 endfunction ( register_build_type_coverage )
 
+
+function ( register_build_type_profile )
+    message( STATUS "** Adding build type: Profile")
+    SET(CMAKE_CXX_FLAGS_PROFILE
+        "-g -pg"
+        CACHE
+        STRING "Flags used by the C++ compiler during coverage builds."
+        FORCE
+        )
+    SET(CMAKE_C_FLAGS_PROFILE
+        "-g -pg"
+        CACHE
+        STRING "Flags used by the C compiler during coverage builds."
+        FORCE
+        )
+    SET(CMAKE_EXE_LINKER_FLAGS_PROFILE
+        "-pg"
+        CACHE
+        STRING "Flags used for linking binaries during coverage builds."
+        FORCE
+        )
+    SET(CMAKE_SHARED_LINKER_FLAGS_PROFILE
+        "-pg"
+        CACHE
+        STRING "Flags used by the shared libraries linker during coverage builds."
+        FORCE
+        )
+    MARK_AS_ADVANCED(
+        CMAKE_CXX_FLAGS_PROFILE
+        CMAKE_C_FLAGS_PROFILE
+        CMAKE_EXE_LINKER_FLAGS_PROFILE
+        CMAKE_SHARED_LINKER_FLAGS_PROFILE )
+endfunction ( register_build_type_profile )
+
+
 register_build_type_coverage()
+register_build_type_profile()
 
 set(CMAKE_C_FLAGS " -std=c99 -pedantic -pedantic-errors -Wall -Wextra -Werror")
 
@@ -86,8 +122,4 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/lib CACHE INTERNAL "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/bin CACHE INTERNAL "")
 
 add_subdirectory(src)
-
-# do not build the tests for windows (only work for *nix at the moment)
-if( NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-    add_subdirectory(src-test)
-endif()
+add_subdirectory(src-test)

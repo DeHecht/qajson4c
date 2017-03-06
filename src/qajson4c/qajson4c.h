@@ -192,7 +192,7 @@ size_t QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size, const Q
  * and the strings. Additionally the method will modify the buffer_size to the actual amount written
  * to the buffer and will accept parsing options.
  *
- * @note In case the json_len is set to 0, the size of the message is autodetected.
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  *
  * @return the amount of data written to the buffer
  */
@@ -203,7 +203,7 @@ size_t QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffe
  * callback method. The realloc method will called each time allocated buffer is insufficient.
  * Additionally will accept parsing options.
  *
- * @note In case the json_len is set to 0, the size of the message is autodetected.
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  */
 const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback );
 
@@ -216,7 +216,7 @@ const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, i
  * In case the parse fails the document's root value will contain an error value. Usually, a
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  *
- * @note In case the json_len is set to 0, the size of the message is autodetected.
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  *
  * @return the amount of data written to the buffer
  */

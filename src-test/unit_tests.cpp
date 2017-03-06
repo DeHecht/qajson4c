@@ -28,11 +28,14 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <wait.h>
 #include <assert.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+
+#ifndef _WIN32
+#include <wait.h>
+#endif
 
 #include "qajson4c/qajson4c.h"
 #include "qajson4c/qajson4c_internal.h"
@@ -108,9 +111,12 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
 
     QAJ4C_register_fatal_error_function(QAJ4C_ERR_FUNCTION);
 
+#ifndef _WIN32
     if ( DEBUGGING ) {
+#endif
         test->test_func();
         tests_passed++;
+#ifndef _WIN32
     }
     else
     {
@@ -142,6 +148,7 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
             test->execution += time(NULL);
         }
     }
+#endif
 
     return 0;
 }
@@ -676,6 +683,37 @@ TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseStringUnicodeOverlapsInlineStringLimit) {
+    char json[QAJ4C_INLINE_STRING_SIZE + 32]; // oversize the json a little
+    int index = 0;
+    json[index++] = '[';
+    json[index++] = '"';
+    for(int i = 0;i < QAJ4C_INLINE_STRING_SIZE; i++) {
+        json[index++] = 'x';
+    }
+    json[index++] = '\\';
+    json[index++] = 'u';
+    json[index++] = 'F';
+    json[index++] = 'f';
+    json[index++] = 'f';
+    json[index++] = 'F';
+    json[index++] = '"';
+    json[index++] = ']';
+    json[index++] = '\0';
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    uint8_t buff[buff_size];
+    const QAJ4C_Value* value;
+    size_t write_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(write_size == buff_size);
+
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(entry));
+    assert(QAJ4C_STRING == QAJ4C_get_internal_type(entry));
+
+}
+
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -759,10 +797,12 @@ TEST(ErrorHandlingTests, BuilderOverflowArray) {
     QAJ4C_set_array(&value, 5, &builder);
 
     assert(called == true);
+    assert(QAJ4C_is_array(&value));
+    assert(0 == QAJ4C_array_size(&value));
 }
 
 /**
- * In this test it is verified that setting an array in case no memory is available anymore
+ * In this test it is verified that setting an object in case no memory is available anymore
  * will invoke the fatal error handler function and not cause segmentation faults or whatever.
  */
 TEST(ErrorHandlingTests, BuilderOverflowObject) {
@@ -777,8 +817,295 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
 
     QAJ4C_Value value;
     QAJ4C_set_object(&value, 5, &builder);
-
     assert(called == true);
+    assert(QAJ4C_is_object(&value));
+    assert(0 == QAJ4C_object_size(&value));
+}
+
+/**
+ * In this test it is verified that setting a string (by copy) in case no memory is available anymore
+ * will invoke the fatal error handler function and not cause segmentation faults or whatever.
+ */
+TEST(ErrorHandlingTests, BuilderOverflowString) {
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, NULL, 0);
+
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    QAJ4C_Value value;
+    QAJ4C_set_string_copy(&value, "abcdefghijklmnopqrstuvwxyz", &builder);
+    assert(called == true);
+    assert(QAJ4C_is_string(&value));
+    assert(0 == QAJ4C_get_string_length(&value));
+    assert(strcmp("", QAJ4C_get_string(&value)) == 0);
+}
+
+/**
+ * This test will verify that in case an object is accessed incorrectly (with methods of a string or uint)
+ * the default value will be returned in case a custom fatal function is set.
+ */
+TEST(DomObjectAccessTests, ObjectAccess) {
+    QAJ4C_Builder builder;
+    QAJ4C_Value value;
+    QAJ4C_set_object(&value, 0, &builder);
+
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    assert(0.0 == QAJ4C_get_double(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(3 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(4 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(5 == called);
+    assert(0 == QAJ4C_array_size (&value));
+    assert(6 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(7 == called);
+
+    // as the object is empty this should also fail!
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(8 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(9 == called);
+}
+
+/**
+ * This test will verify that in case an array is accessed incorrectly (with methods of a string or uint)
+ * the default value will be returned in case a custom fatal function is set.
+ */
+TEST(DomObjectAccessTests, ArrayAccess) {
+    QAJ4C_Builder builder;
+    QAJ4C_Value value;
+    QAJ4C_set_array(&value, 0, &builder);
+
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    assert(0.0 == QAJ4C_get_double(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(3 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(4 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(5 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(6 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(7 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(8 == called);
+
+    // as the array has size 0 this should also fail!
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(9 == called);
+}
+
+TEST(DomObjectAccessTests, Uint64Access) {
+    QAJ4C_Value value;
+    QAJ4C_set_uint64(&value, UINT64_MAX);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    QAJ4C_get_double(&value); // don't check the value as only the invocation of the error function is interesting.
+    assert(0 == called);
+    assert(UINT64_MAX == QAJ4C_get_uint64(&value));
+    assert(0 == called);
+    assert(0 == QAJ4C_get_int64(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(3 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(4 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(5 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(6 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(7 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(8 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(9 == called);
+}
+
+TEST(DomObjectAccessTests, Uint32Access) {
+    QAJ4C_Value value;
+    QAJ4C_set_uint(&value, UINT32_MAX);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    QAJ4C_get_double(&value); // don't check the value as only the invocation of the error function is interesting.
+    assert(0 == called);
+    assert(UINT32_MAX == QAJ4C_get_int64(&value));
+    assert(0 == called);
+    assert(UINT32_MAX == QAJ4C_get_uint64(&value));
+    assert(0 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(1 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(2 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(3 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(4 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(5 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(6 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(7 == called);
+}
+
+TEST(DomObjectAccessTests, Int64Access) {
+    QAJ4C_Value value;
+    QAJ4C_set_int64(&value, INT64_MIN);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    QAJ4C_get_double(&value); // don't check the value as only the invocation of the error function is interesting.
+    assert(0 == called);
+    assert(INT64_MIN == QAJ4C_get_int64(&value));
+    assert(0 == called);
+    assert(0 == QAJ4C_get_uint64(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(3 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(4 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(5 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(6 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(7 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(8 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(9 == called);
+}
+
+TEST(DomObjectAccessTests, Int32Access) {
+    QAJ4C_Value value;
+    QAJ4C_set_int(&value, INT32_MIN);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    QAJ4C_get_double(&value); // don't check the value as only the invocation of the error function is interesting.
+    assert(0 == called);
+    assert(INT32_MIN == QAJ4C_get_int64(&value));
+    assert(0 == called);
+    assert(INT32_MIN == QAJ4C_get_int(&value));
+    assert(0 == called);
+    assert(0 == QAJ4C_get_uint64(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(2 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(3 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(4 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(5 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(6 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(7 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(8 == called);
+}
+
+TEST(DomObjectAccessTests, DoubleAccess) {
+    QAJ4C_Value value;
+    QAJ4C_set_double(&value, 1.2345);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    QAJ4C_get_double(&value); // don't check the value as only the invocation of the error function is interesting.
+    assert(0 == called);
+    assert(0 == QAJ4C_get_int64(&value));
+    assert(1 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_uint64(&value));
+    assert(3 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(4 == called);
+    assert(false == QAJ4C_get_bool(&value));
+    assert(5 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(6 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(7 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(8 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(9 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(10 == called);
+}
+
+TEST(DomObjectAccessTests, BoolAccess) {
+    QAJ4C_Value value;
+    QAJ4C_set_bool(&value, true);
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+    assert(true == QAJ4C_get_bool(&value));
+    assert(0 == called);
+    assert(0.0 == QAJ4C_get_double(&value)); // don't check the value as only the invocation of the error function is interesting.
+    assert(1 == called);
+    assert(0 == QAJ4C_get_int64(&value));
+    assert(2 == called);
+    assert(0 == QAJ4C_get_int(&value));
+    assert(3 == called);
+    assert(0 == QAJ4C_get_uint64(&value));
+    assert(4 == called);
+    assert(0 == QAJ4C_get_uint(&value));
+    assert(5 == called);
+    assert(strcmp("",QAJ4C_get_string(&value))==0);
+    assert(6 == called);
+    assert(0 == QAJ4C_object_size (&value));
+    assert(7 == called);
+    assert(NULL == QAJ4C_object_get_member(&value, 0));
+    assert(8 == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(9 == called);
+    assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(10 == called);
 }
 
 TEST(PrintTests, PrintEmtpyObject) {
