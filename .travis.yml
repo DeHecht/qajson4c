@@ -1,16 +1,21 @@
 dist: trusty
 sudo: true
 language: cpp
+env:
+  - CODECOV_TOKEN=:63ec6e7b-6ab7-48a6-bdb8-c174a99b5ebf
 compiler:
   - gcc
 install:
-  - sudo apt-get install -y python-pytest
+  - sudo apt-get install -y python-pytest gcov
   - sudo pip install pytest-travis-fold nose-parameterized
 before_script:
   - mkdir build
   - cd build
-  - cmake ..
+  - cmake .. -DCMAKE_BUILD_TYPE=Coverage
 script:
   - make
   - ./build/bin/unit-tests
   - py.test ../src-ftest/sample-test.py
+  - gcov ../src/qajson4c/*.c
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
