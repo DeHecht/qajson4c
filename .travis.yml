@@ -1,10 +1,11 @@
 dist: trusty
-sudo: false
+sudo: true
 language: cpp
 compiler:
   - gcc
 install:
-  - pip install pytest pytest-travis-fold install nose-parameterized
+  - sudo apt-get install -y python-pytest
+  - pip install pytest-travis-fold install nose-parameterized
 before_script:
   - mkdir build
   - cd build
