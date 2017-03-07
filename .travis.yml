@@ -4,8 +4,7 @@ language: cpp
 compiler:
   - gcc
 install:
-  - pip install -e .
-  - pip install pytest-travis-fold
+  - pip install pytest pytest-travis-fold install nose-parameterized
 before_script:
   - mkdir build
   - cd build
