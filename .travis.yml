@@ -4,8 +4,7 @@ language: cpp
 compiler:
   - gcc
 install:
-  - sudo apt-get install -y python-pytest
-  - pip install pytest-travis-fold install nose-parameterized
+  - sudo apt-get install -y python-pytest python-nose-parameterized
 before_script:
   - mkdir build
   - cd build
