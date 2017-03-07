@@ -1,6 +1,6 @@
 # Quite-Alright JSON for C (qajson4c)
 
-[![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=ansi-fying)](https://travis-ci.org/USESystemEngineeringBV/qajson4c)
+[![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=ansi-fying)](https://travis-ci.org/USESystemEngineeringBV/qajson4c) [![codecov](https://codecov.io/gh/USESystemEngineeringBV/qajson4c/branch/master/graph/badge.svg)](https://codecov.io/gh/USESystemEngineeringBV/qajson4c)
 
 ## Introduction
 
