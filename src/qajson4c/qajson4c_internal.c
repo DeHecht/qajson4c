@@ -181,6 +181,9 @@ size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json
 }
 
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser ) {
+    if (QAJ4C_UNLIKELY(parser->err_code != QAJ4C_ERROR_NO_ERROR)) {
+        return sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
+    }
     return parser->amount_nodes * sizeof(QAJ4C_Value) + parser->complete_string_length;
 }
 
@@ -218,7 +221,9 @@ static void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* parser, 
     if( parser->err_code == QAJ4C_ERROR_NO_ERROR) {
         parser->err_code = error;
         /* set the length of the json message to the current position to avoid the parser will continue parsing */
-        parser->msg->json_len = parser->msg->json_pos;
+        if (parser->msg->json_len > parser->msg->json_pos) {
+            parser->msg->json_len = parser->msg->json_pos;
+        }
     }
 }
 
@@ -835,10 +840,12 @@ static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg ) {
 
 static char QAJ4C_json_message_read( QAJ4C_Json_message* msg ) {
     char result = QAJ4C_json_message_peek(msg);
-    ++msg->json_pos;
     if (QAJ4C_UNLIKELY(result == '\0')) {
-        msg->json_len = msg->json_pos;
+        if ( msg->json_pos < msg->json_len) {
+            msg->json_len = msg->json_pos;
+        }
     }
+    ++msg->json_pos;
     return result;
 }
 
@@ -924,8 +931,9 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
     err_info = (QAJ4C_Error_information*)(parser->builder->buffer + sizeof(QAJ4C_Value));
     err_info->err_no = parser->err_code;
     err_info->json = parser->msg->json;
-    err_info->json_pos = parser->msg->json_pos;
+    err_info->json_pos = parser->msg->json_len;
 
+    parser->builder->cur_obj_pos = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
     ((QAJ4C_Error*)document)->info = err_info;
 
     return document;

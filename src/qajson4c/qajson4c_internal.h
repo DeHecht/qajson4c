@@ -14,7 +14,7 @@
 #define QAJ4C_UNLIKELY(expr) expr
 #endif
 
-#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg) && QAJ4C_ERR_FUNCTION)) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
+#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
 
 #define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
 #define QAJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))

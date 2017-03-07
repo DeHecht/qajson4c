@@ -106,22 +106,6 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 
 static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
-char* read_file_content(const char* filename) {
-    FILE* fp = fopen(filename, "r");
-    if (fp == NULL) {
-        return NULL;
-    }
-    fseek(fp, 0L, SEEK_END);
-    size_t sz = ftell(fp);
-    fseek(fp, 0L, SEEK_SET);
-    char* buff = malloc(sz * sizeof(char) + 1);
-    fread(buff, sizeof(char), sz + 1, fp);
-    fclose(fp);
-
-    buff[sz] = '\0';
-    return buff;
-}
-
 void parse_args(int argc, char **argv, struct arguments *args) {
     argp_parse(&argp, argc, argv, 0, 0, args);
 }
@@ -143,6 +127,22 @@ void parse_args(int argc, char **argv, struct arguments *args) {
     }
 }
 #endif
+
+char* read_file_content(const char* filename) {
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL) {
+        return NULL;
+    }
+    fseek(fp, 0L, SEEK_END);
+    size_t sz = ftell(fp);
+    fseek(fp, 0L, SEEK_SET);
+    char* buff = malloc(sz * sizeof(char) + 1);
+    fread(buff, sizeof(char), sz + 1, fp);
+    fclose(fp);
+
+    buff[sz] = '\0';
+    return buff;
+}
 
 int main(int argc, char **argv) {
     struct arguments arguments;
