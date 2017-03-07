@@ -6,7 +6,7 @@ env:
 compiler:
   - gcc
 install:
-  - sudo apt-get install -y python-pytest gcov
+  - sudo apt-get install -y python-pytest
   - sudo pip install pytest-travis-fold nose-parameterized
 before_script:
   - mkdir build
