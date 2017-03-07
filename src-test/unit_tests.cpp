@@ -850,6 +850,22 @@ TEST(ErrorHandlingTests, ParseInvalidComment) {
     free((void*)value);
 }
 
+TEST(ErrorHandlingTests, ParseNeverEndingLineComment) {
+    const char json[] = R"([// ])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    free((void*)value);
+}
+
+TEST(ErrorHandlingTests, ParseNeverEndingLineBlockComment) {
+    const char json[] = R"([/* ])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    free((void*)value);
+}
+
 TEST(ErrorHandlingTests, ParseIncompleteArray) {
     const char json[] = R"([)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -1216,6 +1232,20 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFails) {
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
 }
 
+/**
+ * This test validates that the lookup on an object will not fail in case the object
+ * is still untouched.
+ */
+TEST(ErrorHandlingTests, LookupMemberUninitializedObject) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(value_ptr, 4, &builder);
+
+    assert(NULL == QAJ4C_object_get(value_ptr, "id"));
+}
 
 /**
  * This test will verify that in case an object is accessed incorrectly (with methods of a string or uint)

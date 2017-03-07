@@ -1116,7 +1116,6 @@ static size_t QAJ4C_copy_custom_string(char* buffer, size_t buffer_size, const Q
     const char* string = QAJ4C_get_string(value_ptr);
     size_type string_length = QAJ4C_get_string_length(value_ptr);
 
-    if (buffer_index >= buffer_size) return buffer_index;
     buffer[buffer_index++] = '"';
 
     for( string_index = 0; string_index < string_length && buffer_index <= buffer_size; ++string_index) {
