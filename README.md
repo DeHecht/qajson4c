@@ -1,5 +1,7 @@
 # Quite-Alright JSON for C (qajson4c)
 
+[![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=ansi-fying)](https://travis-ci.org/USESystemEngineeringBV/qajson4c)
+
 ## Introduction
 
 The main goal of this parser is to provide a thread-safe JSON DOM parsing without dynamic memory allocation.
