@@ -3,6 +3,9 @@ sudo: false
 language: cpp
 compiler:
   - gcc
+install:
+  - pip install -e .
+  - pip install pytest-travis-fold
 before_script:
   - mkdir build
   - cd build
@@ -10,3 +13,4 @@ before_script:
 script:
   - make
   - ./build/bin/unit-tests
+  - py.test ../src-ftest/sample-test.py

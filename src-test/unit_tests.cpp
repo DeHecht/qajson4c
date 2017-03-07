@@ -273,6 +273,7 @@ int main( int argc, char **argv ) {
 
     fclose(out);
     free(testsuite_content_buffer);
+    exit(tests_failed > 0);
 }
 
 #define TEST(a, b) \
