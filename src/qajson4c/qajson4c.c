@@ -77,7 +77,11 @@ const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, i
     static size_type MIN_SIZE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
     void* buffer = realloc_callback( NULL, MIN_SIZE);
     QAJ4C_Builder builder;
-    const QAJ4C_Value* result;
+    const QAJ4C_Value* result = NULL;
+    if (buffer == NULL) {
+        return result;
+    }
+
     QAJ4C_builder_init(&builder, buffer, MIN_SIZE);
     QAJ4C_parse_generic(&builder, json, json_len, opts, &result, realloc_callback);
     return result;
@@ -124,7 +128,7 @@ size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr ){
 int QAJ4C_string_cmp_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_Value wrapper_value;
 
-    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return 0;});
+    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return strcmp("", str);});
 
     QAJ4C_set_string_ref_n(&wrapper_value, str, len);
     return QAJ4C_strcmp(value_ptr, &wrapper_value);
@@ -188,7 +192,8 @@ uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value_ptr ) {
 }
 
 bool QAJ4C_is_double( const QAJ4C_Value* value_ptr ) {
-    return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_NUMBER && (QAJ4C_get_compatibility_types(value_ptr) & QAJ4C_PRIMITIVE_DOUBLE) != 0;
+    /* No need to check the compatibility type as double is always compatible! */
+    return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_NUMBER;
 }
 
 double QAJ4C_get_double( const QAJ4C_Value* value_ptr ) {
@@ -376,8 +381,9 @@ void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t le
         QAJ4C_memcpy(&((QAJ4C_Short_string*)value_ptr)->s, str, len);
         ((QAJ4C_Short_string*)value_ptr)->s[len] = '\0';
     } else {
-        char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
         value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        QAJ4C_ASSERT(builder != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
+        char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
         QAJ4C_ASSERT(new_string != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
         ((QAJ4C_String*)value_ptr)->count = len;
         QAJ4C_memcpy(new_string, str, len);

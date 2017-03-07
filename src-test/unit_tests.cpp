@@ -452,6 +452,38 @@ TEST(SimpleParsingTests, ParseDollarSign) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseJapaneseTeaSign) {
+
+    const char json[] = R"(["\u8336"])";
+    const char expected[] = "茶";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseYenSign) {
+
+    const char json[] = R"(["\u00A5"])";
+    const char expected[] = "¥";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 1);
+    const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(array_entry));
+
+    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
+
+    free((void*)value);
+}
+
 TEST(SimpleParsingTests, ParseBigUtf16) {
     const char json[] = R"(["\uD834\uDD1E"])";
     const char expected[] = "𝄞";
@@ -514,7 +546,7 @@ TEST(SimpleParsingTests, ParseEmptyArrayWhitespaces) {
 
 
 TEST(SimpleParsingTests, ParseNumberArray) {
-    const char json[] = R"([1,2,3,-4,5,6])";
+    const char json[] = R"([1,2,3,-4,5,+6])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
@@ -543,6 +575,26 @@ TEST(SimpleParsingTests, ParseNumberArrayWithComments) {
     assert(6 == QAJ4C_get_uint(QAJ4C_array_get(value, 5)));
 
     free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseArraysWithinArray) {
+    const char json[] = "[[],[],[],[],[],[],[],[],[]]";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    assert(QAJ4C_array_size(value) == 9);
+
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 0)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 1)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 2)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 3)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 4)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 5)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 6)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 7)));
+    assert(0 == QAJ4C_array_size(QAJ4C_array_get(value, 8)));
+
+    free((void*)value);
+
 }
 
 TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
@@ -628,6 +680,37 @@ TEST(SimpleParsingTests, ParseObjectArrayObjectCombination) {
 
     free((void*)value);
 }
+
+TEST(SimpleParsingTests, ParseObjectTrailingComma) {
+    const char json[] = R"({"id":1,"name":"foo",})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 2);
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseObjectCheckOptimized) {
+    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 5);
+    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
+    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 5);
+    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
+
+    free((void*)value);
+}
+
+
 
 /**
  * In this test case a scenario where the memory was corrupted internally is
@@ -724,7 +807,29 @@ TEST(SimpleParsingTests, ParseStringUnicodeOverlapsInlineStringLimit) {
     const QAJ4C_Value* entry = QAJ4C_array_get(value, 0);
     assert(QAJ4C_is_string(entry));
     assert(QAJ4C_STRING == QAJ4C_get_internal_type(entry));
+}
 
+TEST(SimpleParsingTests, ParseStringWithAllEscapeCharacters) {
+    const char json[]  = R"(["\" \\ \/ \b \f \n \r \t"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(QAJ4C_is_array(value));
+
+    const QAJ4C_Value* entry = QAJ4C_array_get(value, 0);
+    assert(QAJ4C_is_string(entry));
+
+    const char* string_value = QAJ4C_get_string(entry);
+    assert(strstr(string_value, "\"") != NULL);
+    assert(strstr(string_value, "\\") != NULL);
+    assert(strstr(string_value, "\\/") == NULL); // escaped for json but not for c
+    assert(strstr(string_value, "/") != NULL);
+    assert(strstr(string_value, "\b") != NULL);
+    assert(strstr(string_value, "\f") != NULL);
+    assert(strstr(string_value, "\n") != NULL);
+    assert(strstr(string_value, "\r") != NULL);
+    assert(strstr(string_value, "\t") != NULL);
+
+    free((void*)value);
 }
 
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
@@ -734,6 +839,14 @@ TEST(ErrorHandlingTests, ParseIncompleteObject) {
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
     assert(QAJ4C_error_get_json(value) == json);
     assert(QAJ4C_error_get_json_pos(value) == 1);
+    free((void*)value);
+}
+
+TEST(ErrorHandlingTests, ParseInvalidComment) {
+    const char json[] = R"([/# #/])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_CHAR);
     free((void*)value);
 }
 
@@ -889,6 +1002,221 @@ TEST(ErrorHandlingTests, GetTypeWithNullpointer) {
     assert(QAJ4C_TYPE_NULL == QAJ4C_get_type( NULL ));
 }
 
+TEST(ErrorHandlingTests, InvalidConstantJsons) {
+    uint8_t buff[256];
+    const char* invalid_strings[] =
+    {
+            "n", "nu", "nul",
+            "t", "tr", "tru",
+            "f", "fa", "fal", "fals"
+            "nill", "nukl", "nulk",
+            "tuue", "troe", "truu",
+            "filse","fakse","falze","falsu"
+    };
+    // Non of these string should result in something else then an error!
+    for (const char* invalid_string : invalid_strings) {
+        const QAJ4C_Value* val = nullptr;
+        QAJ4C_parse(invalid_string, buff, ARRAY_COUNT(buff), &val);
+        assert(QAJ4C_is_error(val));
+    }
+}
+
+/**
+ * This verifies that the handling for a truncated buffer will also work in case
+ * the start of an element is truncated!
+ */
+TEST(ErrorHandlingTests, ParseTruncatedString) {
+    const char json[] = R"({"id":123, "name": )";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+}
+
+TEST(ErrorHandlingTests, TabInJsonString) {
+    const char json[] = R"({"id":123, "name": ")" "\t" "\"";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
+}
+
+TEST(ErrorHandlingTests, InvalidEscapeCharacterInString) {
+    const char json[] = R"({"id":123, "name": "\x")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
+}
+
+/**
+ * This test verifies that a unicode character is not accepted in case it is incomplete.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoAppendingSurrogate) {
+    const char json[] = R"({"id":123, "name": "\uD800")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * The same as the other but now a \ has been added to potentially confuse the parser.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate) {
+    const char json[] = R"({"id":123, "name": "\uD800\")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * The same as the other but now only three digits are present.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate2) {
+    const char json[] = R"({"id":123, "name": "\uD800\udC0")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * The same as the other but now only three digits are present.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogate) {
+    const char json[] = R"({"id":123, "name": "\uD800\u0123")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * This test verifies that a unicode character is not accepted in case it is incomplete.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoHighSurrogate) {
+    const char json[] = R"({"id":123, "name": "\uDc00")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * This verifies that the handling for a truncated buffer will also work in case
+ * the start of an element is truncated!
+ */
+TEST(ErrorHandlingTests, ParseObjectWithoutQuotesOnValue) {
+    const char json[] = R"({"id":123, "name": hossa})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
+}
+
+TEST(ErrorHandlingTests, ParseObjectMissingComma) {
+    const char json[] = R"({"id":123 "name": "hossa"})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
+}
+
+TEST(ErrorHandlingTests, ParseObjectMissingColon) {
+    const char json[] = R"({"id":123, "name" "hossa"})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COLON);
+}
+
+TEST(ErrorHandlingTests, ParseArrayMissingComma) {
+    const char json[] = R"([1, 2 3])";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
+}
+
+TEST(ErrorHandlingTests, ParseDoubleWithInvalidExponentFormat) {
+    const char json[] = R"(1.2e)";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
+}
+
+TEST(ErrorHandlingTests, InvalidBufferSizeToReportError) {
+    uint8_t buff[sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information) - 1];
+    const char json[] = "";
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    assert(QAJ4C_is_not_set(val)); // buffer is event too small to store the error
+}
+
+/**
+ * In this test the first pass will trigger the error that the buffer is too small as
+ * it cannot store more statistics and as realloc cannot be called the parsing fails.
+ */
+TEST(ErrorHandlingTests, BufferTooSmallToStoreStatstics) {
+    uint8_t buff[sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information)];
+    const char json[] = "[[],[],[],[],[],[],[],[],[]]";
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
+}
+
+/**
+ * In this test the first pass will trigger the error that the buffer is too small as
+ * it cannot store more statistics and as realloc fails parsing fails as well.
+ */
+TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFails) {
+    const char json[] = "[[],[],[],[],[],[],[],[],[]]";
+    static bool first = true;
+    auto lambda = []( void *ptr, size_t size ) {
+        if ( first ) {
+            first = false;
+            return realloc(ptr, size);
+        }
+        return (void*)NULL;
+    };
+    // just reduce the buffer size by one single byte
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    assert(QAJ4C_is_error(value));
+
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
+}
+
+
 /**
  * This test will verify that in case an object is accessed incorrectly (with methods of a string or uint)
  * the default value will be returned in case a custom fatal function is set.
@@ -924,6 +1252,39 @@ TEST(DomObjectAccessTests, ObjectAccess) {
     assert(8 == called);
     assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
     assert(9 == called);
+}
+
+/**
+ * This test verifies that an incorrect object access will be triggering the error function
+ * and will also not cause the program to crash if the error function will "return"
+ */
+TEST(DomObjectAccessTests, IncorrectObjectAccess) {
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    int expected = 0;
+
+    assert(!QAJ4C_is_object(NULL));
+
+    assert(0 == QAJ4C_object_size(NULL));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_object_get_member(NULL, 0));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_object_get(NULL, "id"));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_object_create_member_by_copy(NULL, "id", NULL));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_object_create_member_by_ref(NULL, "id"));
+    assert(++expected == called);
+    QAJ4C_object_optimize(NULL);
+    assert(++expected == called);
+    assert(NULL == QAJ4C_member_get_key(NULL));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_member_get_value(NULL));
+    assert(++expected == called);
 }
 
 /**
@@ -963,6 +1324,29 @@ TEST(DomObjectAccessTests, ArrayAccess) {
     assert(9 == called);
     assert(NULL == QAJ4C_array_get_rw(&value, 0));
     assert(10 == called);
+}
+
+/**
+ * This test verifies that an incorrect array access will be triggering the error function
+ * and will also not cause the program to crash if the error function will "return"
+ */
+TEST(DomObjectAccessTests, IncorrectArrayAccess) {
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    int expected = 0;
+
+    assert(!QAJ4C_is_array(NULL));
+
+    assert(0 == QAJ4C_array_size(NULL));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_array_get(NULL, 0));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_array_get_rw(NULL, 0));
+    assert(++expected == called);
 }
 
 TEST(DomObjectAccessTests, Uint64Access) {
@@ -1299,6 +1683,53 @@ TEST(DomObjectAccessTests, NullPointerAccess) {
     assert(11 == called);
 }
 
+/**
+ * This test verifies that an incorrect string access will be triggering the error function
+ * and will also not cause the program to crash if the error function will "return"
+ */
+TEST(DomObjectAccessTests, IncorrectStringAccess) {
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    int expected = 0;
+
+    assert(!QAJ4C_is_string(NULL));
+
+    assert(0 == QAJ4C_get_string_length(NULL));
+    assert(++expected == called);
+    assert(strcmp(QAJ4C_get_string(NULL), "") == 0);
+    assert(++expected == called);
+    assert(QAJ4C_string_cmp(NULL, "") == 0);
+    assert(++expected == called);
+    assert(QAJ4C_string_equals(NULL, ""));
+    assert(++expected == called);
+}
+
+/**
+ * This test verifies that an incorrect error access will be triggering the error function
+ * and will also not cause the program to crash if the error function will "return"
+ */
+TEST(DomObjectAccessTests, IncorrectErrorAccess) {
+    static int called = 0;
+    auto lambda = [](){
+        ++called;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    int expected = 0;
+
+    assert(!QAJ4C_is_string(NULL));
+
+    assert(0 == QAJ4C_error_get_errno(NULL));
+    assert(++expected == called);
+    assert(strcmp("", QAJ4C_error_get_json(NULL)) == 0);
+    assert(++expected == called);
+    assert(0 == QAJ4C_error_get_json_pos(NULL));
+    assert(++expected == called);
+}
 
 /**
  * In this test it is verified that even in case one sets a uint with the int64 function
@@ -1343,18 +1774,42 @@ TEST(DomObjectAccessTests, StringCopy) {
 }
 
 
-TEST(PrintTests, PrintEmtpyObject) {
-    char json[] = "{}";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+TEST(ErrorHandlingTests, TooSmallDomBuffer) {
+    char json[] = "[0.123456,9,12,3,5,7,2,3]";
+    // just reduce the buffer size by one single byte
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json) - 1;
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
 
-    assert(!QAJ4C_is_error(value));
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(QAJ4C_is_error(value));
 
-    char output[ARRAY_COUNT(json)];
-    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
-    assert(ARRAY_COUNT(output) == out);
-    assert(strcmp(json, output) == 0);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
+}
 
-    free((void*)value);
+TEST(ErrorHandlingTests, ReallocFailsBegin) {
+    char json[] = "[0.123456,9,12,3,5,7,2,3]";
+    auto lambda = []( void *ptr, size_t size ) {return (void*)NULL;};
+    // just reduce the buffer size by one single byte
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    assert(QAJ4C_is_not_set(value));
+}
+
+TEST(ErrorHandlingTests, ReallocFailsLater) {
+    char json[] = "[0.123456,9,12,3,5,7,2,3]";
+    static bool first = true;
+    auto lambda = []( void *ptr, size_t size ) {
+        if ( first ) {
+            first = false;
+            return realloc(ptr, size);
+        }
+        return (void*)NULL;
+    };
+    // just reduce the buffer size by one single byte
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    assert(QAJ4C_is_error(value));
+
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
 }
 
 TEST(ErrorHandlingTests, DoubleSmallPrintBuffer) {
@@ -1403,8 +1858,62 @@ TEST(ErrorHandlingTests, MultipleDoublesSmallPrintBuffer) {
     }
 }
 
-TEST(PrintTests, PrintNumericArray) {
-    const char json[] = R"([1,2,3,4,5,6])";
+TEST(ErrorHandlingTests, NullSmallPrintBuffer) {
+    char json[] = "[null]";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
+}
+
+TEST(PrintTests, PrintErrorObject) {
+    char json[] = "{";
+    char output[128] = {'\0'};
+
+    static int count = 0;
+    auto lambda = []{ count++; }; // set the error method (else the compare will send a signal)
+    QAJ4C_register_fatal_error_function(lambda);
+
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(QAJ4C_is_error(value));
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(0 == count); // expect no error
+    assert(strcmp("", output) != 0); // expect no empty message!
+}
+
+TEST(PrintTests, PrintCorruptValue) {
+    QAJ4C_Value value;
+    char buffer[64] = {'\0'};
+
+    static int count = 0;
+    auto lambda = []{ count++; }; // set the error method (else the compare will send a signal)
+    QAJ4C_register_fatal_error_function(lambda);
+
+    value.type = QAJ4C_UNSPECIFIED << 8;
+    size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+    assert(1 == count); // expect no error
+
+}
+
+
+TEST(PrintTests, PrintEmtpyObject) {
+    char json[] = "{}";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
@@ -1412,6 +1921,21 @@ TEST(PrintTests, PrintNumericArray) {
     char output[ARRAY_COUNT(json)];
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
     assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+TEST(PrintTests, PrintNumericArray) {
+    const char json[] = R"([1,2.10101,3,4.123456e+100,5.0,-6])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+
     assert(strcmp(json, output) == 0);
 
     free((void*)value);
@@ -1488,7 +2012,35 @@ TEST(PrintTests, PrintStringWithNewLine) {
     free((void*)value);
 }
 
+/**
+ * Expect the control characters will be printed the same way.
+ */
+TEST(PrintTests, PrintControlCharacters) {
+    char json[] = R"(["\" \\ \/ \b \f \n \r \t"])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+/**
+ * In this test the user input for "NaN" will be translated to 'null' (to at least have
+ * some kind of defined behavior)
+ */
+TEST(PrintTests, PrintDoubleDomNaN) {
+    char output[64];
+
+    QAJ4C_Value value;
+    QAJ4C_set_double(&value, 1.0/0.0);
+    QAJ4C_sprint(&value, output, ARRAY_COUNT(output));
+    assert(strcmp("null", output) == 0);
+}
 
 /**
  * Parse the same message twice and compare the results with each other.
@@ -1764,7 +2316,17 @@ TEST(StrictParsingTests, ParseNumericValueWithLeadingZero) {
     free((void*)value);
 }
 
-TEST(StrictParsingTests, ParseArrayTrailingComma) {
+TEST(StrictParsingTests, ParseNumericValueWithLeadingPlus) {
+    const char json[] = R"([+7])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
+
+    free((void*)value);
+}
+
+TEST(StrictParsingTests, ParseMessageTrailingComma) {
     const char json[] = R"([7],)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
@@ -1773,6 +2335,27 @@ TEST(StrictParsingTests, ParseArrayTrailingComma) {
 
     free((void*)value);
 }
+
+TEST(StrictParsingTests, ParseObjectTrailingComma) {
+    const char json[] = R"({"id":123, "name": "hossa",})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse_opt(json, SIZE_MAX, QAJ4C_PARSE_OPTS_STRICT, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_TRAILING_COMMA);
+}
+
+TEST(StrictParsingTests, ParseArrayTrailingComma) {
+    const char json[] = R"([7,])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_TRAILING_COMMA);
+
+    free((void*)value);
+}
+
 
 TEST(DomCreation, CreateArray) {
     uint8_t buff[256];
@@ -1867,4 +2450,38 @@ TEST(DomCreation, CreateObject) {
     assert(QAJ4C_object_get(value_ptr, key5) == nullptr);
 }
 
+TEST(DomCreation, OptimizeEmptyObject) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(value_ptr, 0, &builder);
+    QAJ4C_object_optimize(value_ptr);
+    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
+}
+
+TEST(DomCreation, OptimizeUninitializedObject) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(value_ptr, 4, &builder);
+    QAJ4C_object_optimize(value_ptr);
+    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
+}
+
+TEST(DomCreation, OptimizeLowFilledObject) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(value_ptr, 4, &builder);
+    QAJ4C_object_create_member_by_ref(value_ptr, "id");
+
+    QAJ4C_object_optimize(value_ptr);
+    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
+}
 

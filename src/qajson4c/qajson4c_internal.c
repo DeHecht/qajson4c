@@ -62,8 +62,6 @@ typedef struct QAJ4C_Second_pass_parser {
     bool insitu_parsing;
     bool optimize_object;
 
-    bool fatal_fault;
-
     size_type curr_buffer_pos;
 } QAJ4C_Second_pass_parser;
 
@@ -171,12 +169,6 @@ size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json
     *result_ptr = QAJ4C_builder_get_document(builder);
     QAJ4C_second_pass_process(&second_parser, (QAJ4C_Value*)*result_ptr);
 
-    if (second_parser.fatal_fault) {
-        QAJ4C_first_pass_parser_set_error(&parser, QAJ4C_ERROR_FATAL_PARSER_ERROR);
-        *result_ptr = QAJ4C_create_error_description(&parser);
-        return builder->cur_obj_pos;
-    }
-
     return builder->buffer_size;
 }
 
@@ -207,7 +199,7 @@ static void QAJ4C_first_pass_parser_init( QAJ4C_First_pass_parser* parser, QAJ4C
     parser->realloc_callback = realloc_callback;
 
     parser->strict_parsing = (opts & QAJ4C_PARSE_OPTS_STRICT) != 0;
-    parser->optimize_object = (opts & QAJ4C_PARSE_OPTS_SORT_OBJECT_MEMBERS) != 0;
+    parser->optimize_object = (opts & QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS) == 0;
     parser->insitu_parsing = (opts & 1) != 0;
 
     parser->max_depth = 32;
@@ -244,6 +236,7 @@ static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth
         QAJ4C_first_pass_string(parser);
         break;
     case '-':
+    case '+':
     case '0':
     case '1':
     case '2':
@@ -394,21 +387,14 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
 
 static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
     char json_char;
-    bool escape_char = false;
     size_type chars = 0;
 
-    for (json_char = QAJ4C_json_message_read(parser->msg); json_char != '\0' && (escape_char || json_char != '"'); json_char = QAJ4C_json_message_read(parser->msg)) {
-        if (!escape_char) {
-            if( json_char == '\\') {
-                escape_char = true;
-            } else if( ((uint8_t)json_char) < 32 ) {
-                QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
-            }
-            ++chars;
-        } else {
-            switch( json_char ) {
+    for (json_char = QAJ4C_json_message_read(parser->msg); json_char != '\0' && json_char != '"'; json_char = QAJ4C_json_message_read(parser->msg)) {
+        if (json_char == '\\') {
+            json_char = QAJ4C_json_message_read(parser->msg);
+            switch (json_char) {
             case 'u':
-                chars += QAJ4C_first_pass_utf16( parser ) - 1;
+                chars += QAJ4C_first_pass_utf16(parser) - 1;
                 break;
             case '\\':
             case '/':
@@ -423,8 +409,10 @@ static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
                 return;
             }
-            escape_char = false;
+        } else if (((uint8_t)json_char) < 32) {
+            QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
         }
+        ++chars;
     }
 
     if (json_char != '"') {
@@ -494,8 +482,12 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
 
     if ( json_char == '-' ) {
         json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
-    } else if (json_char == '+' && !parser->strict_parsing) {
-        json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
+    } else if (json_char == '+') {
+        if (parser->strict_parsing) {
+            QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
+        } else {
+            json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
+        }
     }
 
     if (json_char == '0' && parser->strict_parsing) {
@@ -556,7 +548,6 @@ static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_F
     me->insitu_parsing = parser->insitu_parsing;
     me->optimize_object = parser->optimize_object;
     me->curr_buffer_pos = copy_to_index;
-    me->fatal_fault = false;
 
     /* reset the builder to its original state! */
     QAJ4C_builder_init(builder, builder->buffer, builder->buffer_size);
@@ -564,10 +555,6 @@ static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_F
 }
 
 static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr ) {
-    if (me->fatal_fault) {
-        return;
-    }
-
     /* skip those stupid whitespaces! */
     me->json_char = QAJ4C_skip_whitespaces_and_comments_second_pass(me->json_char);
     switch (*me->json_char) {
@@ -584,6 +571,7 @@ static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value
         QAJ4C_second_pass_string(me, result_ptr);
         break;
     case '-':
+    case '+':
     case '0':
     case '1':
     case '2':
@@ -921,7 +909,7 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
     QAJ4C_Error_information* err_info;
     /* not enough space to store error information in buffer... */
     if (parser->builder->buffer_size < sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information)) {
-        return NULL ;
+        return NULL;
     }
 
     QAJ4C_builder_init(parser->builder, parser->builder->buffer, parser->builder->buffer_size);
@@ -1243,18 +1231,14 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
                 index += QAJ4C_snprintf(buffer + index, buffer_size - index, "%e", d);
             } else {
                 index += QAJ4C_snprintf(buffer + index, buffer_size - index, "%f", d);
-                while (buffer[index - 1] == '0') {
-                    index--;
-                }
-                if (buffer[index - 1] == '.') {
-                    index++;
+                if ( index < buffer_size) {
+                    while (buffer[index - 1] == '0') {
+                        index--;
+                    }
                 }
             }
         }
             break;
-        default:
-            /* FIXME: Add implementation to print the error type */
-            QAJ4C_ERR_FUNCTION();
         }
         break;
     }
@@ -1272,7 +1256,7 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
         index += QAJ4C_snprintf(buffer + index, buffer_size - index, "{\"error\":\"Unable to parse json message. Error (%d) at position %d\"}", ((QAJ4C_Error*)value_ptr)->info->err_no, ((QAJ4C_Error*)value_ptr)->info->json_pos);
         break;
     default:
-        QAJ4C_ASSERT(false, {return 0;});
+        QAJ4C_ERR_FUNCTION();
     }
 
     if (QAJ4C_UNLIKELY(index >= buffer_size)) {

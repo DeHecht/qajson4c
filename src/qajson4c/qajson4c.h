@@ -119,7 +119,7 @@ typedef enum QAJ4C_TYPE {
 typedef enum QAJ4C_PARSE_OPTS {
     /* enum value 1 is reserved! */
     QAJ4C_PARSE_OPTS_STRICT = 2,
-    QAJ4C_PARSE_OPTS_SORT_OBJECT_MEMBERS = 4
+    QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS = 4
 } QAJ4C_PARSE_OPTS;
 
 /**
