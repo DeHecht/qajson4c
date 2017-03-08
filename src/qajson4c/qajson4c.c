@@ -92,11 +92,12 @@ size_t QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buff
 }
 
 size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size ) {
+    size_t index;
     if (QAJ4C_UNLIKELY(buffer_size == 0)) {
         return 0;
     }
 
-    size_t index = QAJ4C_sprint_impl( value_ptr, buffer, buffer_size, 0 );
+    index = QAJ4C_sprint_impl( value_ptr, buffer, buffer_size, 0 );
     if ( index >= buffer_size ) {
         index = buffer_size - 1;
     }
@@ -381,9 +382,10 @@ void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t le
         QAJ4C_memcpy(&((QAJ4C_Short_string*)value_ptr)->s, str, len);
         ((QAJ4C_Short_string*)value_ptr)->s[len] = '\0';
     } else {
+        char* new_string;
         value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
         QAJ4C_ASSERT(builder != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
-        char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
+        new_string = QAJ4C_builder_pop_string(builder, len + 1);
         QAJ4C_ASSERT(new_string != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
         ((QAJ4C_String*)value_ptr)->count = len;
         QAJ4C_memcpy(new_string, str, len);
@@ -433,7 +435,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref_n( QAJ4C_Value* value_ptr, const 
             QAJ4C_set_string_ref_n(key_value, str, len);
             return &((QAJ4C_Object*) value_ptr)->top[i].value;
         } else if (QAJ4C_string_equals_n(key_value, str, len)) {
-            // adding the same key twice voilates the json rules!
+            /* adding the same key twice voilates the json rules! */
             break;
         }
     }
@@ -459,7 +461,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy_n( QAJ4C_Value* value_ptr, const
             QAJ4C_set_string_copy_n(key_value, str, len, builder);
             return &((QAJ4C_Object*) value_ptr)->top[i].value;
         } else if (QAJ4C_string_equals_n(key_value, str, len)) {
-            // adding the same key twice voilates the json rules!
+            /* adding the same key twice voilates the json rules! */
             break;
         }
     }

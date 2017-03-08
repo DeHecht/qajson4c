@@ -721,9 +721,10 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
                 *put_str = '\t';
                 break;
             case 'u': {
+                uint32_t utf16;
                 me->json_char += 1;
                 /* utf-8 conversion inspired by parson */
-                uint32_t utf16 = QAJ4C_second_pass_utf16(me);
+                utf16 = QAJ4C_second_pass_utf16(me);
                 me->json_char--; /* FIXME: Function moves to far away */
                 if (utf16 < 0x80) {
                     *put_str = (char)utf16;
@@ -755,7 +756,7 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
             chars = ((uintptr_t)put_str) - ((uintptr_t)base_put_str);
             if (chars > QAJ4C_INLINE_STRING_SIZE) {
                 put_str = (char*)&me->builder->buffer[me->builder->cur_str_pos];
-                // copy over to normal string
+                /* copy over to normal string */
                 QAJ4C_memcpy(put_str, base_put_str, chars * sizeof(char));
                 result_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
                 ((QAJ4C_String*)result_ptr)->s = put_str;
@@ -782,8 +783,9 @@ static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me ) {
     uint32_t value = QAJ4C_xdigit(me->json_char[0]) << 12 | QAJ4C_xdigit(me->json_char[1]) << 8 | QAJ4C_xdigit(me->json_char[2]) << 4 | QAJ4C_xdigit(me->json_char[3]);
     me->json_char += 4;
     if (value >= 0xd800 && value < 0xdbff) {
+        uint32_t low_surrogate;
         me->json_char += 2;
-        uint32_t low_surrogate = QAJ4C_xdigit(me->json_char[0]) << 12 | QAJ4C_xdigit(me->json_char[1]) << 8 | QAJ4C_xdigit(me->json_char[2]) << 4 | QAJ4C_xdigit(me->json_char[3]);
+        low_surrogate = QAJ4C_xdigit(me->json_char[0]) << 12 | QAJ4C_xdigit(me->json_char[1]) << 8 | QAJ4C_xdigit(me->json_char[2]) << 4 | QAJ4C_xdigit(me->json_char[3]);
         value = ((((value-0xD800)&0x3FF)<<10)|((low_surrogate-0xDC00)&0x3FF))+0x010000;
         me->json_char += 4;
     }

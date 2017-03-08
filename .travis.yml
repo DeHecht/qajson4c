@@ -16,6 +16,5 @@ script:
   - make
   - ./build/bin/unit-tests
   - py.test ../src-ftest/sample-test.py
-  - gcov ../src/qajson4c/*.c
 after_success:
   - bash <(curl -s https://codecov.io/bash)
