@@ -6,20 +6,10 @@ except ImportError:
 import json
 import subprocess
 import os
+from nose_parameterized import parameterized, param
 
 def get_exec_path():
     return os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-
-def dynamic_generator(filename, suffix):
-    def __template(self):
-        binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} -f {} -o result.json {}".format(binary_path, filename, suffix), shell=True)
-        with open(filename) as reference:
-            with open("result.json") as generated:
-                refjson = json.load(reference)
-                genjson = json.load(generated)
-                self.assertEqual(refjson, genjson)
-    return __template
 
 def lookup_dir_path(dirname, dir=get_exec_path()):
     for i in range(0,1):
@@ -29,6 +19,16 @@ def lookup_dir_path(dirname, dir=get_exec_path()):
                 return os.path.join(dirpath, dirname)
     return None
 
+def list_files():
+    paths = []
+    ''' Generate the tests, based on the json files '''
+    data_dir = lookup_dir_path("data")
+    for (dirpath, dirnames, filenames) in os.walk(data_dir):
+        for file in filenames:
+            path = os.path.join(data_dir, file)
+            paths.append(path)
+
+    return paths
 
 ''' The tests have to be called from the project root, otherwise they do not work '''
 
@@ -49,26 +49,26 @@ class TestJsonMethods(unittest.TestCase):
                         if rc == 0:
                             return test_bin
         return None
+    
+    @parameterized.expand(list_files())
+    def test_insitu(self, filename):
+        binary_path = self.lookup_bin_path(self.BINARY_NAME)
+        subprocess.call("{} -f {} -o result.json -i 1".format(binary_path, filename), shell=True)
+        with open(filename) as reference:
+            with open("result.json") as generated:
+                refjson = json.load(reference)
+                genjson = json.load(generated)
+                self.assertEqual(refjson, genjson)
 
-''' Generate the tests, based on the json files '''
-data_dir = lookup_dir_path("data")
-for (dirpath, dirnames, filenames) in os.walk(data_dir):
-    for file in filenames:
-        path = os.path.join(data_dir, file)
-        if os.path.exists(path) and file.endswith(".json"):
-            test_name = 'test_{}'.format(file)
-            test_name = test_name.replace("-", "_")
-            test_name = test_name.replace(".", "_")
-            test = dynamic_generator(path, "")
-            setattr(TestJsonMethods, test_name, test)
-            
-            test_name = 'test_insitu_{}'.format(file)
-            test_name = test_name.replace("-", "_")
-            test_name = test_name.replace(".", "_")
-            test_insitu = dynamic_generator(path, "-i 1")
-            setattr(TestJsonMethods, test_name, test_insitu)
-
-print dir(TestJsonMethods)
+    @parameterized.expand(list_files())
+    def test_normal(self, filename):
+        binary_path = self.lookup_bin_path(self.BINARY_NAME)
+        subprocess.call("{} -f {} -o result.json".format(binary_path, filename), shell=True)
+        with open(filename) as reference:
+            with open("result.json") as generated:
+                refjson = json.load(reference)
+                genjson = json.load(generated)
+                self.assertEqual(refjson, genjson)
 
 if __name__ == '__main__':
     unittest.main()

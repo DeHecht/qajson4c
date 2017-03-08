@@ -1,9 +1,10 @@
 
+set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_CXX_FLAGS "-std=c++11")
 
-add_executable(qajson4c-test "minimal-tests.c")
 add_executable(simple-processor "simple-test.c")
 
-target_link_libraries(qajson4c-test qajson4c)
-target_link_libraries(simple-processor qajson4c)
+add_executable(unit-tests "unit_tests.cpp")
 
-INSTALL(TARGETS qajson4c-test simple-processor DESTINATION "tests")
+target_link_libraries(simple-processor qajson4c)
+target_link_libraries(unit-tests qajson4c)

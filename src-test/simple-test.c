@@ -29,10 +29,22 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <argp.h>
 
 #include <qajson4c/qajson4c.h>
 
+/* Used by main to communicate with parse_opt. */
+struct arguments
+{
+    char* input_file;
+    char* output_file;
+    bool insitu_parsing;
+    bool verbose;
+};
+
+void parse_args(int argc, char **argv, struct arguments* args);
+
+#ifndef _WIN32
+#include <argp.h>
 const char *argp_program_version = "simple-test 1.0";
 const char *argp_program_bug_address = "<noreply@doe.com>";
 
@@ -46,20 +58,9 @@ static char args_doc[] = "";
 static struct argp_option options[] = {
   {"file",     'f', "FILE", 0, "Read input file.", 0 },
   {"output",   'o', "FILE", 0, "Filename to write the output json to.", 0 },
-  {"buff-size",'b', "size", 0, "Buffer size in bytes. 0 => auto-detection.", 0 },
   {"insitu",   'i', "bool", 0, "0 => off, 1 => on.", 0 },
   {"verbose",  'v', 0,      0, "Print more information about allocated buffer sizes etc.", 0},
   { 0 }
-};
-
-/* Used by main to communicate with parse_opt. */
-struct arguments
-{
-	char* input_file;
-	char* output_file;
-	size_t buffer_size;
-	bool insitu_parsing;
-	bool verbose;
 };
 
 /* Parse a single option. */
@@ -71,9 +72,6 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 
   switch (key)
     {
-    case 'b':
-      arguments->buffer_size = strtoul(arg, NULL, 0);
-      break;
     case 'i':
       arguments->insitu_parsing = strtol(arg, NULL, 0);
       break;
@@ -87,14 +85,14 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
       arguments->verbose = true;
       break;
 
-	case ARGP_KEY_ARG:
-		argp_usage(state);
-		break;
+    case ARGP_KEY_ARG:
+        argp_usage(state);
+        break;
     case ARGP_KEY_END:
-    	if( strcmp(arguments->input_file, "-") == 0 && strcmp(arguments->output_file, "-") == 0) {
-    		fprintf(stderr, "Error: Missing input or output file!\n");
-    		argp_usage(state);
-    	}
+        if( strcmp(arguments->input_file, "-") == 0 && strcmp(arguments->output_file, "-") == 0) {
+            fprintf(stderr, "Error: Missing input or output file!\n");
+            argp_usage(state);
+        }
 
       break;
 
@@ -108,80 +106,106 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 
 static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
-char* read_file_content(const char* filename) {
-	FILE* fp = fopen(filename, "r");
-	if (fp == NULL) {
-		return NULL;
-	}
-	fseek(fp, 0L, SEEK_END);
-	size_t sz = ftell(fp);
-	fseek(fp, 0L, SEEK_SET);
-	char* buff = malloc(sz * sizeof(char) + 1);
-	fread(buff, sizeof(char), sz + 1, fp);
-	fclose(fp);
+void parse_args(int argc, char **argv, struct arguments *args) {
+    argp_parse(&argp, argc, argv, 0, 0, args);
+}
+#else
+void parse_args(int argc, char **argv, struct arguments *args) {
+    for ( int i = 0; i < argc; ++i ) {
+        if ( strstr(argv[i], "--file") == argv[i] || strstr(argv[i], "-f") == argv[i]) {
+            args->input_file = argv[i+1];
+        }
+        if ( strstr(argv[i], "--output") == argv[i] || strstr(argv[i], "-o") == argv[i]) {
+            args->output_file = argv[i+1];
+        }
+        if ( strstr(argv[i], "--insitu") == argv[i] || strstr(argv[i], "-i") == argv[i]) {
+            args->insitu_parsing = (argv[i+1][0] == '1');
+        }
+        if ( strstr(argv[i], "--verbose") == argv[i] || strstr(argv[i], "-v") == argv[i]) {
+            args->verbose = true;
+        }
+    }
+}
+#endif
 
-	buff[sz] = '\0';
-	return buff;
+char* read_file_content(const char* filename) {
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL) {
+        return NULL;
+    }
+    fseek(fp, 0L, SEEK_END);
+    size_t sz = ftell(fp);
+    fseek(fp, 0L, SEEK_SET);
+    char* buff = malloc(sz * sizeof(char) + 1);
+    fread(buff, sizeof(char), sz + 1, fp);
+    fclose(fp);
+
+    buff[sz] = '\0';
+    return buff;
 }
 
 int main(int argc, char **argv) {
-	struct arguments arguments;
+    struct arguments arguments;
 
-	/* Default values. */
-	arguments.insitu_parsing = 0;
-	arguments.buffer_size = 0;
-	arguments.input_file = "-";
-	arguments.output_file = "-";
-	arguments.verbose = false;
+    /* Default values. */
+    arguments.insitu_parsing = 0;
+    arguments.input_file = "-";
+    arguments.output_file = "-";
+    arguments.verbose = false;
 
-	argp_parse(&argp, argc, argv, 0, 0, &arguments);
-	char* input_string = read_file_content(arguments.input_file);
-	if (input_string == NULL) {
-		fprintf(stderr, "Unable to open file '%s'\n", arguments.input_file);
-		exit(1);
-	}
-	size_t input_string_size = strlen(input_string);
+    parse_args(argc, argv, &arguments);
 
-	FILE* output_file = fopen(arguments.output_file, "w");
-	if ( output_file == NULL ) {
-		fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
-		free(input_string);
-		exit(1);
-	}
+    char* input_string = read_file_content(arguments.input_file);
+    if (input_string == NULL) {
+        fprintf(stderr, "Unable to open file '%s'\n", arguments.input_file);
+        exit(1);
+    }
+    size_t input_string_size = strlen(input_string);
 
-	if ( arguments.buffer_size == 0 ) {
-		if( arguments.insitu_parsing ) {
-			arguments.buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
-		} else {
-			arguments.buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
-		}
-	}
+    FILE* output_file = fopen(arguments.output_file, "w");
+    if ( output_file == NULL ) {
+        fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
+        free(input_string);
+        exit(1);
+    }
 
-	char* buffer = malloc(arguments.buffer_size);
+    size_t buffer_size = 0;
+    if (arguments.insitu_parsing) {
+        buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
+    } else {
+        buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
+    }
 
-	const QAJ4C_Document* document = NULL;
-	if( arguments.insitu_parsing ) {
-		document = QAJ4C_parse_insitu(input_string, buffer, arguments.buffer_size);
-	} else {
-		document = QAJ4C_parse(input_string, buffer, arguments.buffer_size);
+    char* buffer = malloc(buffer_size);
+
+    const QAJ4C_Value* document = NULL;
+    if( arguments.insitu_parsing ) {
+        QAJ4C_parse_insitu(input_string, buffer, buffer_size, &document);
+    } else {
+        QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
         if (arguments.verbose) {
-            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof_as_document(QAJ4C_get_root_value(document)));
+            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof(document));
         }
-	}
+    }
 
-	if ( arguments.verbose ) {
-		printf("Required buffer size %lu\n", arguments.buffer_size);
-	}
+    if ( arguments.verbose ) {
+        printf("Required buffer size %lu\n", buffer_size);
+    }
 
-	size_t output_string_size = sizeof(char) * input_string_size;
-	char* output_string = malloc(output_string_size);
+    size_t output_string_size = sizeof(char) * input_string_size;
+    char* output_string = malloc(output_string_size);
 
-	QAJ4C_sprint(document, output_string, output_string_size);
-	fwrite(output_string, sizeof(char), strlen(output_string), output_file);
+    if (QAJ4C_is_error(document)) {
+        output_string[0] = '\0';
+    } else {
+        QAJ4C_sprint(document, output_string, output_string_size);
+    }
 
-	fclose(output_file);
-	free(output_string);
-	free(buffer);
-	free(input_string);
-	return 0;
+    fwrite(output_string, sizeof(char), strlen(output_string), output_file);
+
+    fclose(output_file);
+    free(output_string);
+    free(buffer);
+    free(input_string);
+    return 0;
 }
