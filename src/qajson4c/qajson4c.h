@@ -81,22 +81,23 @@ typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
  * Error codes that can be expected from the qa json parser.
  */
 typedef enum QAJ4C_ERROR_CODE {
-    QAJ4C_ERROR_INVALID_ERROR_CODE = 0,
-    QAJ4C_ERROR_NO_ERROR = 1,
-    QAJ4C_ERROR_DEPTH_OVERFLOW = 2,
-    QAJ4C_ERROR_UNEXPECTED_CHAR = 3,
-    QAJ4C_ERROR_BUFFER_TRUNCATED = 4,
-    QAJ4C_ERROR_INVALID_STRING_START = 5,
-    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 6,
-    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 7,
-    QAJ4C_ERROR_MISSING_COMMA = 8,
-    QAJ4C_ERROR_MISSING_COLON = 9,
-    QAJ4C_ERROR_FATAL_PARSER_ERROR = 10,
-    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 11,
-    QAJ4C_ERROR_ALLOCATION_ERROR = 12,
-    QAJ4C_ERROR_TRAILING_COMMA = 13,
-    QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE = 14,
-    QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE = 15
+    QAJ4C_ERROR_INVALID_ERROR_CODE = 0,       /*!<  This error code indicates a fatal fault within the library! */
+    QAJ4C_ERROR_NO_ERROR = 1,                 /*!<  Flag that determines that no error occurred! */
+    QAJ4C_ERROR_DEPTH_OVERFLOW = 2,           /*!<  The amount of nested elements exceed the limit */
+    QAJ4C_ERROR_UNEXPECTED_CHAR = 3,          /*!<  Unexpected char was processed */
+    QAJ4C_ERROR_BUFFER_TRUNCATED = 4,         /*!<  Json message was incomplete (depcrecated) */
+    QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED = 4,   /*!<  Json message was incomplete */
+    QAJ4C_ERROR_INVALID_STRING_START = 5,     /*!<  String value was expected but did not start with '"' */
+    QAJ4C_ERROR_INVALID_NUMBER_FORMAT = 6,    /*!<  Numeric values was expected but had invalid format */
+    QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX = 7, /*!<  Json message did not stop at the end of the buffer */
+    QAJ4C_ERROR_MISSING_COMMA = 8,            /*!<  Array elements were not separated by comma */
+    QAJ4C_ERROR_MISSING_COLON = 9,            /*!<  Object entry misses ':' after key declaration */
+    QAJ4C_ERROR_FATAL_PARSER_ERROR = 10,      /*!<  A fatal error occurred (no other classification possible) */
+    QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL = 11, /*!<  DOM storage buffer is too small to store DOM. */
+    QAJ4C_ERROR_ALLOCATION_ERROR = 12,        /*!<  Realloc failed (parse_dynamic only). */
+    QAJ4C_ERROR_TRAILING_COMMA = 13,          /*!<  Trailing comma is detected in an object/array detected (strict parsing only)*/
+    QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE = 14, /*!<  String escaped character is invalid. (e.g. \x) */
+    QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE = 15 /*!<  The unicode sequence cannot be translated to a valid UTF-8 character */
 
 } QAJ4C_ERROR_CODE;
 
@@ -104,13 +105,13 @@ typedef enum QAJ4C_ERROR_CODE {
  * Enumeration that represents all data types known to json.
  */
 typedef enum QAJ4C_TYPE {
-    QAJ4C_TYPE_NULL = 0,
-    QAJ4C_TYPE_OBJECT,
-    QAJ4C_TYPE_ARRAY,
-    QAJ4C_TYPE_STRING,
-    QAJ4C_TYPE_NUMBER,
-    QAJ4C_TYPE_BOOL,
-    QAJ4C_TYPE_INVALID
+    QAJ4C_TYPE_NULL = 0, /*!< Type for NULL-pointer and json null */
+    QAJ4C_TYPE_OBJECT,   /*!< Type for json objects */
+    QAJ4C_TYPE_ARRAY,    /*!< Type for json arrays */
+    QAJ4C_TYPE_STRING,   /*!< Type for json strings */
+    QAJ4C_TYPE_NUMBER,   /*!< Type for doubles, signed and unsigned integers */
+    QAJ4C_TYPE_BOOL,     /*!< Type for json booleans */
+    QAJ4C_TYPE_INVALID   /*!< Type for non-json compliant type (like parsing errors) */
 } QAJ4C_TYPE;
 
 /**
@@ -118,8 +119,8 @@ typedef enum QAJ4C_TYPE {
  */
 typedef enum QAJ4C_PARSE_OPTS {
     /* enum value 1 is reserved! */
-    QAJ4C_PARSE_OPTS_STRICT = 2,
-    QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS = 4
+    QAJ4C_PARSE_OPTS_STRICT = 2, /*!< Enables the strict mode. */
+    QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS = 4 /*!< Disables sorting objects for faster value by key access. */
 } QAJ4C_PARSE_OPTS;
 
 /**

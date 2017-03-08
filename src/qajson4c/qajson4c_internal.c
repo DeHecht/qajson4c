@@ -275,7 +275,7 @@ static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth
         }
         break;
     case '\0':
-        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
         break;
     default:
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
@@ -328,7 +328,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
     }
 
     if ( json_char == '\0' ) {
-        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
         return;
     }
 
@@ -371,7 +371,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
     }
 
     if ( json_char == '\0' ) {
-        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
         return;
     }
 
@@ -416,7 +416,7 @@ static void QAJ4C_first_pass_string( QAJ4C_First_pass_parser* parser ) {
     }
 
     if (json_char != '"') {
-        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_BUFFER_TRUNCATED);
+        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
         return;
     }
 

@@ -837,7 +837,7 @@ TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     assert(QAJ4C_error_get_json(value) == json);
     assert(QAJ4C_error_get_json_pos(value) == 1);
     free((void*)value);
@@ -855,7 +855,7 @@ TEST(ErrorHandlingTests, ParseNeverEndingLineComment) {
     const char json[] = R"([// ])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
 }
 
@@ -863,7 +863,7 @@ TEST(ErrorHandlingTests, ParseNeverEndingLineBlockComment) {
     const char json[] = R"([/* ])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
 }
 
@@ -871,7 +871,7 @@ TEST(ErrorHandlingTests, ParseIncompleteArray) {
     const char json[] = R"([)";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     assert(QAJ4C_error_get_json(value) == json);
     assert(QAJ4C_error_get_json_pos(value) == 1);
     free((void*)value);
@@ -881,7 +881,7 @@ TEST(ErrorHandlingTests, ParseIncompleteString) {
     const char json[] = R"(")";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
-    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
 }
 
@@ -1049,7 +1049,7 @@ TEST(ErrorHandlingTests, ParseTruncatedString) {
     QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
 
     assert(QAJ4C_is_error(val));
-    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_BUFFER_TRUNCATED);
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
 }
 
 TEST(ErrorHandlingTests, TabInJsonString) {
