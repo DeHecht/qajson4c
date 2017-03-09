@@ -126,4 +126,4 @@ add_subdirectory(src)
 add_subdirectory(src-test)
 
 # Run the python test suite (not yet ready)
-add_test( NAME pysuite COMMAND py.test ${CMAKE_CURRENT_SOURCE_DIR}/src-ftest/sample-test.py )
+#add_test( NAME pysuite COMMAND py.test ${CMAKE_CURRENT_SOURCE_DIR}/src-ftest/sample-test.py )
