@@ -1,0 +1,11 @@
+os: Visual Studio 2015
+
+install:
+  - python.exe -m pip install py.test nose_parameterized
+
+build_script:
+  - md build
+  - cd build
+  - cmake -G "MinGW Makefiles" ..
+  - cmake --build . --config Release
+  - ctest

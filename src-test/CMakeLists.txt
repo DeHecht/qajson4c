@@ -8,3 +8,5 @@ add_executable(unit-tests "unit_tests.cpp")
 
 target_link_libraries(simple-processor qajson4c)
 target_link_libraries(unit-tests qajson4c)
+
+add_test( NAME unit COMMAND unit-tests )

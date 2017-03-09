@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 project(libqajson4c C CXX) # unfortunately the tests are written c++ like
+enable_testing()
 
 function ( register_build_type_coverage )
     message( STATUS "** Adding build type: Coverage")
@@ -123,3 +124,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${USE_OUTPUT_DIR}/bin CACHE INTERNAL "")
 
 add_subdirectory(src)
 add_subdirectory(src-test)
+
+# Run the python test suite (not yet ready)
+add_test( NAME pysuite COMMAND py.test ${CMAKE_CURRENT_SOURCE_DIR}/src-ftest/sample-test.py )
