@@ -6,6 +6,6 @@ install:
 build_script:
   - md build
   - cd build
-  - cmake -G "MinGW Makefiles" ..
+  - cmake -G "MSYS Makefiles" ..
   - cmake --build . --config Release
   - ctest
