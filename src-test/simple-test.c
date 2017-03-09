@@ -44,6 +44,9 @@ struct arguments
 void parse_args(int argc, char **argv, struct arguments* args);
 
 #ifndef _WIN32
+
+#define FMT_SIZE "%zu"
+
 #include <argp.h>
 const char *argp_program_version = "simple-test 1.0";
 const char *argp_program_bug_address = "<noreply@doe.com>";
@@ -110,6 +113,10 @@ void parse_args(int argc, char **argv, struct arguments *args) {
     argp_parse(&argp, argc, argv, 0, 0, args);
 }
 #else
+
+#define FMT_SIZE "%Iu"
+
+
 void parse_args(int argc, char **argv, struct arguments *args) {
     for ( int i = 0; i < argc; ++i ) {
         if ( strstr(argv[i], "--file") == argv[i] || strstr(argv[i], "-f") == argv[i]) {
@@ -184,7 +191,7 @@ int main(int argc, char **argv) {
     } else {
         QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
         if (arguments.verbose) {
-            printf("Size of value %zu (inclusive doc)\n", QAJ4C_value_sizeof(document));
+            printf("Size of value " FMT_SIZE " (inclusive doc)\n", QAJ4C_value_sizeof(document));
         }
     }
 

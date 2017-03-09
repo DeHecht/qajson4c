@@ -5,6 +5,8 @@
 #ifndef QAJSON4C_INTERNAL_H_
 #define QAJSON4C_INTERNAL_H_
 
+#include "qajson_stdwrap.h"
+
 /** Define unlikely macro to be used in asserts
  *  Basically because the compiler should compile for the non-failure scenario.
  **/
@@ -74,19 +76,19 @@ typedef struct QAJ4C_Object {
     QAJ4C_Member* top;
     size_type count;
     char padding[sizeof(size_type)];
-} QAJ4C_Object;
+} QAJ4C_ALIGN QAJ4C_Object;
 
 typedef struct QAJ4C_Array {
     QAJ4C_Value* top;
     size_type count;
     char padding[sizeof(size_type)];
-} QAJ4C_Array;
+} QAJ4C_ALIGN QAJ4C_Array;
 
 typedef struct QAJ4C_String {
     const char* s;
     size_type count;
     char padding[sizeof(size_type)];
-} QAJ4C_String;
+} QAJ4C_ALIGN QAJ4C_String;
 
 typedef struct QAJ4C_Error_information {
     const char* json;
@@ -97,7 +99,7 @@ typedef struct QAJ4C_Error_information {
 typedef struct QAJ4C_Error {
     QAJ4C_Error_information* info;
     char padding[sizeof(size_type) * 2];
-} QAJ4C_Error;
+} QAJ4C_ALIGN QAJ4C_Error;
 
 /**
  * Instead of storing a pointer to a char* like in QAJ4C_String we can QAJ4C_INLINE the
@@ -110,7 +112,7 @@ typedef struct QAJ4C_Short_string {
     char s[QAJ4C_INLINE_STRING_SIZE + 1];
     uint8_t count;
     char padding[sizeof(size_type)];
-} QAJ4C_Short_string;
+} QAJ4C_ALIGN QAJ4C_Short_string;
 
 typedef struct QAJ4C_Primitive {
     union primitive {
@@ -122,12 +124,12 @@ typedef struct QAJ4C_Primitive {
     /* Padding on 64 Bit => 8, 32 Bit => 4 */
     char padding[sizeof(uintptr_t) + sizeof(size_type) * 2 - sizeof(uint64_t)];
 
-} QAJ4C_Primitive;
+} QAJ4C_ALIGN QAJ4C_Primitive;
 
 struct QAJ4C_Value {
 	char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
     size_type type;
-}; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
+} QAJ4C_ALIGN; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
 
 struct QAJ4C_Member {
     QAJ4C_Value key;

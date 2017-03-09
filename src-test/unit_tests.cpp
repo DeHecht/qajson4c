@@ -35,6 +35,9 @@
 
 #ifndef _WIN32
 #include <wait.h>
+#define FMT_SIZE "%zu"
+#else
+#define FMT_SIZE "%Iu"
 #endif
 
 #include "qajson4c/qajson4c.h"
@@ -178,7 +181,7 @@ struct test_suite_stats {
 
 void flush_test_suite( FILE* fp, const char* suite_name, char* buff, size_t buff_size, test_suite_stats* stats) {
     char testsuite_buffer[1024];
-    int w = snprintf(testsuite_buffer, ARRAY_COUNT(testsuite_buffer), R"(<testsuite errors="%zu" failures="%zu" name="%s" skips="%zu" tests="%zu" time="%zu">%c)", stats->errors, stats->fails, suite_name, (size_t)0, (size_t)(stats->errors + stats->fails + stats->pass), stats->total_time, '\n');
+    int w = snprintf(testsuite_buffer, ARRAY_COUNT(testsuite_buffer), "<testsuite errors=\"" FMT_SIZE "\" failures=\"" FMT_SIZE "\" name=\"%s\" skips=\"" FMT_SIZE "\" tests=\"" FMT_SIZE "\" time=\"" FMT_SIZE "\">%c", stats->errors, stats->fails, suite_name, (size_t)0, (size_t)(stats->errors + stats->fails + stats->pass), stats->total_time, '\n');
     fwrite(testsuite_buffer, w, sizeof(char), fp);
     fwrite(buff, sizeof(char), buff_size , fp);
     fwrite("</testsuite>\n", sizeof(char), ARRAY_COUNT("</testsuite>\n") - 1, fp);
@@ -239,7 +242,7 @@ int main( int argc, char **argv ) {
             current_testsuite_name = curr_test->subject_name;
             test_suite_stats.reset();
         }
-        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<testcase classname="%s" name="%s" time="%zu">)", curr_test->subject_name, curr_test->test_name, curr_test->execution);
+        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, "<testcase classname=\"%s\" name=\"%s\" time=\"" FMT_SIZE "\">", curr_test->subject_name, curr_test->test_name, curr_test->execution);
         if ( curr_test->failure_message != NULL ) {
             pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<failure message="test failure">%s</failure>)", curr_test->failure_message);
             test_suite_stats.fails += 1;
@@ -2307,7 +2310,7 @@ TEST(VariousTests, CheckSizes) {
     assert(sizeof(int64_t) == 8);
     assert(sizeof(uint64_t) == 8);
 
-    printf("Sizeof QAJ4C_Value is: %zu\n", sizeof(QAJ4C_Value));
+    printf("Sizeof QAJ4C_Value is: " FMT_SIZE "\n", sizeof(QAJ4C_Value));
 
     assert(sizeof(QAJ4C_Value) == (QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type) * 2));
     assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));

@@ -6,7 +6,7 @@ project(libqajson4c C CXX) # unfortunately the tests are written c++ like
 function ( register_build_type_coverage )
     message( STATUS "** Adding build type: Coverage")
     SET(CMAKE_CXX_FLAGS_COVERAGE
-        "-fprofile-arcs -ftest-coverage --coverage"
+        "-fprofile-arcs -ftest-coverage"
         CACHE
         STRING "Flags used by the C++ compiler during coverage builds."
         FORCE
@@ -18,13 +18,13 @@ function ( register_build_type_coverage )
         FORCE
         )
     SET(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-        ""
+        "-lgcov --coverage"
         CACHE
         STRING "Flags used for linking binaries during coverage builds."
         FORCE
         )
     SET(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
-        ""
+        "-lgcov --coverage"
         CACHE
         STRING "Flags used by the shared libraries linker during coverage builds."
         FORCE
@@ -74,7 +74,7 @@ endfunction ( register_build_type_profile )
 register_build_type_coverage()
 register_build_type_profile()
 
-set(CMAKE_C_FLAGS " -std=c99 -pedantic -pedantic-errors -Wall -Wextra -Werror")
+set(CMAKE_C_FLAGS " -std=c99 -pedantic -Wno-format -pedantic-errors -Wall -Wextra -Werror")
 
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
