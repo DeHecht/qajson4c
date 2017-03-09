@@ -24,6 +24,10 @@
   THE SOFTWARE.
 */
 
+#ifdef __STRICT_ANSI__
+#undef __STRICT_ANSI__
+#endif
+
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>

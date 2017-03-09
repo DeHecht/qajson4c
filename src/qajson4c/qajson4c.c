@@ -36,7 +36,11 @@
 #include "qajson4c_internal.h"
 
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
-    QAJ4C_ERR_FUNCTION = function;
+    if (function == NULL) {
+        function = QAJ4C_ERR_FUNCTION;
+    } else {
+        QAJ4C_ERR_FUNCTION = function;
+    }
 }
 
 size_t QAJ4C_calculate_max_buffer_size_n( const char* json, size_t n ) {
