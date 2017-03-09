@@ -1,7 +1,7 @@
 os: Visual Studio 2015
 
 install:
-  - python.exe -m pip install py.test nose_parameterized
+  - python.exe -m pip install pytest nose_parameterized
 
 build_script:
   - md build
