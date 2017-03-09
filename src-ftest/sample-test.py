@@ -53,7 +53,7 @@ class TestJsonMethods(unittest.TestCase):
     @parameterized.expand(list_files())
     def test_insitu(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} -f {} -o result.json -i 1".format(binary_path, filename), shell=True)
+        subprocess.call("{} --file {} --output result.json --insitu 1".format(binary_path, filename), shell=True)
         with open(filename) as reference:
             with open("result.json") as generated:
                 refjson = json.load(reference)
@@ -63,7 +63,7 @@ class TestJsonMethods(unittest.TestCase):
     @parameterized.expand(list_files())
     def test_normal(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} -f {} -o result.json".format(binary_path, filename), shell=True)
+        subprocess.call("{} --file {} --output result.json".format(binary_path, filename), shell=True)
         with open(filename) as reference:
             with open("result.json") as generated:
                 refjson = json.load(reference)
