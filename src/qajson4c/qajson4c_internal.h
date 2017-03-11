@@ -48,7 +48,6 @@ extern "C" {
 #endif
 
 typedef uint32_t size_type;
-typedef uint16_t half_size_type;
 
 typedef enum QAJ4C_INTERNAL_TYPE {
     QAJ4C_NULL = 0,
@@ -138,7 +137,7 @@ struct QAJ4C_Member {
 
 extern QAJ4C_fatal_error_fn QAJ4C_ERR_FUNCTION;
 
-
+void QAJ4C_std_err_function( void );
 size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback);
 size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 

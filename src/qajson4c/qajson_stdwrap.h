@@ -54,30 +54,30 @@
 #include <inttypes.h>
 
 #if ((ULONG_MAX) == (UINT64_MAX))
-#define QAJ4C_strtoul strtoul
+#define QAJ4C_STRTOUL strtoul
 #elif ((ULLONG_MAX) == (UINT64_MAX))
-#define QAJ4C_strtoul strtoull
+#define QAJ4C_STRTOUL strtoull
 #else
 #error "ULONG_MAX >= UINT64_MAX"
 #endif
 
 #if ((LONG_MAX) == (INT64_MAX))
-#define QAJ4C_strtol strtol
+#define QAJ4C_STRTOL strtol
 #elif ((LLONG_MAX) == (INT64_MAX))
-#define QAJ4C_strtol strtoll
+#define QAJ4C_STRTOL strtoll
 #else
 #error "LONG_MAX >= INT64_MAX"
 #endif
 
-#define QAJ4C_strlen strlen
-#define QAJ4C_strncmp strncmp
-#define QAJ4C_memmove memmove
-#define QAJ4C_memcpy memcpy
+#define QAJ4C_STRLEN strlen
+#define QAJ4C_STRNCMP strncmp
+#define QAJ4C_MEMMOVE memmove
+#define QAJ4C_MEMCPY memcpy
 
 #ifndef _WIN32
-#define QAJ4C_snprintf snprintf
+#define QAJ4C_SNPRINTF snprintf
 #else
-#define QAJ4C_snprintf __mingw_snprintf
+#define QAJ4C_SNPRINTF __mingw_snprintf
 #endif
 
 #if defined(_WIN64) || (defined(__WORDSIZE) && __WORDSIZE == 64)
@@ -88,12 +88,12 @@
 #define "Invalid word size detected!"
 #endif
 
-#define QAJ4C_itostrn(buffer, n, value) QAJ4C_snprintf(buffer, n, "%" PRIi64, value)
-#define QAJ4C_utostrn(buffer, n, value) QAJ4C_snprintf(buffer, n, "%" PRIu64, value)
-#define QAJ4C_strtod strtod
-#define QAJ4C_qsort qsort
-#define QAJ4C_bsearch bsearch
-#define QAJ4C_raise raise
+#define QAJ4C_ITOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIi64, value)
+#define QAJ4C_UTOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIu64, value)
+#define QAJ4C_STRTOD strtod
+#define QAJ4C_QSORT qsort
+#define QAJ4C_BSEARCH bsearch
+#define QAJ4C_RAISE raise
 
 #endif
 
