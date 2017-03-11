@@ -2,31 +2,36 @@ dist: trusty
 sudo: true
 language: cpp
 env:
-  matrix:
   - CODECOV_TOKEN=63ec6e7b-6ab7-48a6-bdb8-c174a99b5ebf
+
 addons:
   sonarqube:
-    organization: use-system-engineering-git
+    organization: usesystemengineeringbv-git
     token:
-  secure: "HLwn5AMHu1XQWgfyCwmOQfhvP7nVOdrNjhpEex3953AeQtdwJij+SpK9iaFl4BCWaGZ+Lq2QX3IsWkaJqf4cf9TWQMr318nn2rFQ2g3Ld1x88CA0K66MX5jBXciJkgzpJ2TlD001a85JJ7xmJJln6iLwLwQPZ7Bx5n9pcWOL3G6fvWBMObot43F1gh/lR/vHwmwptA1eca8KCXiS/lwFprEqWNj194KKoDINBN4A+oNJtSXaQK89FZAqYJNAx2U8z7/Abm7TsRGBJ//uq2N5Kzy3vkrUjXzgNzoGutT6BLmpcpxHbF/tXlO33wJm2JH0Z431WjVVCqDw9X/OrVxVgcIMLSGNXVBYcPNMth4OIRSpdsszJrT8OvtNYJcHyJzgXqRbHAHuG92B7bd21N7nCV5eaqH8crbDsi9hQTEjHqyKEFWfTGv0+w9oiJzrBjIw81eZFmf5E2jyL05wHrjr61g3J1UBPvbiobBVL1v5HQFv6U5r69Aj+Vtf/QSvEQYoi9w1MJ/77BZ7cqff5z+7HJDqGagZ2mvpSd1Y4RDGle3x4YozJUUtje8gTCzlGtolvpIQR8jEXtHJ7vUoTVmtgtHp7AKwN2MvJSpqnzjiZ8txtB9jarlhY7beA1WDRhOUE4sEL822vv9zZrsur2bU7ehVL2hyR4GCGCC9Ie3eXQE="
+      secure: "HLwn5AMHu1XQWgfyCwmOQfhvP7nVOdrNjhpEex3953AeQtdwJij+SpK9iaFl4BCWaGZ+Lq2QX3IsWkaJqf4cf9TWQMr318nn2rFQ2g3Ld1x88CA0K66MX5jBXciJkgzpJ2TlD001a85JJ7xmJJln6iLwLwQPZ7Bx5n9pcWOL3G6fvWBMObot43F1gh/lR/vHwmwptA1eca8KCXiS/lwFprEqWNj194KKoDINBN4A+oNJtSXaQK89FZAqYJNAx2U8z7/Abm7TsRGBJ//uq2N5Kzy3vkrUjXzgNzoGutT6BLmpcpxHbF/tXlO33wJm2JH0Z431WjVVCqDw9X/OrVxVgcIMLSGNXVBYcPNMth4OIRSpdsszJrT8OvtNYJcHyJzgXqRbHAHuG92B7bd21N7nCV5eaqH8crbDsi9hQTEjHqyKEFWfTGv0+w9oiJzrBjIw81eZFmf5E2jyL05wHrjr61g3J1UBPvbiobBVL1v5HQFv6U5r69Aj+Vtf/QSvEQYoi9w1MJ/77BZ7cqff5z+7HJDqGagZ2mvpSd1Y4RDGle3x4YozJUUtje8gTCzlGtolvpIQR8jEXtHJ7vUoTVmtgtHp7AKwN2MvJSpqnzjiZ8txtB9jarlhY7beA1WDRhOUE4sEL822vv9zZrsur2bU7ehVL2hyR4GCGCC9Ie3eXQE="
 
 compiler:
-- gcc
+  - gcc
+
 install:
-- sudo apt-get install -y python-pytest
-- sudo pip install pytest-travis-fold nose-parameterized
+  - sudo apt-get install -y python-pytest
+  - sudo pip install pytest-travis-fold nose-parameterized
+
 before_script:
-- mkdir build
-- cd build
-- cmake .. -DCMAKE_BUILD_TYPE=Coverage
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=Coverage
+
 script:
-- make
-- ./build/bin/unit-tests
-- py.test ../src-ftest/sample-test.py
-- build-wrapper-linux-x86-64 --out-dir bw-output make clean all
-- sonar-scanner
+  - make
+  - ./build/bin/unit-tests
+  - py.test ../src-ftest/sample-test.py
+  - build-wrapper-linux-x86-64 --out-dir bw-output make clean all
+  - sonar-scanner
+
 after_success:
-- bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash)
+
 cache:
   directories:
-  - "$HOME/.sonar/cache"
+    - "$HOME/.sonar/cache"
