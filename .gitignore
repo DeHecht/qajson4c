@@ -32,5 +32,6 @@
 *.dSYM/
 *.su
 /.cproject
+/.project
 /bin/
 /build/

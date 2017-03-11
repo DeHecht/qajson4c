@@ -116,7 +116,7 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
     char buff[256];
     buff[0] = '\0';
 
-    QAJ4C_register_fatal_error_function(QAJ4C_ERR_FUNCTION);
+    QAJ4C_register_fatal_error_function(NULL);
 
 #ifndef _WIN32
     if ( DEBUGGING ) {
