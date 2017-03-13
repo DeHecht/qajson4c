@@ -913,8 +913,6 @@ static void QAJ4C_skip_comment( QAJ4C_Json_message* msg )
         do {
             current_char = QAJ4C_json_message_forward_and_peek(msg);
         } while (current_char != '\0' && current_char != '\n');
-    } else {
-        return;
     }
 }
 

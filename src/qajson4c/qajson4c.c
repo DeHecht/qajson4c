@@ -530,6 +530,7 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         break;
     }
 }
+
 bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     QAJ4C_TYPE lhs_type = QAJ4C_get_type(lhs);
     QAJ4C_TYPE rhs_type = QAJ4C_get_type(rhs);
@@ -579,12 +580,12 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
             }
         }
         return true;
-    case QAJ4C_TYPE_ARRAY: {
-        size_t size_lhs = QAJ4C_array_size(lhs);
-        if (size_lhs != QAJ4C_array_size(rhs)) {
+    case QAJ4C_TYPE_ARRAY:
+        n = QAJ4C_array_size(lhs);
+        if (n != QAJ4C_array_size(rhs)) {
             return false;
         }
-        for (i = 0; i < size_lhs; ++i) {
+        for (i = 0; i < n; ++i) {
             const QAJ4C_Value* value_lhs = QAJ4C_array_get(lhs, i);
             const QAJ4C_Value* value_rhs = QAJ4C_array_get(rhs, i);
             if (!QAJ4C_equals(value_lhs, value_rhs)) {
@@ -592,7 +593,6 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
             }
         }
         return true;
-    }
     default:
         g_qaj4c_err_function();
         break;
