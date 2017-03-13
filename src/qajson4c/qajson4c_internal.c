@@ -101,6 +101,7 @@ static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me );
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
 
 static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg );
+static void QAJ4C_skip_comment( QAJ4C_Json_message* msg );
 static const char* QAJ4C_skip_whitespaces_and_comments_second_pass( const char* json );
 
 static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg );
@@ -698,13 +699,10 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
     base_put_str = put_str;
 
     while (*me->json_char != '"') {
-        switch (*me->json_char) {
-        case '\\':
-            put_str = QAJ4C_second_pass_string_escape_sequence( me, put_str );
-            break;
-        default:
+        if (*me->json_char == '\\') {
+            put_str = QAJ4C_second_pass_string_escape_sequence(me, put_str);
+        } else {
             *put_str = *me->json_char;
-            break;
         }
         put_str += 1;
         me->json_char += 1;
@@ -893,26 +891,30 @@ static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
         case '\r':
         case ' ':
             break;
-            /* also skip comments! */
-        case '/':
-            current_char = QAJ4C_json_message_forward_and_peek(msg);
-            if (current_char == '*') {
-                QAJ4C_json_message_forward(msg);
-                do {
-                    current_char = QAJ4C_json_message_read(msg);
-                } while (current_char != '\0' && !(current_char == '*' && QAJ4C_json_message_peek(msg) == '/'));
-            } else if (current_char == '/') {
-                do {
-                    current_char = QAJ4C_json_message_forward_and_peek(msg);
-                } while (current_char != '\0' && current_char != '\n');
-            } else {
-                return;
-            }
+        case '/': /* also skip comments! */
+            QAJ4C_skip_comment(msg);
             break;
         default:
             return;
         }
         current_char = QAJ4C_json_message_forward_and_peek(msg);
+    }
+}
+
+static void QAJ4C_skip_comment( QAJ4C_Json_message* msg )
+{
+    char current_char = QAJ4C_json_message_forward_and_peek(msg);
+    if (current_char == '*') {
+        QAJ4C_json_message_forward(msg);
+        do {
+            current_char = QAJ4C_json_message_read(msg);
+        } while (current_char != '\0' && !(current_char == '*' && QAJ4C_json_message_peek(msg) == '/'));
+    } else if (current_char == '/') {
+        do {
+            current_char = QAJ4C_json_message_forward_and_peek(msg);
+        } while (current_char != '\0' && current_char != '\n');
+    } else {
+        return;
     }
 }
 
@@ -1321,6 +1323,8 @@ size_t QAJ4C_sprint_primitive( const QAJ4C_Value* value_ptr, char* buffer, size_
         break;
     case QAJ4C_PRIMITIVE_DOUBLE:
         buffer_index = QAJ4C_sprint_double(((QAJ4C_Primitive*) value_ptr)->data.d, buffer, buffer_size, buffer_index);
+        break;
+    default:
         break;
     }
     return buffer_index;
