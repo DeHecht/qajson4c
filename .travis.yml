@@ -29,6 +29,7 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - cd ..
   - build-wrapper-linux-x86-64 --out-dir bw-output make -C build clean all
   - sonar-scanner
 
