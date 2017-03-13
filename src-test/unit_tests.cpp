@@ -2073,12 +2073,28 @@ TEST(PrintTests, PrintControlCharacters) {
  */
 TEST(PrintTests, PrintDoubleDomNaN) {
     char output[64];
+    double nan_value = 0.0/0.0;
 
     QAJ4C_Value value;
-    QAJ4C_set_double(&value, 1.0/0.0);
+    QAJ4C_set_double(&value, nan_value);
     QAJ4C_sprint(&value, output, ARRAY_COUNT(output));
     assert(strcmp("null", output) == 0);
 }
+
+/**
+ * In this test the user input for "NaN" will be translated to 'null' (to at least have
+ * some kind of defined behavior)
+ */
+TEST(PrintTests, PrintDoubleDomInfinity) {
+    char output[64];
+    double infinity_value = 1.0/0.0;
+
+    QAJ4C_Value value;
+    QAJ4C_set_double(&value, infinity_value);
+    QAJ4C_sprint(&value, output, ARRAY_COUNT(output));
+    assert(strcmp("null", output) == 0);
+}
+
 
 /**
  * Parse the same message twice and compare the results with each other.

@@ -117,14 +117,8 @@ static int QAJ4C_xdigit( char c ) {
     return (c > '9')? (c &~ 0x20) - 'A' + 10: (c - '0');
 }
 
-/*
- * This method calculates the offset between a base pointer and the offset_ptr.
- * When having a char-array buff[32] the call QAJ4C_pointer_offset(buff, &buff[31])
- * will return 0.
- * As uintptr_t is defined to be big enough to hold a pointer the use is safe.
- */
-static uintptr_t QAJ4C_pointer_offset( void* base_ptr, void* offset_ptr ) {
-    return ((uintptr_t)offset_ptr) - ((uintptr_t)base_ptr);
+static bool QAJ4C_is_digit( char c ) {
+    return (uint8_t)(c - '0') < 10;
 }
 
 size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback ) {
@@ -490,13 +484,13 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
     if (json_char == '0' && parser->strict_parsing) {
         json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
         /* next char is not allowed to be numeric! */
-        if (json_char >= '0' && json_char <= '9') {
+        if (QAJ4C_is_digit(json_char)) {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
             return;
         }
     }
 
-    while( json_char >= '0' && json_char <= '9' ) {
+    while (QAJ4C_is_digit(json_char)) {
         json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     }
 
@@ -505,11 +499,11 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
         if (json_char == '.') {
             json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             /* expect at least one digit! */
-            if (json_char < '0' || json_char > '9') {
+            if (!QAJ4C_is_digit(json_char)) {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
                 return;
             }
-            while (json_char >= '0' && json_char <= '9') {
+            while (QAJ4C_is_digit(json_char)) {
                 json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
         }
@@ -520,12 +514,12 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
                 json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
             /* expect at least one digit! */
-            if (json_char < '0' || json_char > '9') {
+            if (!QAJ4C_is_digit(json_char)) {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
                 return;
             }
             /* forward until the end! */
-            while (json_char >= '0' && json_char <= '9') {
+            while (QAJ4C_is_digit(json_char)) {
                 json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
             }
         }
@@ -752,7 +746,7 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
         me->json_char += 1;
 
         if (check_size) {
-            chars = QAJ4C_pointer_offset(base_put_str, put_str);
+            chars = put_str - base_put_str;
             if (chars > QAJ4C_INLINE_STRING_SIZE) {
                 put_str = (char*)&me->builder->buffer[me->builder->cur_str_pos];
                 /* copy over to normal string */
@@ -767,7 +761,7 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
     }
     *put_str = '\0';
     me->json_char += 1;
-    chars = QAJ4C_pointer_offset(base_put_str, put_str);
+    chars = put_str - base_put_str;
     if (QAJ4C_get_internal_type(result_ptr) == QAJ4C_INLINE_STRING) {
         ((QAJ4C_Short_string*)result_ptr)->count = chars;
     } else {
