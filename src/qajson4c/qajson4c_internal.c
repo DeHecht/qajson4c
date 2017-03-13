@@ -1247,11 +1247,11 @@ size_t QAJ4C_sprint_object( const QAJ4C_Object* value_ptr, char* buffer, size_t 
         }
         if (!QAJ4C_is_null(&top[i].key)) {
             if (i > 0) {
+                buffer[buffer_index] = ',';
+                buffer_index++;
                 if (buffer_index >= buffer_size) {
                     return buffer_index;
                 }
-                buffer[buffer_index] = ',';
-                buffer_index++;
             }
             buffer_index = QAJ4C_sprint_impl(&top[i].key, buffer, buffer_size, buffer_index);
             if (buffer_index >= buffer_size) {
@@ -1284,11 +1284,11 @@ size_t QAJ4C_sprint_array( const QAJ4C_Array* value_ptr, char* buffer, size_t bu
             return buffer_index;
         }
         if (i > 0) {
+            buffer[buffer_index] = ',';
+            buffer_index++;
             if (buffer_index >= buffer_size) {
                 return buffer_index;
             }
-            buffer[buffer_index] = ',';
-            buffer_index++;
         }
         buffer_index = QAJ4C_sprint_impl(&top[i], buffer, buffer_size, buffer_index);
     }
