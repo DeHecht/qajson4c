@@ -37,9 +37,9 @@
 
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
     if (function == NULL) {
-        QAJ4C_ERR_FUNCTION = &QAJ4C_std_err_function;
+        g_qaj4c_err_function = &QAJ4C_std_err_function;
     } else {
-        QAJ4C_ERR_FUNCTION = function;
+        g_qaj4c_err_function = function;
     }
 }
 
@@ -446,7 +446,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref_n( QAJ4C_Value* value_ptr, const 
             break;
         }
     }
-    QAJ4C_ERR_FUNCTION();
+    g_qaj4c_err_function();
     return NULL;
 }
 
@@ -472,7 +472,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy_n( QAJ4C_Value* value_ptr, const
             break;
         }
     }
-    QAJ4C_ERR_FUNCTION();
+    g_qaj4c_err_function();
     return NULL;
 }
 
@@ -493,6 +493,7 @@ void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
 void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {
     QAJ4C_INTERNAL_TYPE lhs_type = QAJ4C_get_internal_type(src);
     size_type i;
+    size_type n;
 
     switch (lhs_type) {
     case QAJ4C_NULL:
@@ -505,28 +506,27 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         QAJ4C_set_string_copy_n(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
         break;
     case QAJ4C_OBJECT:
-    case QAJ4C_OBJECT_SORTED: {
-        QAJ4C_Object* dest_object;
-        QAJ4C_set_object(dest, QAJ4C_object_size(src), builder);
-        dest_object = (QAJ4C_Object*)dest;
+    case QAJ4C_OBJECT_SORTED:
+        n = QAJ4C_object_size(src);
+        QAJ4C_set_object(dest, n, builder);
 
-        for (i = 0; i < QAJ4C_object_size(src); ++i) {
+        for (i = 0; i < n; ++i) {
             const QAJ4C_Member* src_member = QAJ4C_object_get_member(src, i);
-            QAJ4C_Member* dest_member = &dest_object->top[i];
+            QAJ4C_Member* dest_member = &((QAJ4C_Object*)dest)->top[i];
 
             QAJ4C_copy(&src_member->key, &dest_member->key, builder);
             QAJ4C_copy(&src_member->value, &dest_member->value, builder);
         }
         break;
-    }
     case QAJ4C_ARRAY:
-        QAJ4C_set_array(dest, QAJ4C_array_size(src), builder);
-        for (i = 0; i < QAJ4C_array_size(src); ++i) {
+        n = QAJ4C_array_size(src);
+        QAJ4C_set_array(dest, n, builder);
+        for (i = 0; i < n; ++i) {
             QAJ4C_copy(QAJ4C_array_get(src, i), QAJ4C_array_get_rw(dest, i), builder);
         }
         break;
     default:
-        QAJ4C_ERR_FUNCTION();
+        g_qaj4c_err_function();
         break;
     }
 }
@@ -534,6 +534,7 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     QAJ4C_TYPE lhs_type = QAJ4C_get_type(lhs);
     QAJ4C_TYPE rhs_type = QAJ4C_get_type(rhs);
     size_type i;
+    size_type n;
 
     if (lhs_type != rhs_type) {
         return false;
@@ -547,12 +548,12 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
         return ((QAJ4C_Primitive*)lhs)->data.b == ((QAJ4C_Primitive*)rhs)->data.b;
     case QAJ4C_TYPE_NUMBER:
         return ((QAJ4C_Primitive*)lhs)->data.i == ((QAJ4C_Primitive*)rhs)->data.i;
-    case QAJ4C_TYPE_OBJECT: {
-        size_t size_lhs = QAJ4C_object_size(lhs);
-        if (size_lhs != QAJ4C_object_size(rhs)) {
+    case QAJ4C_TYPE_OBJECT:
+        n = QAJ4C_object_size(lhs);
+        if (n != QAJ4C_object_size(rhs)) {
             return false;
         }
-        for (i = 0; i < size_lhs; ++i) {
+        for (i = 0; i < n; ++i) {
             const QAJ4C_Member* member_lhs = QAJ4C_object_get_member(lhs, i);
             const QAJ4C_Value* key_lhs = QAJ4C_member_get_key(member_lhs);
 
@@ -578,7 +579,6 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
             }
         }
         return true;
-    }
     case QAJ4C_TYPE_ARRAY: {
         size_t size_lhs = QAJ4C_array_size(lhs);
         if (size_lhs != QAJ4C_array_size(rhs)) {
@@ -594,7 +594,7 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
         return true;
     }
     default:
-        QAJ4C_ERR_FUNCTION();
+        g_qaj4c_err_function();
         break;
     }
     return false;
@@ -604,18 +604,21 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
 size_t QAJ4C_value_sizeof( const QAJ4C_Value* value_ptr ) {
     size_t size = sizeof(QAJ4C_Value);
     size_type i;
+    size_type n;
 
     switch (QAJ4C_get_internal_type(value_ptr)) {
     case QAJ4C_OBJECT_SORTED:
     case QAJ4C_OBJECT:
-        for (i = 0; i < QAJ4C_object_size(value_ptr); ++i) {
+        n = QAJ4C_object_size(value_ptr);
+        for (i = 0; i < n; ++i) {
             const QAJ4C_Member* member = QAJ4C_object_get_member(value_ptr, i);
             size += QAJ4C_value_sizeof(&member->key);
             size += QAJ4C_value_sizeof(&member->value);
         }
         break;
     case QAJ4C_ARRAY:
-        for (i = 0; i < QAJ4C_array_size(value_ptr); ++i) {
+        n = QAJ4C_array_size(value_ptr);
+        for (i = 0; i < n; ++i) {
             const QAJ4C_Value* elem = QAJ4C_array_get(value_ptr, i);
             size += QAJ4C_value_sizeof(elem);
         }

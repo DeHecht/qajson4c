@@ -40,7 +40,7 @@
 #define QAJ4C_UNLIKELY(expr) expr
 #endif
 
-#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { (*QAJ4C_ERR_FUNCTION)(); alt } while(0)
+#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { g_qaj4c_err_function(); alt } while(0)
 
 #define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
 #define QAJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))
@@ -159,7 +159,7 @@ struct QAJ4C_Member {
     QAJ4C_Value value;
 };
 
-extern QAJ4C_fatal_error_fn QAJ4C_ERR_FUNCTION;
+extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
 size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback);
@@ -182,7 +182,6 @@ int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
 
 size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
-
 
 #ifdef __cplusplus
 }
