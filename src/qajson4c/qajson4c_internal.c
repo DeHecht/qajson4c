@@ -729,7 +729,7 @@ static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Value*
     } else {
         ((QAJ4C_String*)result_ptr)->count = chars;
         if (!me->insitu_parsing) {
-            me->builder->cur_str_pos += chars;
+            me->builder->cur_str_pos += chars + 1;
         }
     }
 }

@@ -70,5 +70,15 @@ class TestJsonMethods(unittest.TestCase):
                 genjson = json.load(generated)
                 self.assertEqual(refjson, genjson)
 
+    @parameterized.expand(list_files())
+    def test_dynamic(self, filename):
+        binary_path = self.lookup_bin_path(self.BINARY_NAME)
+        subprocess.call("{} --file {} --output result.json --dynamic 1".format(binary_path, filename), shell=True)
+        with open(filename) as reference:
+            with open("result.json") as generated:
+                refjson = json.load(reference)
+                genjson = json.load(generated)
+                self.assertEqual(refjson, genjson)
+
 if __name__ == '__main__':
     unittest.main()

@@ -2539,3 +2539,55 @@ TEST(DomCreation, OptimizeLowFilledObject) {
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
 
+TEST(BLA, BLA) {
+    static const char* TEST_JSON_1 = R"json(
+    {
+       "startup": [
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          }
+       ]
+    }
+    )json";
+
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, realloc);
+    assert(QAJ4C_is_object(value));
+
+    const QAJ4C_Value* startup_array = QAJ4C_object_get(value, "startup");
+    assert(QAJ4C_is_array(startup_array));
+
+    for (size_t i = 0; i < QAJ4C_array_size(startup_array); ++i) {
+        const QAJ4C_Value* val = QAJ4C_array_get(startup_array, i);
+        assert(QAJ4C_is_object(val));
+
+        const QAJ4C_Value* path_val = QAJ4C_object_get(val, "exec_start");
+        assert(QAJ4C_is_string(path_val));
+
+        printf("%s\n", QAJ4C_get_string(path_val));
+        assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
+    }
+}

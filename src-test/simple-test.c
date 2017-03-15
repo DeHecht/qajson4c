@@ -37,6 +37,7 @@ struct arguments
 {
     char* input_file;
     char* output_file;
+    bool dynamic_parsing;
     bool insitu_parsing;
     bool verbose;
 };
@@ -62,6 +63,7 @@ static struct argp_option options[] = {
   {"file",     'f', "FILE", 0, "Read input file.", 0 },
   {"output",   'o', "FILE", 0, "Filename to write the output json to.", 0 },
   {"insitu",   'i', "bool", 0, "0 => off, 1 => on.", 0 },
+  {"dynamic",  'd', "bool", 0, "0 => off, 1 => on. (overrules insitu)", 0},
   {"verbose",  'v', 0,      0, "Print more information about allocated buffer sizes etc.", 0},
   { 0 }
 };
@@ -87,7 +89,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
     case 'v':
       arguments->verbose = true;
       break;
-
+    case 'd':
+      arguments->dynamic_parsing = true;
+      break;
     case ARGP_KEY_ARG:
         argp_usage(state);
         break;
@@ -116,7 +120,6 @@ void parse_args(int argc, char **argv, struct arguments *args) {
 
 #define FMT_SIZE "%Iu"
 
-
 void parse_args(int argc, char **argv, struct arguments *args) {
     for ( int i = 0; i < argc; ++i ) {
         if ( strstr(argv[i], "--file") == argv[i] || strstr(argv[i], "-f") == argv[i]) {
@@ -127,6 +130,9 @@ void parse_args(int argc, char **argv, struct arguments *args) {
         }
         if ( strstr(argv[i], "--insitu") == argv[i] || strstr(argv[i], "-i") == argv[i]) {
             args->insitu_parsing = (argv[i+1][0] == '1');
+        }
+        if ( strstr(argv[i], "--dynamic") == argv[i] || strstr(argv[i], "-d") == argv[i]) {
+            args->dynamic_parsing = (argv[i+1][0] == '1');
         }
         if ( strstr(argv[i], "--verbose") == argv[i] || strstr(argv[i], "-v") == argv[i]) {
             args->verbose = true;
@@ -155,7 +161,8 @@ int main(int argc, char **argv) {
     struct arguments arguments;
 
     /* Default values. */
-    arguments.insitu_parsing = 0;
+    arguments.insitu_parsing = false;
+    arguments.dynamic_parsing = false;
     arguments.input_file = "-";
     arguments.output_file = "-";
     arguments.verbose = false;
@@ -176,27 +183,34 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    size_t buffer_size = 0;
-    if (arguments.insitu_parsing) {
-        buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
-    } else {
-        buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
-    }
 
-    char* buffer = malloc(buffer_size);
 
+    char* buffer = NULL;
     const QAJ4C_Value* document = NULL;
-    if( arguments.insitu_parsing ) {
-        QAJ4C_parse_insitu(input_string, buffer, buffer_size, &document);
+    if ( arguments.dynamic_parsing ) {
+        document = QAJ4C_parse_opt_dynamic(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, realloc);
     } else {
-        QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
-        if (arguments.verbose) {
-            printf("Size of value " FMT_SIZE " (inclusive doc)\n", QAJ4C_value_sizeof(document));
+        size_t buffer_size = 0;
+        if (arguments.insitu_parsing) {
+            buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
+        } else {
+            buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
         }
-    }
 
-    if ( arguments.verbose ) {
-        printf("Required buffer size %lu\n", buffer_size);
+        buffer = malloc(buffer_size);
+
+        if( arguments.insitu_parsing ) {
+            QAJ4C_parse_opt_insitu(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
+        } else {
+            QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
+            if (arguments.verbose) {
+                printf("Size of value " FMT_SIZE " (inclusive doc)\n", QAJ4C_value_sizeof(document));
+            }
+        }
+
+        if ( arguments.verbose ) {
+            printf("Required buffer size %lu\n", buffer_size);
+        }
     }
 
     size_t output_string_size = sizeof(char) * input_string_size;
