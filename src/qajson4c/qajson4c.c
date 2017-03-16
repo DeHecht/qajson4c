@@ -102,7 +102,8 @@ size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_s
     }
 
     index = QAJ4C_sprint_impl( value_ptr, buffer, buffer_size, 0 );
-    if ( index >= buffer_size ) {
+
+    if (QAJ4C_UNLIKELY(index >= buffer_size)) {
         index = buffer_size - 1;
     }
     buffer[index] = '\0';

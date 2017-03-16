@@ -829,14 +829,14 @@ static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C
     bool double_value = false;
     if (*me->json_char == '-') {
         int64_t i = QAJ4C_STRTOL(me->json_char, &c, 10);
-        if (QAJ4C_is_double_separation_char(*c) || errno == ERANGE) {
+        if (QAJ4C_is_double_separation_char(*c) || (INT64_MAX && errno == ERANGE)) {
             double_value = true;
         } else {
             QAJ4C_set_int64(result_ptr, i);
         }
     } else {
         uint64_t i = QAJ4C_STRTOUL(me->json_char, &c, 10);
-        if (QAJ4C_is_double_separation_char(*c) || errno == ERANGE) {
+        if (QAJ4C_is_double_separation_char(*c) || (UINT64_MAX && errno == ERANGE)) {
             double_value = true;
         } else {
             QAJ4C_set_uint64(result_ptr, i);
@@ -1224,9 +1224,6 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
         g_qaj4c_err_function();
     }
 
-    if (QAJ4C_UNLIKELY(buffer_index >= buffer_size)) {
-        return buffer_size - 1;
-    }
     return buffer_index;
 }
 

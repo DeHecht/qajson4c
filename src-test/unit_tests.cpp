@@ -386,7 +386,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
 
     size_t required = ARRAY_COUNT(buffer);
 
-    required = QAJ4C_parse_opt_insitu(json, ARRAY_COUNT(json), 0, (void*)buffer, required, &value);
+    required = QAJ4C_parse_insitu(json, (void*)buffer, required, &value);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
     assert(required == sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member));
@@ -2070,7 +2070,7 @@ TEST(ErrorHandlingTests, PrintStringPartially) {
 }
 
 TEST(ErrorHandlingTests, PrintCompositionOfObjectsAndArraysPartially) {
-    char json[] = R"({"id":5,"values":[{},[],{"key":"val","key2":"val2"},[12,34]]})";
+    char json[] = R"({"id":5,"values":[{},[],{"key":"val","key2":"val2"},[12,34],5.0]})";
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
@@ -2114,8 +2114,6 @@ TEST(ErrorHandlingTests, PrintConstantsPartially) {
         }
     }
 }
-
-
 
 TEST(ErrorHandlingTests, NullSmallPrintBuffer) {
     char json[] = "[null]";
@@ -2689,6 +2687,7 @@ TEST(DomCreation, CreateObject) {
     QAJ4C_Value* member3 = QAJ4C_object_create_member_by_copy(value_ptr, key3, &builder);
     QAJ4C_Value* member4 = QAJ4C_object_create_member_by_ref(value_ptr, key4);
     QAJ4C_Value* member5 = QAJ4C_object_create_member_by_ref(value_ptr, key5);
+    QAJ4C_Value* member6 = QAJ4C_object_create_member_by_copy(value_ptr, key5, &builder); // also verify this for copy
 
     assert( member1 != nullptr );
     assert( member1_a == nullptr );
@@ -2697,6 +2696,7 @@ TEST(DomCreation, CreateObject) {
     assert( member3 != nullptr );
     assert( member4 != nullptr);
     assert( member5 == nullptr );  // there is no room left for more members
+    assert( member6 == nullptr );  // also no room left for members
 
     // Check that we still reach all elements!
     assert(QAJ4C_object_get(value_ptr, key1) != nullptr);
@@ -2760,3 +2760,21 @@ TEST(DomCreation, OptimizeLowFilledObject) {
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
 
+/**
+ * This test will verify that even though a object is not filled completely
+ * the output will stay valid. In this case a object with 5 members is created
+ * but no member is added. It is expected that the printed string will be {}
+ */
+TEST(DomCreation, PrintIncompleteObject) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(value_ptr, 4, &builder);
+
+    char out[5];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(strcmp("{}", out) == 0);
+
+}
