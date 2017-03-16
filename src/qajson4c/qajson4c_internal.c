@@ -762,10 +762,8 @@ static char* QAJ4C_second_pass_string_escape_sequence( QAJ4C_Second_pass_parser*
     case 't':
         *put_str = '\t';
         break;
-    case 'u':
+    default: /* is has to be u */
         put_str = QAJ4C_second_pass_unicode_sequence(me, put_str);
-        break;
-    default:
         break;
     }
     return put_str;
@@ -831,14 +829,14 @@ static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C
     bool double_value = false;
     if (*me->json_char == '-') {
         int64_t i = QAJ4C_STRTOL(me->json_char, &c, 10);
-        if (QAJ4C_is_double_separation_char(*c) || (i == INT64_MAX && errno == ERANGE)) {
+        if (QAJ4C_is_double_separation_char(*c) || errno == ERANGE) {
             double_value = true;
         } else {
             QAJ4C_set_int64(result_ptr, i);
         }
     } else {
         uint64_t i = QAJ4C_STRTOUL(me->json_char, &c, 10);
-        if (QAJ4C_is_double_separation_char(*c) || (i == UINT64_MAX && errno == ERANGE)) {
+        if (QAJ4C_is_double_separation_char(*c) || errno == ERANGE) {
             double_value = true;
         } else {
             QAJ4C_set_uint64(result_ptr, i);
@@ -1151,7 +1149,7 @@ static size_t QAJ4C_copy_custom_string(char* buffer, size_t buffer_size, const Q
     buffer[buffer_index] = '"';
     buffer_index++;
 
-    for( string_index = 0; string_index < string_length && buffer_index <= buffer_size; ++string_index) {
+    for( string_index = 0; string_index < string_length && buffer_index < buffer_size; ++string_index) {
         const char* replacement_string = NULL;
         uint8_t replacement_string_len = 0;
         uint8_t char_value = string[string_index];
@@ -1249,9 +1247,6 @@ size_t QAJ4C_sprint_object( const QAJ4C_Object* value_ptr, char* buffer, size_t 
             if (i > 0) {
                 buffer[buffer_index] = ',';
                 buffer_index++;
-                if (buffer_index >= buffer_size) {
-                    return buffer_index;
-                }
             }
             buffer_index = QAJ4C_sprint_impl(&top[i].key, buffer, buffer_size, buffer_index);
             if (buffer_index >= buffer_size) {
@@ -1286,9 +1281,6 @@ size_t QAJ4C_sprint_array( const QAJ4C_Array* value_ptr, char* buffer, size_t bu
         if (i > 0) {
             buffer[buffer_index] = ',';
             buffer_index++;
-            if (buffer_index >= buffer_size) {
-                return buffer_index;
-            }
         }
         buffer_index = QAJ4C_sprint_impl(&top[i], buffer, buffer_size, buffer_index);
     }
@@ -1319,10 +1311,8 @@ size_t QAJ4C_sprint_primitive( const QAJ4C_Value* value_ptr, char* buffer, size_
     case QAJ4C_PRIMITIVE_UINT64:
         buffer_index += QAJ4C_UTOSTRN(buffer + buffer_index, buffer_size - buffer_index, ((QAJ4C_Primitive*) value_ptr)->data.u);
         break;
-    case QAJ4C_PRIMITIVE_DOUBLE:
+    default: /* it has to be double */
         buffer_index = QAJ4C_sprint_double(((QAJ4C_Primitive*) value_ptr)->data.d, buffer, buffer_size, buffer_index);
-        break;
-    default:
         break;
     }
     return buffer_index;

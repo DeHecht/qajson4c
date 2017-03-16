@@ -775,6 +775,69 @@ TEST(SimpleParsingTests, ParseUint64Max) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseInt64Max) {
+    const char json[] = R"([9223372036854775807])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
+
+    assert(!QAJ4C_is_uint(array_value));
+    assert(!QAJ4C_is_int(array_value));
+    assert(QAJ4C_is_int64(array_value));
+    assert(QAJ4C_is_uint64(array_value));
+    assert(QAJ4C_is_double(array_value));
+
+    assert(INT64_MAX == QAJ4C_get_int64(array_value));
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseInt64MaxPlus1) {
+    const char json[] = R"([9223372036854775808])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
+
+    assert(!QAJ4C_is_uint(array_value));
+    assert(!QAJ4C_is_int(array_value));
+    assert(!QAJ4C_is_int64(array_value));
+    assert(QAJ4C_is_uint64(array_value));
+    assert(QAJ4C_is_double(array_value));
+
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseInt64Min) {
+    const char json[] = R"([-9223372036854775808])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
+
+    assert(!QAJ4C_is_uint(array_value));
+    assert(!QAJ4C_is_int(array_value));
+    assert(QAJ4C_is_int64(array_value));
+    assert(!QAJ4C_is_uint64(array_value));
+    assert(QAJ4C_is_double(array_value));
+
+    assert(INT64_MIN == QAJ4C_get_int64(array_value));
+    free((void*)value);
+}
+
+TEST(SimpleParsingTests, ParseInt64MaxMinus1) {
+    const char json[] = R"([-9223372036854775809])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    assert(QAJ4C_is_array(value));
+    const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
+
+    assert(!QAJ4C_is_uint(array_value));
+    assert(!QAJ4C_is_int(array_value));
+    assert(!QAJ4C_is_int64(array_value));
+    assert(!QAJ4C_is_uint64(array_value));
+    assert(QAJ4C_is_double(array_value));
+
+    free((void*)value);
+}
+
+
 TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
     const char json[] = R"([18446744073709551616])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -1121,8 +1184,21 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate2
 /**
  * The same as the other but now only three digits are present.
  */
-TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogate) {
-    const char json[] = R"({"id":123, "name": "\uD800\u0123")";
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooLowValue) {
+    const char json[] = R"({"id":123, "name": "\uD800\udbff")";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = nullptr;
+    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+}
+
+/**
+ * The same as the other but now only three digits are present.
+ */
+TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooHighValue) {
+    const char json[] = R"({"id":123, "name": "\uD800\ue000")";
     uint8_t buff[256];
     const QAJ4C_Value* val = nullptr;
     QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
@@ -1241,6 +1317,28 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFails) {
 }
 
 /**
+ * In this test the first pass will trigger the error that the buffer is too small as
+ * it cannot store more statistics and as realloc fails parsing fails as well.
+ * This time using objects (as the implementation might not be the same as with arrays)
+ */
+TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFailsWithObject) {
+    const char json[] = "[{},{},{},{},{},{},{},{},{}]";
+    static bool first = true;
+    auto lambda = []( void *ptr, size_t size ) {
+        if ( first ) {
+            first = false;
+            return realloc(ptr, size);
+        }
+        return (void*)NULL;
+    };
+    // just reduce the buffer size by one single byte
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    assert(QAJ4C_is_error(value));
+
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
+}
+
+/**
  * This test validates that the lookup on an object will not fail in case the object
  * is still untouched.
  */
@@ -1253,6 +1351,58 @@ TEST(ErrorHandlingTests, LookupMemberUninitializedObject) {
     QAJ4C_set_object(value_ptr, 4, &builder);
 
     assert(NULL == QAJ4C_object_get(value_ptr, "id"));
+}
+
+TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
+    static const char* TEST_JSON_1 = R"json(
+    {
+       "startup": [
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          },
+          {
+             "exec_start": "/path/to/my/binary"
+          }
+       ]
+    }
+    )json";
+
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, realloc);
+    assert(QAJ4C_is_object(value));
+
+    const QAJ4C_Value* startup_array = QAJ4C_object_get(value, "startup");
+    assert(QAJ4C_is_array(startup_array));
+
+    for (size_t i = 0; i < QAJ4C_array_size(startup_array); ++i) {
+        const QAJ4C_Value* val = QAJ4C_array_get(startup_array, i);
+        assert(QAJ4C_is_object(val));
+
+        const QAJ4C_Value* path_val = QAJ4C_object_get(val, "exec_start");
+        assert(QAJ4C_is_string(path_val));
+
+        assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
+    }
 }
 
 /**
@@ -1895,6 +2045,77 @@ TEST(ErrorHandlingTests, MultipleDoublesSmallPrintBuffer) {
         }
     }
 }
+
+TEST(ErrorHandlingTests, PrintStringPartially) {
+    char json[] = R"(["so ka?","ey chummer!"])";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
+}
+
+TEST(ErrorHandlingTests, PrintCompositionOfObjectsAndArraysPartially) {
+    char json[] = R"({"id":5,"values":[{},[],{"key":"val","key2":"val2"},[12,34]]})";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
+}
+
+TEST(ErrorHandlingTests, PrintConstantsPartially) {
+    char json[] = R"([null,true,false])";
+    char out[ARRAY_COUNT(json) + 1];
+    memset(out, '\n', ARRAY_COUNT(out));
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    char buff[buff_size];
+    const QAJ4C_Value* value = NULL;
+
+    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    assert(!QAJ4C_is_error(value));
+
+    assert(actual_size == buff_size);
+
+    for (size_t i = 0, n = ARRAY_COUNT(json); i <= n; i++) {
+        assert(i == QAJ4C_sprint(value, out, i));
+        assert('\n' == out[i]); // check that nothing has been written over the bounds!
+        if (i > 0) {
+            assert(i - 1 == strlen(out));
+        }
+    }
+}
+
+
 
 TEST(ErrorHandlingTests, NullSmallPrintBuffer) {
     char json[] = "[null]";
@@ -2539,55 +2760,3 @@ TEST(DomCreation, OptimizeLowFilledObject) {
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
 
-TEST(BLA, BLA) {
-    static const char* TEST_JSON_1 = R"json(
-    {
-       "startup": [
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          },
-          {
-             "exec_start": "/path/to/my/binary"
-          }
-       ]
-    }
-    )json";
-
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, realloc);
-    assert(QAJ4C_is_object(value));
-
-    const QAJ4C_Value* startup_array = QAJ4C_object_get(value, "startup");
-    assert(QAJ4C_is_array(startup_array));
-
-    for (size_t i = 0; i < QAJ4C_array_size(startup_array); ++i) {
-        const QAJ4C_Value* val = QAJ4C_array_get(startup_array, i);
-        assert(QAJ4C_is_object(val));
-
-        const QAJ4C_Value* path_val = QAJ4C_object_get(val, "exec_start");
-        assert(QAJ4C_is_string(path_val));
-
-        printf("%s\n", QAJ4C_get_string(path_val));
-        assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
-    }
-}
