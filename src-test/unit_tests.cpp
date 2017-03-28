@@ -2778,3 +2778,30 @@ TEST(DomCreation, PrintIncompleteObject) {
     assert(strcmp("{}", out) == 0);
 
 }
+
+/**
+ * In this test a cornercase of qajson4c is triggered. The last empty array within the
+ * object will get its first pass statistics corrumpted by the array member.
+ * The reason therefore is that no memory has to be stored for the elements of the array ...
+ * but the memory of the array will already be "consumed" by the object creation ... thus
+ * the last element that will "consume" memory will be the value of "a". The integer
+ * value will be initialized before b, thus will cause b to be overwritten.
+ */
+TEST(CornerCaseTests, AttachedEmptyArray) {
+    const char* json = R"({"a":[1],"b":[]})";
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
+
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_array_size(QAJ4C_object_get(value, "a")) == 1);
+    assert(QAJ4C_array_size(QAJ4C_object_get(value, "b")) == 0);
+}
+
+/**
+ * Same test as AttachedEmptyArray but now with an trailing empty object.
+ */
+TEST(CornerCaseTests, AttachedEmptyObject) {
+    const char* json = R"({"a":[1],"b":{}})";
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
+
+    assert(QAJ4C_is_object(value));
+}

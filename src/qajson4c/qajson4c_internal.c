@@ -850,6 +850,13 @@ static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
+    if ( QAJ4C_UNLIKELY(me->curr_buffer_pos <= me->builder->cur_obj_pos - sizeof(size_type))) {
+        /*
+         * Corner case that the last entry is empty. In some cases this causes that
+         * the statistics are already overwritten (see Corner-case tests)
+         */
+        return 0;
+    }
     size_type data = *((size_type*)(me->builder->buffer + me->curr_buffer_pos));
     me->curr_buffer_pos += sizeof(size_type);
     return data;
