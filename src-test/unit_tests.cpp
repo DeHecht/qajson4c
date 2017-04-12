@@ -2832,5 +2832,5 @@ TEST(CornerCaseTests, PrintArrayWithNullValues) {
     QAJ4C_set_array(groups_node, 2, &builder);
 
     QAJ4C_sprint(root_node, json, ARRAY_COUNT(json));
-    fprintf(stderr, json);
+    assert( strcmp(R"({"a":[null,null]})", json) == 0);
 }

@@ -456,13 +456,13 @@ static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser) {
     int amount_utf8_chars = 0;
     uint32_t value = QAJ4C_first_pass_4digits(parser);
 
-    if ( value < 0x80 ) {
+    if ( value < 0x80 ) { /* [0, 0x80) */
         amount_utf8_chars = 1;
-    } else if ( value < 0x800 ) {
+    } else if ( value < 0x800 ) { /* [0x80, 0x800) */
         amount_utf8_chars = 2;
-    } else if (value < 0xd800 || value > 0xdfff) {
+    } else if (value < 0xd800 || value > 0xdfff) { /* [0x800, 0xd800) or (0xdfff, 0xffff] */
         amount_utf8_chars = 3;
-    } else if (value >= 0xd800 && value < 0xdbff) {
+    } else if (value <= 0xdbff) { /* [0xd800,0xdbff] */
         if (QAJ4C_json_message_read(parser->msg) != '\\' || QAJ4C_json_message_read(parser->msg) != 'u') {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
         }
@@ -474,7 +474,7 @@ static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser) {
             }
         }
         amount_utf8_chars = 4;
-    } else {
+    } else { /* [0xdc00, 0xdfff] */
         /* invalid (low-surrogate before high-surrogate) */
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
     }
@@ -812,7 +812,7 @@ static char* QAJ4C_second_pass_unicode_sequence( QAJ4C_Second_pass_parser* me, c
 static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me ) {
     uint32_t value = QAJ4C_xdigit(me->json_char[0]) << 12 | QAJ4C_xdigit(me->json_char[1]) << 8 | QAJ4C_xdigit(me->json_char[2]) << 4 | QAJ4C_xdigit(me->json_char[3]);
     me->json_char += 4;
-    if (value >= 0xd800 && value < 0xdbff) {
+    if (value >= 0xd800 && value <= 0xdbff) {
         uint32_t low_surrogate;
         me->json_char += 2;
         low_surrogate = QAJ4C_xdigit(me->json_char[0]) << 12 | QAJ4C_xdigit(me->json_char[1]) << 8 | QAJ4C_xdigit(me->json_char[2]) << 4 | QAJ4C_xdigit(me->json_char[3]);
