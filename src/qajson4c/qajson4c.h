@@ -225,6 +225,8 @@ size_t QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buff
 
 /**
  * This method prints the DOM as JSON in the handed over buffer.
+ *
+ * @return the amount of data written to the buffer, including the '\0' character.
  */
 size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size );
 

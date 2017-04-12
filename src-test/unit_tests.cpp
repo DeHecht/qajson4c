@@ -2805,3 +2805,32 @@ TEST(CornerCaseTests, AttachedEmptyObject) {
 
     assert(QAJ4C_is_object(value));
 }
+
+/**
+ * This test will print not fully initialized objects and arrays.
+ * It is expected that objects will only print the "set" values as the
+ * member is only valid in case the key is not "null". Arrays that are
+ * not filled completely will print null values as they do not have a "fill" level.
+ *
+ * The buffer is set to a "non-null" value to trigger initialization failures
+ * that have occurred in the past.
+ */
+TEST(CornerCaseTests, PrintArrayWithNullValues) {
+    uint8_t buff[256];
+    char json[64];
+
+    for (int i = 0; i < ARRAY_COUNT(buff); ++i) {
+        buff[i] = 0xFF;
+    }
+
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* root_node = QAJ4C_builder_get_document(&builder);
+    QAJ4C_set_object(root_node, 5, &builder);
+
+    QAJ4C_Value* groups_node = QAJ4C_object_create_member_by_ref(root_node, "a");
+    QAJ4C_set_array(groups_node, 2, &builder);
+
+    QAJ4C_sprint(root_node, json, ARRAY_COUNT(json));
+    fprintf(stderr, json);
+}

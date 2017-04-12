@@ -850,7 +850,7 @@ static void QAJ4C_second_pass_numeric_value( QAJ4C_Second_pass_parser* me, QAJ4C
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
-    if ( QAJ4C_UNLIKELY(me->curr_buffer_pos <= me->builder->cur_obj_pos - sizeof(size_type))) {
+    if (QAJ4C_UNLIKELY(me->curr_buffer_pos <= me->builder->cur_obj_pos - sizeof(size_type))) {
         /*
          * Corner case that the last entry is empty. In some cases this causes that
          * the statistics are already overwritten (see Corner-case tests)
@@ -1008,7 +1008,7 @@ QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count )
     QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
 
     for (i = 0; i < count; i++) {
-        new_pointer->type = QAJ4C_NULL_TYPE_CONSTANT;
+        (new_pointer + i)->type = QAJ4C_NULL_TYPE_CONSTANT;
     }
     return new_pointer;
 }
