@@ -29,13 +29,29 @@ def list_files():
             paths.append(path)
 
     return paths
+#
+def list_crash_files():
+    paths = []
+    ''' Generate the tests, based on the json files '''
+    data_dir = lookup_dir_path("crash-data")
+    for (dirpath, dirnames, filenames) in os.walk(data_dir):
+        for file in filenames:
+            path = os.path.join(data_dir, file)
+            paths.append(path)
+
+    return paths
 
 ''' The tests have to be called from the project root, otherwise they do not work '''
 
 class TestJsonMethods(unittest.TestCase):
 
     BINARY_NAME="simple-processor"
-
+    RESULT_FILE = os.path.join(get_exec_path(), "result.json")
+	
+    def tearDown(self):
+        if os.path.exists(self.RESULT_FILE):
+            os.remove(self.RESULT_FILE)
+	
     @classmethod
     def lookup_bin_path(self, binname):
         dir = get_exec_path()
@@ -53,9 +69,9 @@ class TestJsonMethods(unittest.TestCase):
     @parameterized.expand(list_files())
     def test_insitu(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} --file {} --output result.json --insitu 1".format(binary_path, filename), shell=True)
+        self.assertEqual(0, subprocess.call("{} --file {} --output {} --insitu 1".format(binary_path, filename, self.RESULT_FILE), shell=True))
         with open(filename) as reference:
-            with open("result.json") as generated:
+            with open(self.RESULT_FILE) as generated:
                 refjson = json.load(reference)
                 genjson = json.load(generated)
                 self.assertEqual(refjson, genjson)
@@ -63,9 +79,9 @@ class TestJsonMethods(unittest.TestCase):
     @parameterized.expand(list_files())
     def test_normal(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} --file {} --output result.json".format(binary_path, filename), shell=True)
+        self.assertEqual(0, subprocess.call("{} --file {} --output {}".format(binary_path, filename, self.RESULT_FILE), shell=True))
         with open(filename) as reference:
-            with open("result.json") as generated:
+            with open(self.RESULT_FILE) as generated:
                 refjson = json.load(reference)
                 genjson = json.load(generated)
                 self.assertEqual(refjson, genjson)
@@ -73,12 +89,17 @@ class TestJsonMethods(unittest.TestCase):
     @parameterized.expand(list_files())
     def test_dynamic(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        subprocess.call("{} --file {} --output result.json --dynamic 1".format(binary_path, filename), shell=True)
+        self.assertEqual(0, subprocess.call("{} --file {} --output {} --dynamic 1".format(binary_path, filename, self.RESULT_FILE), shell=True))
         with open(filename) as reference:
-            with open("result.json") as generated:
+            with open(self.RESULT_FILE) as generated:
                 refjson = json.load(reference)
                 genjson = json.load(generated)
                 self.assertEqual(refjson, genjson)
+
+    @parameterized.expand(list_crash_files())
+    def test_crash(self, filename):
+        binary_path = self.lookup_bin_path(self.BINARY_NAME)
+        self.assertEqual(0, subprocess.call("{} --file {} --dynamic 1".format(binary_path, filename), shell=True))
 
 if __name__ == '__main__':
     unittest.main()

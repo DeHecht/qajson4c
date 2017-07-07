@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
     arguments.insitu_parsing = false;
     arguments.dynamic_parsing = false;
     arguments.input_file = "-";
-    arguments.output_file = "-";
+    arguments.output_file = NULL;
     arguments.verbose = false;
 
     parse_args(argc, argv, &arguments);
@@ -176,14 +176,16 @@ int main(int argc, char **argv) {
     }
     size_t input_string_size = strlen(input_string);
 
-    FILE* output_file = fopen(arguments.output_file, "w");
-    if ( output_file == NULL ) {
-        fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
-        free(input_string);
-        exit(1);
-    }
+    FILE* output_file = NULL;
 
-
+	if (arguments.output_file) {
+		output_file = fopen(arguments.output_file, "w");
+		if (output_file == NULL) {
+			fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
+			free(input_string);
+			exit(1);
+		}
+	}
 
     char* buffer = NULL;
     const QAJ4C_Value* document = NULL;
@@ -213,20 +215,26 @@ int main(int argc, char **argv) {
         }
     }
 
-    size_t output_string_size = sizeof(char) * input_string_size;
-    char* output_string = malloc(output_string_size);
+    if ( output_file != NULL )
+    {
+        size_t output_string_size = sizeof(char) * input_string_size;
+        char* output_string = malloc(output_string_size);
 
-    if (QAJ4C_is_error(document)) {
-        output_string[0] = '\0';
-    } else {
-        QAJ4C_sprint(document, output_string, output_string_size);
+        if (QAJ4C_is_error(document)) {
+            output_string[0] = '\0';
+        } else {
+            QAJ4C_sprint(document, output_string, output_string_size);
+        }
+        fwrite(output_string, sizeof(char), strlen(output_string), output_file);
+        fclose(output_file);
+        free(output_string);
     }
 
-    fwrite(output_string, sizeof(char), strlen(output_string), output_file);
-
-    fclose(output_file);
-    free(output_string);
-    free(buffer);
+	if (buffer == NULL) {
+		free(document);
+	} else {
+		free(buffer);
+	}
     free(input_string);
     return 0;
 }

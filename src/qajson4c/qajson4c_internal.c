@@ -82,6 +82,9 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser );
 static void QAJ4C_first_pass_constant( QAJ4C_First_pass_parser* parser, const char* str, size_t len );
 static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* parser );
 static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser );
+static void QAJ4C_first_pass_skip_whitespaces_and_comments( QAJ4C_First_pass_parser* parser );
+static void QAJ4C_first_pass_skip_comment( QAJ4C_First_pass_parser* parser );
+
 
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* parser, size_type storage_pos );
 static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* me );
@@ -100,8 +103,6 @@ static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me );
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
 
-static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg );
-static void QAJ4C_skip_comment( QAJ4C_Json_message* msg );
 static const char* QAJ4C_skip_whitespaces_and_comments_second_pass( const char* json );
 
 static char QAJ4C_json_message_peek( QAJ4C_Json_message* msg );
@@ -148,7 +149,7 @@ size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t jso
 
     if (parser.strict_parsing && parser.msg->json[parser.msg->json_pos] != '\0') {
         /* skip whitespaces and comments after the json, even though we are graceful */
-        QAJ4C_skip_whitespaces_and_comments(parser.msg);
+        QAJ4C_first_pass_skip_whitespaces_and_comments(&parser);
         if (parser.msg->json[parser.msg->json_pos] != '\0') {
             QAJ4C_first_pass_parser_set_error(&parser, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
         }
@@ -237,7 +238,7 @@ static void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* parser, 
 }
 
 static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth) {
-    QAJ4C_skip_whitespaces_and_comments(parser->msg);
+    QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     parser->amount_nodes++;
     switch (QAJ4C_json_message_peek(parser->msg)) {
     case '{':
@@ -295,7 +296,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
         return;
     }
 
-    QAJ4C_skip_whitespaces_and_comments(parser->msg);
+    QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     json_char = QAJ4C_json_message_read(parser->msg);
     while (json_char != '\0' && json_char != '}') {
         if (member_count > 0) {
@@ -303,19 +304,19 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COMMA);
                 return;
             }
-            QAJ4C_skip_whitespaces_and_comments(parser->msg);
+            QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             json_char = QAJ4C_json_message_read(parser->msg);
         }
         if (json_char == '"') {
             parser->amount_nodes++; /* count the string as node */
             QAJ4C_first_pass_string(parser);
-            QAJ4C_skip_whitespaces_and_comments(parser->msg);
+            QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             json_char = QAJ4C_json_message_read(parser->msg);
             if (json_char != ':') {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COLON);
                 return;
             }
-            QAJ4C_skip_whitespaces_and_comments(parser->msg);
+            QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             QAJ4C_first_pass_process(parser, depth + 1);
             ++member_count;
         } else if (json_char == '}') {
@@ -327,7 +328,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
         }
 
-        QAJ4C_skip_whitespaces_and_comments(parser->msg);
+        QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
         json_char = QAJ4C_json_message_read(parser->msg);
     }
 
@@ -355,7 +356,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
         return;
     }
 
-    QAJ4C_skip_whitespaces_and_comments(parser->msg);
+    QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     json_char = QAJ4C_json_message_peek(parser->msg);
     while (json_char != '\0' && json_char != ']') {
         if (member_count > 0) {
@@ -364,7 +365,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
                 return;
             }
             QAJ4C_json_message_forward(parser->msg);
-            QAJ4C_skip_whitespaces_and_comments(parser->msg);
+            QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             json_char = QAJ4C_json_message_peek(parser->msg);
         }
         if (json_char != ']') {
@@ -373,7 +374,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
         } else if (parser->strict_parsing) {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_TRAILING_COMMA);
         }
-        QAJ4C_skip_whitespaces_and_comments(parser->msg);
+        QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
         json_char = QAJ4C_json_message_peek(parser->msg);
     }
 
@@ -495,12 +496,13 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
         }
     }
 
-    if (json_char == '0' && parser->strict_parsing) {
+	if (!QAJ4C_is_digit(json_char)) {
+		QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
+	} else if (json_char == '0' && parser->strict_parsing) {
         json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
         /* next char is not allowed to be numeric! */
         if (QAJ4C_is_digit(json_char)) {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
-            return;
         }
     }
 
@@ -515,7 +517,6 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
             /* expect at least one digit! */
             if (!QAJ4C_is_digit(json_char)) {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
-                return;
             }
             while (QAJ4C_is_digit(json_char)) {
                 json_char = QAJ4C_json_message_forward_and_peek(parser->msg);
@@ -530,7 +531,6 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
             /* expect at least one digit! */
             if (!QAJ4C_is_digit(json_char)) {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
-                return;
             }
             /* forward until the end! */
             while (QAJ4C_is_digit(json_char)) {
@@ -543,10 +543,9 @@ static void QAJ4C_first_pass_numeric_value( QAJ4C_First_pass_parser* parser ) {
 static void QAJ4C_first_pass_constant( QAJ4C_First_pass_parser* parser, const char* str, size_t len ) {
     size_t i;
     for (i = 0; i < len; i++) {
-        char c = QAJ4C_json_message_read(parser->msg);
+		char c = QAJ4C_json_message_read(parser->msg);
         if (c != str[i]) {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
-            break;
         }
     }
 }
@@ -885,8 +884,8 @@ static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg ) {
     return QAJ4C_json_message_peek(msg);
 }
 
-static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
-    char current_char = QAJ4C_json_message_peek(msg);
+static void QAJ4C_first_pass_skip_whitespaces_and_comments( QAJ4C_First_pass_parser* parser ) {
+    char current_char = QAJ4C_json_message_peek(parser->msg);
 
     while (current_char != '\0') {
         switch (current_char) {
@@ -897,27 +896,29 @@ static void QAJ4C_skip_whitespaces_and_comments( QAJ4C_Json_message* msg ) {
         case ' ':
             break;
         case '/': /* also skip comments! */
-            QAJ4C_skip_comment(msg);
+            QAJ4C_first_pass_skip_comment(parser);
             break;
         default:
             return;
         }
-        current_char = QAJ4C_json_message_forward_and_peek(msg);
+        current_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     }
 }
 
-static void QAJ4C_skip_comment( QAJ4C_Json_message* msg )
+static void QAJ4C_first_pass_skip_comment( QAJ4C_First_pass_parser* parser )
 {
-    char current_char = QAJ4C_json_message_forward_and_peek(msg);
+    char current_char = QAJ4C_json_message_forward_and_peek(parser->msg);
     if (current_char == '*') {
-        QAJ4C_json_message_forward(msg);
+        QAJ4C_json_message_forward(parser->msg);
         do {
-            current_char = QAJ4C_json_message_read(msg);
-        } while (current_char != '\0' && !(current_char == '*' && QAJ4C_json_message_peek(msg) == '/'));
+            current_char = QAJ4C_json_message_read(parser->msg);
+        } while (current_char != '\0' && !(current_char == '*' && QAJ4C_json_message_peek(parser->msg) == '/'));
     } else if (current_char == '/') {
         do {
-            current_char = QAJ4C_json_message_forward_and_peek(msg);
+            current_char = QAJ4C_json_message_forward_and_peek(parser->msg);
         } while (current_char != '\0' && current_char != '\n');
+    } else {
+    	QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_UNEXPECTED_CHAR);
     }
 }
 
