@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    size_t output_string_size = sizeof(char) * input_string_size;
+    size_t output_string_size = sizeof(char) * input_string_size + 64;
     char* output_string = malloc(output_string_size);
 
     if (QAJ4C_is_error(document)) {

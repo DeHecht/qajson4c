@@ -2154,6 +2154,36 @@ TEST(PrintTests, PrintErrorObject) {
     assert(strcmp("", output) != 0); // expect no empty message!
 }
 
+/**
+ * The following double value triggered that the number was printed as "64." on x86_64-linux.
+ * Therefore a special rule for printing was added.
+ */
+TEST(PrintTests, PrintDoubleCornercase) {
+    QAJ4C_Value value;
+	double d = -63.999999999999943;
+    char buffer[64] = {'\0'};
+
+	QAJ4C_set_double(&value, d);
+    size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+    assert( '\0' == buffer[out - 1]);
+    assert( '.' != buffer[out - 2]);
+}
+
+/**
+ * The following test triggers printing a very small numeric value and
+ * verifies that this number is printed scientificly.
+ */
+TEST(PrintTests, PrintDoubleCornercase2) {
+    QAJ4C_Value value;
+	double d = -1.0e-10;
+    char buffer[64] = {'\0'};
+
+	QAJ4C_set_double(&value, d);
+    size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+    puts(buffer);
+    assert( strchr( buffer, 'e') != nullptr );
+}
+
 TEST(PrintTests, PrintCorruptValue) {
     QAJ4C_Value value;
     char buffer[64] = {'\0'};
@@ -2164,8 +2194,7 @@ TEST(PrintTests, PrintCorruptValue) {
 
     value.type = QAJ4C_UNSPECIFIED << 8;
     size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
-    assert(1 == count); // expect no error
-
+    assert(1 == count); // expect an error
 }
 
 
