@@ -1,38 +1,72 @@
 # Quite-Alright JSON for C (qajson4c)
 
+A simple json library written in C. Optimized for low memory consumption and for good usability without dynamic memory allocation.
+
 [![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=master)](https://travis-ci.org/USESystemEngineeringBV/qajson4c) [![Build status](https://ci.appveyor.com/api/projects/status/9imof268cwquh463?svg=true)](https://ci.appveyor.com/project/DeHecht/qajson4c) [![codecov](https://codecov.io/gh/USESystemEngineeringBV/qajson4c/branch/master/graph/badge.svg)](https://codecov.io/gh/USESystemEngineeringBV/qajson4c) [![Quality Gate](https://sonarqube.com/api/badges/gate?key=nl.usetechnology.qajson4c-project)](https://sonarqube.com/dashboard/index/nl.usetechnology.qajson4c-project)
 
 
-## Introduction
+## Features
 
-The main goal of this parser is to provide a thread-safe JSON DOM parsing without dynamic memory allocation.
-Another goal is to keep the required buffer size as low as possible.
+* Very low DOM memory consumption.
+* Simple API
+* Parsing errors (reason and position) can be retrieved from the API.
+* Random access on json arrays (they are no linked lists underneath).
+* Fast access on large objects via json-key (internal hashing/sorting).
+* Random access on object members via index.
+* API support for parsing DOM directly into a buffer.
+	* No need to specify you own malloc/free method.
+	* Parser can optimally facilitate buffer memory (no memory is wasted due to overhead)
+* Top scores at the [nativejson-benchmark](https://github.com/miloyip/nativejson-benchmark) on category ``Parsing Memory``, ``Parsing Memory Peak`` and ``AllocCount`` while scoring quite well at ``Parsing Time`` (Unfortunately the pictures are not yet updated).
 
-This is achieved by passing a buffer with a sufficient size to the parse method.
 
-We know that there are a lot mature json parsers around. But when we decided to pick-up the development, there was no parser that suited our needs well. Still we investigated other parsers like cJSON, Parson, jsmn and rapidjson (c++) to get an impression about how other json libraries work internally and use the inspiration for our own development.
+## Examples
+
+###Example: Parsing without dynamic memory allocation
+As shown in the following example. You can directly parse your json into a predefined buffer. Without the need to define a custom malloc, free method.
 
 
-###Example:
 ```
 
-	char buff[100];
+	const size_t BUFF_SIZE = 100;
+	char buff[BUFF_SIZE];
 	char json[] = "{\"id\":1, \"name\": \"dude\"}";
 	const QAJ4C_Value* document;
+	size_t buff_len = 0;
 	
-	document = QAJ4C_parse(json, buff, 100);
+	buff_len = QAJ4C_parse(json, buff, BUFF_SIZE, &document);
 	if (QAJ4C_is_object(document)) {
-		// code retrieving data from the DOM
+		QAJ4C_Value* id_node = QAJ4C_object_get(document, "id");
+		QAJ4C_Value* name_node = QAJ4C_object_get(document, "name");
+		
+		if (QAJ4C_is_uint(id_node) && QAJ4C_is_string(name_node)) {
+			printf("ID: %u, NAME: %s\n", QAJ4C_get_uint(id_node), QAJ4C_get_string(name_node));
+		}
 	}
 	
 ```
 
-As shown in the example above. You have a buffer and a json message and you can directly parse your json into this
-buffer. Without the need to define a custom malloc, free method.
+###Example: Parsing using realloc
+As shown in the following example: The library supports parsing with dynamic memory allocation, too. You only need to supply the realloc method or your own custom realloc.
 
-It is also possible to create a DOM yourself and to "print" it to a char buffer.
+
+```
+
+	char json[] = "{\"id\":1, \"name\": \"dude\"}";
+	const QAJ4C_Value* document = QAJ4C_parse_dynamic(json, realloc);
+	if (QAJ4C_is_object(document)) {
+		QAJ4C_Value* id_node = QAJ4C_object_get(document, "id");
+		QAJ4C_Value* name_node = QAJ4C_object_get(document, "name");
+		
+		if (QAJ4C_is_uint(id_node) && QAJ4C_is_string(name_node)) {
+			printf("ID: %u, NAME: %s\n", QAJ4C_get_uint(id_node), QAJ4C_get_string(name_node));
+		}
+	}
+	
+```
 
 ###Example:
+It is also possible to create a DOM yourself and to "print" it to a char buffer.
+
 ```
 	
 	char buff[2048];
@@ -46,35 +80,13 @@ It is also possible to create a DOM yourself and to "print" it to a char buffer.
 	QAJ4C_Value* id_value = QAJ4C_object_create_member_by_ref(root_value, "id");
 	QAJ4C_set_uint(id_value, 123);
 
-    QAJ4C_Value* name_value = QAJ4C_object_create_member_by_ref(root_value, "name");
-    QAJ4C_set_string_ref(name_value, "dude");
+	QAJ4C_Value* name_value = QAJ4C_object_create_member_by_ref(root_value, "name");
+	QAJ4C_set_string_ref(name_value, "dude");
 
 	QAJ4C_sprint(root_value, outbuff, 2048);
 	printf("Printed: %s\n", outbuff);
-	
 
 ```
 
-A difference in DOM creation to most other libraries is, that you always need to specify the amount of members of an array or object. But in case you require to use fixed sized buffers, you probably are used to these kind of obstacles.
-
-## Liberal parsing strategy
-
-We wanted to design the library to be liberal with parsing json messages. So qajson4c can also parses following (non-json compliant) constructs.
-
-
-### Block and Line Comments within json
-```
-
-	"{"type":"object", /*** TEST COMMENT **/ "data": {"id": 1}}"
-
-```
-
-### Trailing commas
-```
-
-	"{"type":"object", "data": {"id": 1},}"
-	
-```
-
-But it is also possible to set the parser to strict mode!
+The DOM will be created in a buffer (just like with parsing). Strings can be handed over by ref (so the content will not be copied over to save buffer size) or as a copy.
 

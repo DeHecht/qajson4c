@@ -215,26 +215,28 @@ int main(int argc, char **argv) {
         }
     }
 
-    if ( output_file != NULL )
-    {
-        size_t output_string_size = sizeof(char) * input_string_size;
-        char* output_string = malloc(output_string_size);
+    size_t output_string_size = sizeof(char) * input_string_size;
+    char* output_string = malloc(output_string_size);
 
-        if (QAJ4C_is_error(document)) {
-            output_string[0] = '\0';
-        } else {
-            QAJ4C_sprint(document, output_string, output_string_size);
-        }
+    if (QAJ4C_is_error(document)) {
+        output_string[0] = '\0';
+    } else {
+        QAJ4C_sprint(document, output_string, output_string_size);
+    }
+
+    if (output_file != NULL) {
         fwrite(output_string, sizeof(char), strlen(output_string), output_file);
         fclose(output_file);
-        free(output_string);
+    } else if (output_string_size > 0 && output_string[0] != '\0') {
+        puts(output_string);
     }
 
 	if (buffer == NULL) {
-		free(document);
+		free((void*)document);
 	} else {
 		free(buffer);
 	}
     free(input_string);
+    free(output_string);
     return 0;
 }

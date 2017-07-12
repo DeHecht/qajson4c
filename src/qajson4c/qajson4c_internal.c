@@ -293,16 +293,15 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
 
     if (parser->max_depth < depth) {
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_DEPTH_OVERFLOW);
-        return;
     }
 
     QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     json_char = QAJ4C_json_message_read(parser->msg);
+
     while (json_char != '\0' && json_char != '}') {
         if (member_count > 0) {
             if (json_char != ',') {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COMMA);
-                return;
             }
             QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             json_char = QAJ4C_json_message_read(parser->msg);
@@ -314,7 +313,6 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
             json_char = QAJ4C_json_message_read(parser->msg);
             if (json_char != ':') {
                 QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COLON);
-                return;
             }
             QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             QAJ4C_first_pass_process(parser, depth + 1);
@@ -334,7 +332,6 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
 
     if (json_char == '\0') {
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
-        return;
     }
 
     if (parser->builder != NULL) {
@@ -353,34 +350,31 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
 
     if (parser->max_depth < depth) {
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_DEPTH_OVERFLOW);
-        return;
     }
 
     QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     json_char = QAJ4C_json_message_peek(parser->msg);
-    while (json_char != '\0' && json_char != ']') {
-        if (member_count > 0) {
-            if (json_char != ',') {
-                QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COMMA);
-                return;
-            }
+    if (json_char != ']') {
+        QAJ4C_first_pass_process(parser, depth + 1);
+        QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
+        json_char = QAJ4C_json_message_peek(parser->msg);
+        member_count = 1;
+        while (json_char == ',') {
             QAJ4C_json_message_forward(parser->msg);
             QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
             json_char = QAJ4C_json_message_peek(parser->msg);
+            if (json_char != ']') {
+                member_count += 1;
+                QAJ4C_first_pass_process(parser, depth + 1);
+                QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
+                json_char = QAJ4C_json_message_peek(parser->msg);
+            } else if (parser->strict_parsing) {
+                QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_TRAILING_COMMA);
+            }
         }
         if (json_char != ']') {
-            QAJ4C_first_pass_process(parser, depth + 1);
-            ++member_count;
-        } else if (parser->strict_parsing) {
-            QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_TRAILING_COMMA);
+            QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_MISSING_COMMA);
         }
-        QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
-        json_char = QAJ4C_json_message_peek(parser->msg);
-    }
-
-    if ( json_char == '\0' ) {
-        QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
-        return;
     }
 
     QAJ4C_json_message_forward(parser->msg);
@@ -445,7 +439,6 @@ static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* parser ) {
 
         if (xdigit > 0xF) {
             QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
-            break;
         }
         value = value << 4 | QAJ4C_xdigit(json_char);
     }
@@ -1340,6 +1333,9 @@ size_t QAJ4C_sprint_double( double d, char* buffer, size_t buffer_size, size_t i
         buffer_index += QAJ4C_SNPRINTF(buffer + buffer_index, buffer_size - buffer_index, "%f", d);
         if ( buffer_index < buffer_size) {
             while (buffer[buffer_index - 1] == '0') {
+                buffer_index--;
+            }
+            if (buffer[buffer_index - 1] == '.') {
                 buffer_index--;
             }
         }
