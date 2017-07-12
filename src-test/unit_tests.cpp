@@ -708,6 +708,44 @@ TEST(SimpleParsingTests, ParseObjectCheckOptimized) {
     free((void*)value);
 }
 
+/**
+ * This test verifies that the optimize on an already optimized object will not
+ * alter the binary.
+ */
+TEST(SimpleParsingTests, ParseObjectCheckOptimizedNoChangeLater) {
+    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
+
+    static const size_t SIZE = 256;
+    uint8_t buff1[SIZE];
+    uint8_t buff2[SIZE];
+
+    const QAJ4C_Value* value = nullptr;
+
+    size_t size = QAJ4C_parse(json, buff1, SIZE, &value);
+
+    // backup the content of the old buffer
+    memcpy(buff2, buff1, size * sizeof(uint8_t));
+
+    for( size_t i = 0; i < size; ++i )
+    {
+		assert(buff1[i] == buff2[i]);
+    }
+
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 5);
+    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
+
+	QAJ4C_object_optimize((QAJ4C_Value*) value);
+
+	// compare the content with the previously backuped content.
+    for( size_t i = 0; i < size; ++i )
+    {
+		assert(buff1[i] == buff2[i]);
+    }
+
+}
+
+
 TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
     const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
@@ -718,6 +756,18 @@ TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
     free((void*)value);
 }
 
+TEST(SimpleParsingTests, ParseObjectCheckNonOptimizedAndOptimizeLater) {
+    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
+    assert(QAJ4C_is_object(value));
+    assert(QAJ4C_object_size(value) == 5);
+    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
+
+	QAJ4C_object_optimize((QAJ4C_Value*) value);
+    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
+
+    free((void*)value);
+}
 
 
 /**
@@ -2180,7 +2230,6 @@ TEST(PrintTests, PrintDoubleCornercase2) {
 
 	QAJ4C_set_double(&value, d);
     size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
-    puts(buffer);
     assert( strchr( buffer, 'e') != nullptr );
 }
 
