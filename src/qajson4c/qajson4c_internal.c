@@ -978,10 +978,6 @@ static void* QSJ4C_allocate( QSJ4C_Builder* builder, QSJ4C_First_pass_parser* pa
     size_t required_tempoary_storage = parser->string_storage_counter* sizeof(size_type);
     void *tmp = NULL;
 
-	if ( required_size <= builder->buffer_size ) {
-		return builder->buffer;
-	}
-
     if (parser->realloc_callback == NULL) {
         QSJ4C_first_pass_parser_set_error(parser, QSJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
         return NULL;
@@ -1016,10 +1012,8 @@ static size_type* QSJ4C_first_pass_fetch_stats_buffer( QSJ4C_First_pass_parser* 
     size_t in_buffer_pos = storage_pos * sizeof(size_type);
 	if (storage_pos > parser->highest_storage_counter) {
 		parser->highest_storage_counter = storage_pos;
-	    if (QSJ4C_first_pass_needs_reallocation(parser)) {
-	    	if ( QSJ4C_allocate(builder, parser) == NULL) {
-	    		return NULL;
-	    	}
+	    if (QSJ4C_first_pass_needs_reallocation(parser) && QSJ4C_allocate(builder, parser) == NULL) {
+	    	return NULL;
 	    }
 	}
 
@@ -1032,10 +1026,8 @@ static size_type* QSJ4C_first_pass_fetch_string_stats_buffer( QSJ4C_First_pass_p
 
 	if (storage_pos > parser->highest_string_storage_counter) {
 		parser->highest_string_storage_counter = storage_pos;
-	    if (QSJ4C_first_pass_needs_reallocation(parser)) {
-	    	if ( QSJ4C_allocate(builder, parser) == NULL) {
-	    		return NULL;
-	    	}
+	    if (QSJ4C_first_pass_needs_reallocation(parser) && QSJ4C_allocate(builder, parser) == NULL) {
+	    	return NULL;
 	    }
 	}
 
@@ -1061,31 +1053,6 @@ QSJ4C_Value* QSJ4C_builder_pop_values( QSJ4C_Builder* builder, size_type count )
     for (i = 0; i < count; i++) {
 		QSJ4C_set_type(new_pointer + i, QSJ4C_TYPE_NULL);
     }
-    return new_pointer;
-}
-
-char* QSJ4C_builder_pop_string( QSJ4C_Builder* builder, size_type length ) {
-    QSJ4C_ASSERT(builder->cur_str_pos >= length * sizeof(char), {return NULL;});
-    builder->cur_str_pos -= length * sizeof(char);
-    QSJ4C_ASSERT(QSJ4C_builder_validate_buffer(builder), {return NULL;});
-    return (char*)(&builder->buffer[builder->cur_str_pos]);
-}
-
-QSJ4C_Member* QSJ4C_builder_pop_members( QSJ4C_Builder* builder, size_type count ) {
-    QSJ4C_Member* new_pointer;
-    size_type i;
-    if (count == 0) {
-        return NULL;
-    }
-    new_pointer = (QSJ4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
-    builder->cur_obj_pos += count * sizeof(QSJ4C_Member);
-    QSJ4C_ASSERT(QSJ4C_builder_validate_buffer(builder), {return NULL;});
-
-    for (i = 0; i < count; i++) {
-		QSJ4C_set_type(QSJ4C_member_get_key(&new_pointer[i]), QSJ4C_TYPE_NULL);
-		QSJ4C_set_type(QSJ4C_member_get_value(&new_pointer[i]), QSJ4C_TYPE_NULL);
-    }
-
     return new_pointer;
 }
 
