@@ -75,7 +75,8 @@ endfunction ( register_build_type_profile )
 register_build_type_coverage()
 register_build_type_profile()
 
-set(CMAKE_C_FLAGS " -std=c99 -pedantic -Wno-format -pedantic-errors -Wall -Wextra -Werror")
+#set(CMAKE_C_FLAGS " -std=c99 -pedantic -Wno-format -pedantic-errors -Wall -Wextra -Werror")
+set(CMAKE_C_FLAGS "-O3 -Wall -Wextra -march=native -Wall -Wextra")
 
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})

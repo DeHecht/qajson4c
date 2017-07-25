@@ -67,16 +67,6 @@ class TestJsonMethods(unittest.TestCase):
         return None
     
     @parameterized.expand(list_files())
-    def test_insitu(self, filename):
-        binary_path = self.lookup_bin_path(self.BINARY_NAME)
-        self.assertEqual(0, subprocess.call("{} --file {} --output {} --insitu 1".format(binary_path, filename, self.RESULT_FILE), shell=True))
-        with open(filename) as reference:
-            with open(self.RESULT_FILE) as generated:
-                refjson = json.load(reference)
-                genjson = json.load(generated)
-                self.assertEqual(refjson, genjson)
-
-    @parameterized.expand(list_files())
     def test_normal(self, filename):
         binary_path = self.lookup_bin_path(self.BINARY_NAME)
         self.assertEqual(0, subprocess.call("{} --file {} --output {}".format(binary_path, filename, self.RESULT_FILE), shell=True))

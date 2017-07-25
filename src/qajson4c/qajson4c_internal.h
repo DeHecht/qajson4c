@@ -35,153 +35,157 @@
  *  Basically because the compiler should compile for the non-failure scenario.
  **/
 #if __GNUC__ >= 3
-#define QAJ4C_UNLIKELY(expr) __builtin_expect(expr, 0)
+#define QSJ4C_UNLIKELY(expr) __builtin_expect(expr, 0)
 #else
-#define QAJ4C_UNLIKELY(expr) expr
+#define QSJ4C_UNLIKELY(expr) expr
 #endif
 
-#define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { g_qaj4c_err_function(); alt } while(0)
+#define QSJ4C_ASSERT(arg, alt) if (QSJ4C_UNLIKELY(!(arg))) do { g_QSJ4C_err_function(); alt } while(0)
 
-#define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
-#define QAJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))
-
-#define QAJ4C_INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
-
-#define QAJ4C_NULL_TYPE_CONSTANT   ((QAJ4C_NULL << 8) | QAJ4C_TYPE_NULL)
-#define QAJ4C_OBJECT_TYPE_CONSTANT ((QAJ4C_OBJECT << 8) |  QAJ4C_TYPE_OBJECT)
-#define QAJ4C_OBJECT_SORTED_TYPE_CONSTANT ((QAJ4C_OBJECT_SORTED << 8) | QAJ4C_TYPE_OBJECT)
-#define QAJ4C_ARRAY_TYPE_CONSTANT  ((QAJ4C_ARRAY << 8) | QAJ4C_TYPE_ARRAY)
-#define QAJ4C_STRING_TYPE_CONSTANT ((QAJ4C_STRING << 8) | QAJ4C_TYPE_STRING)
-#define QAJ4C_STRING_REF_TYPE_CONSTANT ((QAJ4C_STRING_REF << 8) | QAJ4C_TYPE_STRING)
-#define QAJ4C_INLINE_STRING_TYPE_CONSTANT ((QAJ4C_INLINE_STRING << 8) | QAJ4C_TYPE_STRING)
-#define QAJ4C_ERROR_DESCRIPTION_TYPE_CONSTANT ((QAJ4C_ERROR_DESCRIPTION << 8) | QAJ4C_TYPE_INVALID)
-
-#define QAJ4C_NUMBER_TYPE_CONSTANT ((QAJ4C_PRIMITIVE << 8) | QAJ4C_TYPE_NUMBER)
-
-#define QAJ4C_BOOL_TYPE_CONSTANT   ((QAJ4C_PRIMITIVE_BOOL << 24) | (QAJ4C_PRIMITIVE_BOOL << 16) | (QAJ4C_PRIMITIVE << 8) |  QAJ4C_TYPE_BOOL)
-#define QAJ4C_UINT64_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_UINT64 << 24) | ((QAJ4C_PRIMITIVE_UINT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_UINT64_TYPE_INT64_COMPAT_CONSTANT ((QAJ4C_PRIMITIVE_UINT64 << 24) | ((QAJ4C_PRIMITIVE_UINT64 | QAJ4C_PRIMITIVE_DOUBLE | QAJ4C_PRIMITIVE_INT64) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_UINT32_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_UINT << 24) | ((QAJ4C_PRIMITIVE_UINT64 | QAJ4C_PRIMITIVE_UINT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_UINT32_TYPE_INT32_COMPAT_CONSTANT ((QAJ4C_PRIMITIVE_UINT << 24) | ((QAJ4C_PRIMITIVE_UINT64 | QAJ4C_PRIMITIVE_UINT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE | QAJ4C_PRIMITIVE_INT) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_INT64_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT64 << 24) | ((QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_INT32_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT << 24) | ((QAJ4C_PRIMITIVE_INT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
-#define QAJ4C_DOUBLE_TYPE_CONSTANT (((QAJ4C_PRIMITIVE_DOUBLE << 24) | (QAJ4C_PRIMITIVE_DOUBLE << 16)) | (QAJ4C_NUMBER_TYPE_CONSTANT))
+#define QSJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
+#define QSJ4C_MAX(lhs, rhs) ((lhs>=rhs)?(lhs):(rhs))
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef uint32_t size_type;
 
-typedef enum QAJ4C_INTERNAL_TYPE {
-    QAJ4C_NULL = 0,
-    QAJ4C_UNSPECIFIED,
-    QAJ4C_OBJECT,
-    QAJ4C_OBJECT_SORTED,
-    QAJ4C_ARRAY,
-    QAJ4C_STRING,
-    QAJ4C_STRING_REF,
-    QAJ4C_INLINE_STRING,
-    QAJ4C_PRIMITIVE,
-    QAJ4C_ERROR_DESCRIPTION
-} QAJ4C_INTERNAL_TYPE;
+#define BUFF_SIZE 6
 
-typedef enum QAJ4C_Primitive_type {
-    QAJ4C_PRIMITIVE_BOOL = (1 << 0),
-    QAJ4C_PRIMITIVE_INT = (1 << 1),
-    QAJ4C_PRIMITIVE_INT64 = (1 << 2),
-    QAJ4C_PRIMITIVE_UINT = (1 << 3),
-    QAJ4C_PRIMITIVE_UINT64 = (1 << 4),
-    QAJ4C_PRIMITIVE_DOUBLE = (1 << 5)
-} QAJ4C_Primitive_type;
+typedef uint16_t size_type;
 
-typedef struct QAJ4C_Object {
-    QAJ4C_Member* top;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Object;
-
-typedef struct QAJ4C_Array {
-    QAJ4C_Value* top;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Array;
-
-typedef struct QAJ4C_String {
-    const char* s;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_String;
-
-typedef struct QAJ4C_Error_information {
-    const char* json;
-    size_type json_pos;
-    size_type err_no;
-} QAJ4C_Error_information;
-
-typedef struct QAJ4C_Error {
-    QAJ4C_Error_information* info;
-    char padding[sizeof(size_type) * 2];
-} QAJ4C_ALIGN QAJ4C_Error;
+typedef enum QSJ4C_Primitive_type {
+    QSJ4C_PRIMITIVE_INT = (1 << 0),
+    QSJ4C_PRIMITIVE_UINT = (1 << 1),
+    QSJ4C_PRIMITIVE_FLOAT = (1 << 2)
+} QSJ4C_Primitive_type;
 
 /**
- * Instead of storing a pointer to a char* like in QAJ4C_String we can QAJ4C_INLINE the
- * char in the struct. This saves a) the dereferencing, b) additional memory.
- * As the string has to be small the count value can also be smaller, to additionally
- * store some more chars.
- * On 32-Bit => 6 chars + \0, on 64-Bit => 10 chars + \0.
+ * Simplistic setup
+ *  - Byte[0] => Bit 7-6 => Primitive-type, Bit 5-0 => QSJ4C_TYPE
  */
-typedef struct QAJ4C_Short_string {
-    char s[QAJ4C_INLINE_STRING_SIZE + 1];
-    uint8_t count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Short_string;
-
-typedef struct QAJ4C_Primitive {
-    union primitive {
-        double d;
-        uint64_t u;
-        int64_t i;
-        bool b;
-    } data;
-    /* Padding on 64 Bit => 8, 32 Bit => 4 */
-    char padding[sizeof(uintptr_t) + sizeof(size_type) * 2 - sizeof(uint64_t)];
-
-} QAJ4C_ALIGN QAJ4C_Primitive;
-
-struct QAJ4C_Value {
-	char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
-    size_type type;
-} QAJ4C_ALIGN; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
-
-struct QAJ4C_Member {
-    QAJ4C_Value key;
-    QAJ4C_Value value;
+struct QSJ4C_Value {
+	uint8_t buff[BUFF_SIZE];
 };
 
-extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
+///**
+// * Byte[1] => reserved!
+// * Byte[2,3] => "Pointer" to top QSJ4C_Member (BUFF_SIZE aligned)
+// * Byte[4,5] => Member count (0-65535)
+// */
+//typedef QSJ4C_Value QSJ4C_Object;
+//
+///**
+// * Byte[1] => reserved!
+// * Byte[2,3] => "Pointer" to top QSJ4C_Value (BUFF_SIZE aligned)
+// * Byte[4,5] => Member count (0-65535)
+// */
+//typedef QSJ4C_Value QSJ4C_Array;
+//
+///**
+// * Byte[1] => High byte of "Pointer" to string start (uint8_t)
+// * Byt€[2,3] => Low word of "Pointer" to string start (uint16_t)
+// * Byte[4,5] => String length (0-65535)
+// */
+//typedef QSJ4C_Value QSJ4C_String;
+//
+///**
+// * Byte[1] => Error code
+// * Byte[2-5] => json position (2^32)
+// */
+//typedef QSJ4C_Value QSJ4C_Error_information;
+//
+///**
+// * Byte[1] => primitive type
+// * Byte[2-5] => 32 Bit numeric value (float, uint32_t, int32_t)
+// */
+//typedef QSJ4C_Value QSJ4C_Number;
+//
+///**
+// * Byte[1] => 1 ==> true, 0 ==> false
+// * Byte[2-5] reserved
+// */
+//typedef QSJ4C_Value QSJ4C_Bool;
 
-void QAJ4C_std_err_function( void );
-size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback);
-size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
+struct QSJ4C_Member {
+	uint8_t buff[BUFF_SIZE * 2];
+};
 
-QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
-char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
-QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
+extern QSJ4C_fatal_error_fn g_QSJ4C_err_function;
 
-uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr );
-uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr );
-QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );
+void QSJ4C_std_err_function( void );
+size_t QSJ4C_parse_generic(QSJ4C_Builder* builder, const char* json, size_t json_len, int opts, QSJ4C_Value** result_ptr, QSJ4C_realloc_fn realloc_callback);
+size_t QSJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 
+QSJ4C_Value* QSJ4C_builder_pop_values( QSJ4C_Builder* builder, size_type count );
+char* QSJ4C_builder_pop_string( QSJ4C_Builder* builder, size_type length );
+QSJ4C_Member* QSJ4C_builder_pop_members( QSJ4C_Builder* builder, size_type count );
 
-const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
-const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
+QSJ4C_Value* QSJ4C_object_get_sorted(QSJ4C_Value* obj_ptr, QSJ4C_Value* str_ptr );
+QSJ4C_Value* QSJ4C_object_get_unsorted( QSJ4C_Value* obj_ptr, QSJ4C_Value* str_ptr );
 
+int QSJ4C_strcmp( const QSJ4C_Value* lhs, const QSJ4C_Value* rhs );
+int QSJ4C_compare_members( const void* lhs, const void * rhs );
 
-int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
-int QAJ4C_compare_members( const void* lhs, const void * rhs );
+uint8_t QSJ4C_get_compatibility_types( const QSJ4C_Value* value_ptr );
+void QSJ4C_set_type( QSJ4C_Value* value_ptr, QSJ4C_TYPE type );
 
-size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
+/**
+ * Sets the storage relevant data for objects.
+ */
+void QSJ4C_set_object_data( QSJ4C_Value* value_ptr, QSJ4C_Member* top_ptr, uint16_t count );
+
+/**
+ * Sets the storage relevant data for arrays.
+ */
+void QSJ4C_set_array_data( QSJ4C_Value* value_ptr, QSJ4C_Value* top_ptr, uint16_t count );
+
+/**
+ * Sets the storage relevant data for strings.
+ */
+void QSJ4C_set_string_data( QSJ4C_Value* value_ptr, char* str_ptr, uint16_t count );
+
+/**
+ * Initializes the builder with the given buffer.
+ */
+void QSJ4C_builder_init( QSJ4C_Builder* me, void* buff, size_t buff_size );
+
+/**
+ * This method will retrieve the document from the builder.
+ * Returns NULL in case the buffer has insufficient size.
+ */
+QSJ4C_Value* QSJ4C_builder_get_document( QSJ4C_Builder* builder );
+
+/**
+ * This method will set the value to a boolean with the handed over value.
+ */
+void QSJ4C_set_bool( QSJ4C_Value* value_ptr, bool value );
+
+/**
+ * This method will set the value to a int32_t with the handed over value.
+ */
+void QSJ4C_set_int( QSJ4C_Value* value_ptr, int32_t value );
+
+/**
+ * This method will set the value to a uint32_t with the handed over value.
+ */
+void QSJ4C_set_uint( QSJ4C_Value* value_ptr, uint32_t value );
+
+/**
+ * This method will set the value to a float with the handed over value.
+ */
+void QSJ4C_set_float( QSJ4C_Value* value_ptr, float value );
+
+/**
+ * This method will set the value to the JSON null type.
+ */
+void QSJ4C_set_null( QSJ4C_Value* value_ptr );
+
+size_t QSJ4C_sprint_impl( QSJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
+
+uint32_t QSJ4C_read_uint24(const uint8_t* buff);
+
+void QSJ4C_write_uint24(uint8_t* buff, uint32_t value);
 
 #ifdef __cplusplus
 }

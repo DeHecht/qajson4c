@@ -31,8 +31,8 @@
  * use qajson4c without std library support and to implement the missing functions.
  */
 
-#ifndef QAJ4C_STDWRAP_H_
-#define QAJ4C_STDWRAP_H_
+#ifndef QSJ4C_STDWRAP_H_
+#define QSJ4C_STDWRAP_H_
 
 #if (defined(__STDC_VERSION__) && (__STDC_VERSION__ < 199901L))
 #error "You need to specify a own implementation of the standard library when not using at least C99"
@@ -54,46 +54,46 @@
 #include <inttypes.h>
 
 #if ((ULONG_MAX) == (UINT64_MAX))
-#define QAJ4C_STRTOUL strtoul
+#define QSJ4C_STRTOUL strtoul
 #elif ((ULLONG_MAX) == (UINT64_MAX))
-#define QAJ4C_STRTOUL strtoull
+#define QSJ4C_STRTOUL strtoull
 #else
 #error "ULONG_MAX >= UINT64_MAX"
 #endif
 
 #if ((LONG_MAX) == (INT64_MAX))
-#define QAJ4C_STRTOL strtol
+#define QSJ4C_STRTOL strtol
 #elif ((LLONG_MAX) == (INT64_MAX))
-#define QAJ4C_STRTOL strtoll
+#define QSJ4C_STRTOL strtoll
 #else
 #error "LONG_MAX >= INT64_MAX"
 #endif
 
-#define QAJ4C_STRLEN strlen
-#define QAJ4C_STRNCMP strncmp
-#define QAJ4C_MEMMOVE memmove
-#define QAJ4C_MEMCPY memcpy
+#define QSJ4C_STRLEN strlen
+#define QSJ4C_STRNCMP strncmp
+#define QSJ4C_MEMMOVE memmove
+#define QSJ4C_MEMCPY memcpy
 
 #ifndef _WIN32
-#define QAJ4C_SNPRINTF snprintf
+#define QSJ4C_SNPRINTF snprintf
 #else
-#define QAJ4C_SNPRINTF __mingw_snprintf
+#define QSJ4C_SNPRINTF __mingw_snprintf
 #endif
 
 #if defined(_WIN64) || (defined(__WORDSIZE) && __WORDSIZE == 64)
-#define QAJ4C_ALIGN __attribute__((packed, aligned(8)))
+#define QSJ4C_ALIGN __attribute__((packed, aligned(8)))
 #elif defined(_WIN32) || (defined(__WORDSIZE) && __WORDSIZE == 32)
-#define QAJ4C_ALIGN __attribute__((packed, aligned(4)))
+#define QSJ4C_ALIGN __attribute__((packed, aligned(4)))
 #else
 #define "Invalid word size detected!"
 #endif
 
-#define QAJ4C_ITOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIi64, value)
-#define QAJ4C_UTOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIu64, value)
-#define QAJ4C_STRTOD strtod
-#define QAJ4C_QSORT qsort
-#define QAJ4C_BSEARCH bsearch
-#define QAJ4C_RAISE raise
+#define QSJ4C_ITOSTRN(buffer, n, value) QSJ4C_SNPRINTF(buffer, n, "%" PRIi32, value)
+#define QSJ4C_UTOSTRN(buffer, n, value) QSJ4C_SNPRINTF(buffer, n, "%" PRIu32, value)
+#define QSJ4C_STRTOD strtod
+#define QSJ4C_QSORT qsort
+#define QSJ4C_BSEARCH bsearch
+#define QSJ4C_RAISE raise
 
 #endif
 
