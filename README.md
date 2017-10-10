@@ -2,7 +2,7 @@
 
 A simple json library written in C. Optimized for low memory consumption and for good usability without dynamic memory allocation.
 
-[![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=master)](https://travis-ci.org/USESystemEngineeringBV/qajson4c) [![Build status](https://ci.appveyor.com/api/projects/status/9imof268cwquh463?svg=true)](https://ci.appveyor.com/project/DeHecht/qajson4c) [![codecov](https://codecov.io/gh/USESystemEngineeringBV/qajson4c/branch/master/graph/badge.svg)](https://codecov.io/gh/USESystemEngineeringBV/qajson4c) [![Quality Gate](https://sonarqube.com/api/badges/gate?key=nl.usetechnology.qajson4c-project)](https://sonarqube.com/dashboard/index/nl.usetechnology.qajson4c-project)
+[![Build Status](https://travis-ci.org/USESystemEngineeringBV/qajson4c.svg?branch=master)](https://travis-ci.org/USESystemEngineeringBV/qajson4c) [![Build status](https://ci.appveyor.com/api/projects/status/9imof268cwquh463/branch/master?svg=true)](https://ci.appveyor.com/project/DeHecht/qajson4c) [![codecov](https://codecov.io/gh/USESystemEngineeringBV/qajson4c/branch/master/graph/badge.svg)](https://codecov.io/gh/USESystemEngineeringBV/qajson4c) [![Quality Gate](https://sonarqube.com/api/badges/gate?key=nl.usetechnology.qajson4c-project)](https://sonarqube.com/dashboard/index/nl.usetechnology.qajson4c-project)
 
 
 ## Features
