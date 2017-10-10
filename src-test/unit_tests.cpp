@@ -1364,6 +1364,7 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFails) {
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
+    free((void*)value);
 }
 
 /**
@@ -1386,6 +1387,7 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFailsWithObject) {
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
+    free((void*)value);
 }
 
 /**
@@ -1453,6 +1455,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
 
         assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
     }
+    free((void*)value);
 }
 
 /**
@@ -2031,6 +2034,7 @@ TEST(ErrorHandlingTests, ReallocFailsBegin) {
     // just reduce the buffer size by one single byte
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
     assert(QAJ4C_is_not_set(value));
+    free((void*)value);
 }
 
 TEST(ErrorHandlingTests, ReallocFailsLater) {
@@ -2048,6 +2052,7 @@ TEST(ErrorHandlingTests, ReallocFailsLater) {
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
+    free((void*)value);
 }
 
 TEST(ErrorHandlingTests, DoubleSmallPrintBuffer) {
@@ -2202,6 +2207,7 @@ TEST(PrintTests, PrintErrorObject) {
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
     assert(0 == count); // expect no error
     assert(strcmp("", output) != 0); // expect no empty message!
+    free((void*)value);
 }
 
 /**
@@ -2872,6 +2878,7 @@ TEST(CornerCaseTests, AttachedEmptyArray) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_array_size(QAJ4C_object_get(value, "a")) == 1);
     assert(QAJ4C_array_size(QAJ4C_object_get(value, "b")) == 0);
+    free((void*)value);
 }
 
 /**
@@ -2882,6 +2889,7 @@ TEST(CornerCaseTests, AttachedEmptyObject) {
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
 
     assert(QAJ4C_is_object(value));
+    free((void*)value);
 }
 
 /**
