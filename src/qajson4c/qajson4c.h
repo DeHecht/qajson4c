@@ -78,6 +78,12 @@ typedef void (*QAJ4C_fatal_error_fn)( void );
 typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
 
 /**
+ * This type defines a callback method for the print method.
+ * @return true, on success else false.
+ */
+typedef bool (*QAJ4C_print_callback_fn)( void *ptr, char c );
+
+/**
  * Error codes that can be expected from the qa json parser.
  */
 typedef enum QAJ4C_ERROR_CODE {
@@ -229,6 +235,12 @@ size_t QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buff
  * @return the amount of data written to the buffer, including the '\0' character.
  */
 size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size );
+
+/**
+ * This method prints the DOM as JSON using the provided callback. Also a data ptr can be
+ * supplied to be handed over to the callback.
+ */
+bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
 
 /**
  * This method will return true, in case the value can be read out as string.

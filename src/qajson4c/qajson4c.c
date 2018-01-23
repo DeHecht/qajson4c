@@ -110,6 +110,13 @@ size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_s
     return index + 1;
 }
 
+bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr ) {
+    if (QAJ4C_UNLIKELY(callback == NULL)) {
+        return false;
+    }
+    return QAJ4C_print_callback_impl(value_ptr, callback, ptr);
+}
+
 bool QAJ4C_is_string(const QAJ4C_Value* value_ptr) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_STRING;
 }

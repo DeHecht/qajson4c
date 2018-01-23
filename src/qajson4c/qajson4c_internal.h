@@ -182,6 +182,7 @@ int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
 
 size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
+bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr);
 
 #ifdef __cplusplus
 }

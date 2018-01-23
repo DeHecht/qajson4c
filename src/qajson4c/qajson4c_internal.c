@@ -65,6 +65,11 @@ typedef struct QAJ4C_Second_pass_parser {
     size_type curr_buffer_pos;
 } QAJ4C_Second_pass_parser;
 
+typedef struct QAJ4C_Buffer_printer {
+    char* buffer;
+    size_type index;
+    size_type len;
+} QAJ4C_Buffer_printer;
 
 void QAJ4C_std_err_function(void) {
     QAJ4C_RAISE(SIGABRT);
@@ -110,10 +115,16 @@ static char QAJ4C_json_message_read( QAJ4C_Json_message* msg );
 static void QAJ4C_json_message_forward( QAJ4C_Json_message* msg );
 static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg );
 
-size_t QAJ4C_sprint_object( const QAJ4C_Object* value_ptr, char* buffer, size_t buffer_size, size_t index );
-size_t QAJ4C_sprint_array( const QAJ4C_Array* value_ptr, char* buffer, size_t buffer_size, size_t index );
-size_t QAJ4C_sprint_primitive( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
-size_t QAJ4C_sprint_double( double d, char* buffer, size_t buffer_size, size_t index );
+bool QAJ4C_std_sprint_function( void *ptr, char c);
+bool QAJ4C_print_callback_object( const QAJ4C_Object* value_ptr, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_array( const QAJ4C_Array* value_ptr, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_primitive( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_double( double d, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_uint64( uint64_t value, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_int64( int64_t value, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_constant( const char *string, QAJ4C_print_callback_fn callback, void *ptr );
+bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_callback_fn callback, void *ptr );
 
 static const char QAJ4C_NULL_STR[] = "null";
 static const char QAJ4C_TRUE_STR[] = "true";
@@ -1119,226 +1130,222 @@ int QAJ4C_compare_members( const void* lhs, const void* rhs ) {
     return QAJ4C_is_null(&left->key) ? 1 : -1;
 }
 
-static size_t QAJ4C_copy_simple_string(char* buffer, size_t buffer_length, const char* string, size_t string_length) {
-    size_t index = 0;
-    size_t copy_length = string_length > buffer_length ? (buffer_length) : (string_length);
-
-    for (index = 0; index < copy_length; index++) {
-        buffer[index] = string[index];
-    }
-    return index;
-}
-
-/*
- * This method does not only copy the string ... but also replaces all control chars.
- */
-static size_t QAJ4C_copy_custom_string(char* buffer, size_t buffer_size, const QAJ4C_Value* value_ptr) {
-    size_t string_index = 0;
-    size_t buffer_index = 0;
-    static const char* replacement_buf[] = {
-            "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007", "\\b",     "\\t",     "\\n",     "\\u000b", "\\f",     "\\r",     "\\u000e", "\\u000f",
-            "\\u0010", "\\u0011", "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f"
-    };
-    static const uint8_t replacement_len[] = {
-            6,         6,         6,         6,         6,         6,         6,         6,         2,         2,         2,         6,          2,        2,         6,         6,
-            6,         6,         6,         6,         6,         6,         6,         6,         6,         6,         6,         6,          6,        6,         6,         6
-    };
-
-    const char* string = QAJ4C_get_string(value_ptr);
-    size_type string_length = QAJ4C_get_string_length(value_ptr);
-
-    buffer[buffer_index] = '"';
-    buffer_index++;
-
-    for( string_index = 0; string_index < string_length && buffer_index < buffer_size; ++string_index) {
-        const char* replacement_string = NULL;
-        uint8_t replacement_string_len = 0;
-        uint8_t char_value = string[string_index];
-
-        switch(char_value) {
-        case '"':
-            replacement_string = "\\\"";
-            replacement_string_len = 2;
-            break;
-        case '\\':
-            replacement_string = "\\\\";
-            replacement_string_len = 2;
-            break;
-        case '/':
-            replacement_string = "\\/";
-            replacement_string_len = 2;
-            break;
-
-        default:
-            if (QAJ4C_UNLIKELY(char_value < 32)) {
-                replacement_string = replacement_buf[char_value];
-                replacement_string_len = replacement_len[char_value];
-            }
-        }
-
-        if (replacement_string != NULL) {
-            buffer_index += QAJ4C_copy_simple_string(buffer + buffer_index, buffer_size - buffer_index, replacement_string, replacement_string_len);
-        } else {
-            buffer[buffer_index] = string[string_index];
-            buffer_index++;
-        }
-    }
-
-    if (buffer_index >= buffer_size) {
-        return buffer_index;
-    }
-    buffer[buffer_index] = '"';
-    buffer_index++;
-
-    return buffer_index;
-}
-
-size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index ) {
-    size_type buffer_index = index;
-
-    if (buffer_index >= buffer_size) {
-        return buffer_index;
-    }
+bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr)
+{
+    bool result = false;
     switch (QAJ4C_get_internal_type(value_ptr)) {
     case QAJ4C_OBJECT_SORTED:
     case QAJ4C_OBJECT:
-        buffer_index = QAJ4C_sprint_object((const QAJ4C_Object*)value_ptr, buffer, buffer_size, index);
+        result = QAJ4C_print_callback_object((const QAJ4C_Object*)value_ptr, callback, ptr);
         break;
     case QAJ4C_ARRAY:
-        buffer_index = QAJ4C_sprint_array((const QAJ4C_Array*)value_ptr, buffer, buffer_size, index);
+        result = QAJ4C_print_callback_array((const QAJ4C_Array*)value_ptr, callback, ptr);
         break;
     case QAJ4C_PRIMITIVE:
-        buffer_index = QAJ4C_sprint_primitive(value_ptr, buffer, buffer_size, index);
+        result = QAJ4C_print_callback_primitive(value_ptr, callback, ptr);
         break;
     case QAJ4C_NULL:
-        buffer_index += QAJ4C_copy_simple_string(buffer + buffer_index, buffer_size - buffer_index, QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN);
+        result = QAJ4C_print_callback_constant(QAJ4C_NULL_STR, callback, ptr);
         break;
     case QAJ4C_STRING_REF:
     case QAJ4C_INLINE_STRING:
     case QAJ4C_STRING:
-        buffer_index += QAJ4C_copy_custom_string(buffer + buffer_index, buffer_size - buffer_index, value_ptr);
+        result = QAJ4C_print_callback_string(QAJ4C_get_string(value_ptr), callback, ptr);
         break;
     case QAJ4C_ERROR_DESCRIPTION:
-        buffer_index += QAJ4C_SNPRINTF(buffer + buffer_index, buffer_size - buffer_index, "{\"error\":\"Unable to parse json message. Error (%d) at position %d\"}", ((QAJ4C_Error*)value_ptr)->info->err_no, ((QAJ4C_Error*)value_ptr)->info->json_pos);
+        result = QAJ4C_print_callback_error((const QAJ4C_Error*)value_ptr, callback, ptr);
         break;
     default:
         g_qaj4c_err_function();
     }
-
-    return buffer_index;
+    return result;
 }
 
-
-size_t QAJ4C_sprint_object( const QAJ4C_Object* value_ptr, char* buffer, size_t buffer_size, size_t index ) {
+bool QAJ4C_print_callback_object( const QAJ4C_Object* value_ptr, QAJ4C_print_callback_fn callback, void *ptr ) {
     QAJ4C_Member* top = value_ptr->top;
-    size_type buffer_index = index;
     size_type i;
     size_type n = ((QAJ4C_Object*)value_ptr)->count;
+    bool result = true;
 
-    buffer[buffer_index] = '{';
-    buffer_index++;
+    result = callback(ptr, '{');
     for (i = 0; i < n; ++i) {
-        if (buffer_index >= buffer_size) {
-            return buffer_index;
-        }
         if (!QAJ4C_is_null(&top[i].key)) {
             if (i > 0) {
-                buffer[buffer_index] = ',';
-                buffer_index++;
+                result = result && callback(ptr, ',');
             }
-            buffer_index = QAJ4C_sprint_impl(&top[i].key, buffer, buffer_size, buffer_index);
-            if (buffer_index >= buffer_size) {
-                return buffer_index;
-            }
-            buffer[buffer_index] = ':';
-            buffer_index++;
-            buffer_index = QAJ4C_sprint_impl(&top[i].value, buffer, buffer_size, buffer_index);
+
+            result = result && QAJ4C_print_callback_impl(&top[i].key, callback, ptr)
+                    && callback(ptr, ':')
+                    && QAJ4C_print_callback_impl(&top[i].value, callback, ptr);
         }
     }
-    if (buffer_index >= buffer_size) {
-        return buffer_index;
-    }
-    buffer[buffer_index] = '}';
-    buffer_index++;
-    return buffer_index;
+    return result && callback(ptr, '}');
 }
 
-size_t QAJ4C_sprint_array( const QAJ4C_Array* value_ptr, char* buffer, size_t buffer_size, size_t index )
+bool QAJ4C_print_callback_array( const QAJ4C_Array* value_ptr, QAJ4C_print_callback_fn callback, void *ptr )
 {
     QAJ4C_Value* top = value_ptr->top;
-    size_type buffer_index = index;
+    bool result = true;
     size_type i;
     size_type n = ((QAJ4C_Array*)value_ptr)->count;
 
-    buffer[buffer_index] = '[';
-    buffer_index++;
-    for (i = 0; i < n; i++) {
-        if (buffer_index >= buffer_size) {
-            return buffer_index;
-        }
+    result = callback(ptr, '[');
+    for (i = 0; i < n; ++i) {
         if (i > 0) {
-            buffer[buffer_index] = ',';
-            buffer_index++;
+            result = result && callback(ptr, ',');
         }
-        buffer_index = QAJ4C_sprint_impl(&top[i], buffer, buffer_size, buffer_index);
+        result = result && QAJ4C_print_callback_impl(&top[i], callback, ptr);
     }
-    if (buffer_index >= buffer_size) {
-        return buffer_index;
-    }
-    buffer[buffer_index] = ']';
-    buffer_index++;
-    return buffer_index;
+    return result && callback(ptr, ']');
 }
 
-size_t QAJ4C_sprint_primitive( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index )
+bool QAJ4C_print_callback_primitive( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void *ptr )
 {
-    size_type buffer_index = index;
+    bool result = true;
     switch (QAJ4C_get_storage_type(value_ptr)) {
     case QAJ4C_PRIMITIVE_BOOL:
         if (((QAJ4C_Primitive*)value_ptr)->data.b) {
-            buffer_index += QAJ4C_copy_simple_string(buffer + buffer_index, buffer_size - buffer_index, QAJ4C_TRUE_STR, QAJ4C_TRUE_STR_LEN);
+            result = QAJ4C_print_callback_constant( QAJ4C_TRUE_STR, callback, ptr );
         } else {
-            buffer_index += QAJ4C_copy_simple_string(buffer + buffer_index, buffer_size - buffer_index, QAJ4C_FALSE_STR, QAJ4C_FALSE_STR_LEN);
+            result = QAJ4C_print_callback_constant( QAJ4C_FALSE_STR, callback, ptr );
         }
         break;
     case QAJ4C_PRIMITIVE_INT:
     case QAJ4C_PRIMITIVE_INT64:
-        buffer_index += QAJ4C_ITOSTRN(buffer + buffer_index, buffer_size - buffer_index, ((QAJ4C_Primitive*) value_ptr)->data.i);
+        result = QAJ4C_print_callback_int64(((QAJ4C_Primitive*)value_ptr)->data.i, callback, ptr);
         break;
     case QAJ4C_PRIMITIVE_UINT:
     case QAJ4C_PRIMITIVE_UINT64:
-        buffer_index += QAJ4C_UTOSTRN(buffer + buffer_index, buffer_size - buffer_index, ((QAJ4C_Primitive*) value_ptr)->data.u);
+        result = QAJ4C_print_callback_uint64(((QAJ4C_Primitive*)value_ptr)->data.u, callback, ptr);
         break;
     default: /* it has to be double */
-        buffer_index = QAJ4C_sprint_double(((QAJ4C_Primitive*) value_ptr)->data.d, buffer, buffer_size, buffer_index);
+        result = QAJ4C_print_callback_double(((QAJ4C_Primitive*)value_ptr)->data.d, callback, ptr);
         break;
     }
-    return buffer_index;
+    return result;
 }
 
-size_t QAJ4C_sprint_double( double d, char* buffer, size_t buffer_size, size_t index )
+bool QAJ4C_print_callback_double( double d, QAJ4C_print_callback_fn callback, void *ptr )
 {
-    /* printing doubles inspired from cJSON */
-    size_type buffer_index = index;
-    double absd = d < 0 ? -d: d;
-    double delta = (int64_t)(d) - d;
-    double absDelta = delta < 0 ? -delta : delta;
+    static int BUFFER_SIZE = 32;
+    char buffer[BUFFER_SIZE];
+    bool result = true;
+
     if ((d * 0) != 0) {
-        buffer_index += QAJ4C_copy_simple_string(buffer + buffer_index, buffer_size - buffer_index, QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN);
-    } else if ((absDelta <= DBL_EPSILON) && (absd < 1.0e60)) {
-        buffer_index += QAJ4C_SNPRINTF(buffer + buffer_index, buffer_size - buffer_index, "%.1f", d);
-    } else if ((absd < 1.0e-6) || (absd > 1.0e9)) {
-        buffer_index += QAJ4C_SNPRINTF(buffer + buffer_index, buffer_size - buffer_index, "%e", d);
+        result = QAJ4C_print_callback_constant(QAJ4C_NULL_STR, callback, ptr);
     } else {
-        buffer_index += QAJ4C_SNPRINTF(buffer + buffer_index, buffer_size - buffer_index, "%f", d);
-        if ( buffer_index < buffer_size) {
-            while (buffer[buffer_index - 1] == '0') {
-                buffer_index--;
+        double absd = d < 0 ? -d: d;
+        double delta = (int64_t)(d) - d;
+        double absDelta = delta < 0 ? -delta : delta;
+        int printf_result = 0;
+        bool strip_trailing_zeros = true;
+        if ((absDelta <= DBL_EPSILON) && (absd < 1.0e60)) {
+            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%.1f", d);
+        } else if ((absd < 1.0e-6) || (absd > 1.0e9)) {
+            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%e", d);
+            strip_trailing_zeros = false;
+        } else {
+            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%f", d);
+        }
+
+        if (printf_result > 0 && printf_result < BUFFER_SIZE) {
+            if (strip_trailing_zeros) {
+                int pos = printf_result;
+                while (pos > 0 && buffer[pos - 1] == '0') {
+                    pos -= 1;
+                }
+                if (buffer[pos - 1] == '.') {
+                    pos += 1;
+                }
+                buffer[pos] = '\0';
             }
-            if (buffer[buffer_index - 1] == '.') {
-                buffer_index--;
-            }
+
+            result = QAJ4C_print_callback_constant(buffer, callback, ptr);
         }
     }
-    return buffer_index;
+    return result;
+}
+
+bool QAJ4C_print_callback_uint64( uint64_t value, QAJ4C_print_callback_fn callback, void *ptr )
+{
+    static int BUFFER_SIZE = 32;
+    char buffer[BUFFER_SIZE];
+    int chars_copied = QAJ4C_UTOSTRN(buffer, BUFFER_SIZE, value) > 0;
+    if (chars_copied > 0 && chars_copied < BUFFER_SIZE) {
+        return QAJ4C_print_callback_constant(buffer, callback, ptr);
+    }
+    return false;
+}
+
+bool QAJ4C_print_callback_int64( int64_t value, QAJ4C_print_callback_fn callback, void *ptr )
+{
+    static int BUFFER_SIZE = 32;
+    char buffer[BUFFER_SIZE];
+    int chars_copied = QAJ4C_ITOSTRN(buffer, BUFFER_SIZE, value) > 0;
+    if (chars_copied > 0 && chars_copied < BUFFER_SIZE) {
+        return QAJ4C_print_callback_constant(buffer, callback, ptr);
+    }
+    return false;
+}
+
+bool QAJ4C_print_callback_constant( const char *string, QAJ4C_print_callback_fn callback, void *ptr )
+{
+    const char *p = string;
+    bool result = true;
+    for ( ; *p != '\0'; p += 1) {
+        result = result && callback(ptr, *p);
+    }
+    return result;
+}
+
+bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_callback_fn callback, void *ptr )
+{
+    static const char* replacement_buf[] = {
+            "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007", "\\b",     "\\t",     "\\n",     "\\u000b", "\\f",     "\\r",     "\\u000e", "\\u000f",
+            "\\u0010", "\\u0011", "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f"
+    };
+    bool result = true;
+    const char *p = string;
+
+    result = callback(ptr, '"');
+    for ( ; *p != '\0'; p += 1) {
+        if (QAJ4C_UNLIKELY(*p < 32)) {
+            const char* replacement_string = replacement_buf[(uint8_t)*p];
+            result = result && QAJ4C_print_callback_constant(replacement_string, callback, ptr);
+        } else {
+            if (*p == '"' || *p == '/' || *p == '\\') {
+                result = result && callback(ptr, '\\');
+            }
+            result = result && callback(ptr, *p);
+        }
+    }
+    return result && callback(ptr, '"');
+}
+
+bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_callback_fn callback, void *ptr )
+{
+    return QAJ4C_print_callback_constant("{\"error\":\"Unable to parse json message. Error (", callback, ptr)
+            && QAJ4C_print_callback_uint64(value_ptr->info->err_no, callback, ptr)
+            && QAJ4C_print_callback_constant(") at position ", callback, ptr)
+            && QAJ4C_print_callback_uint64(value_ptr->info->json_pos, callback, ptr)
+            && QAJ4C_print_callback_constant("\"}", callback, ptr);
+}
+
+
+size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index ) {
+    QAJ4C_Buffer_printer printer = {buffer, index, buffer_size};
+    QAJ4C_print_callback( value_ptr, QAJ4C_std_sprint_function, &printer );
+    return printer.index;
+}
+
+bool QAJ4C_std_sprint_function( void *ptr, char c ) {
+    bool result = false;
+    QAJ4C_Buffer_printer* printer = (QAJ4C_Buffer_printer*)ptr;
+    if ( printer->index < printer->len )
+    {
+        printer->buffer[printer->index] = c;
+        printer->index += 1;
+        result = true;
+    }
+    return result;
 }
