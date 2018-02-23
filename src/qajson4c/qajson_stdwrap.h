@@ -85,7 +85,7 @@
 #elif defined(_WIN32) || (defined(__WORDSIZE) && __WORDSIZE == 32)
 #define QAJ4C_ALIGN __attribute__((packed, aligned(4)))
 #else
-#define "Invalid word size detected!"
+#error "Invalid word size detected!"
 #endif
 
 #define QAJ4C_ITOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIi64, value)
