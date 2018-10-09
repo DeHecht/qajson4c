@@ -65,6 +65,14 @@ struct QAJ4C_Builder {
 };
 typedef struct QAJ4C_Builder QAJ4C_Builder;
 
+struct QAJ4C_Object_builder {
+    QAJ4C_Value* object;
+    bool strict;
+    size_t pos;
+    size_t count;
+};
+typedef struct QAJ4C_Object_builder QAJ4C_Object_builder;
+
 /**
  * This method will get called in case of a fatal error
  * (array access on not array QAJ4C_Value).
@@ -78,10 +86,17 @@ typedef void (*QAJ4C_fatal_error_fn)( void );
 typedef void* (*QAJ4C_realloc_fn)( void *ptr, size_t size );
 
 /**
- * This type defines a callback method for the print method.
+ * This type defines a callback method for the print method. This callback will be called
+ * for each individual char.
  * @return true, on success else false.
  */
 typedef bool (*QAJ4C_print_callback_fn)( void *ptr, char c );
+
+/**
+ * Second print callback type that will be called with a buffer and size.
+ * @return true, on success else false.
+ */
+typedef bool (*QAJ4C_print_buffer_callback_fn)( void *ptr, const char* buffer, size_t size );
 
 /**
  * Error codes that can be expected from the qa json parser.
@@ -241,6 +256,12 @@ size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_s
  * supplied to be handed over to the callback.
  */
 bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
+
+/**
+ * This method prints the DOM as JSON using the provided callback. Also a data ptr can be
+ * supplied to be handed over to the callback.
+ */
+bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
 
 /**
  * This method will return true, in case the value can be read out as string.
@@ -624,7 +645,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_ref_n( QAJ4C_Value* value_ptr, const 
  * This way the string does not have to be copied over to the buffer, but the string has to stay
  * valid until the DOM is not required anymore.
  *
- * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref2 method, using
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref_n method, using
  * strlen to calculate the string length.
  */
 QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str );
@@ -639,10 +660,54 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy_n( QAJ4C_Value* value_ptr, const
  * This method creates a member within the object doing a copy of the handed over string.
  * The allocation will be performed on the handed over builder.
  *
- * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy2 method, using
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy_n method, using
  * strlen to calculate the string length.
  */
 QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder );
+
+/**
+ * This method creates a QAJ4C_Object_builder to fill the data of an QAJ4C_Object with a given size.
+ *
+ * @param value_ptr the value pointer to allocate the object.
+ * @param member_count the amount of members
+ * @param deduplicate, if set to true, the builder will ensure that no duplicate key strings are used
+ *                     and will then return the already present value so the application can overwrite it.
+ *                     If sest to false, new members are appended without lookup overhead.
+ * @return the builder instance.
+ */
+QAJ4C_Object_builder QAJ4C_object_builder_init( QAJ4C_Value* value_ptr, size_t member_count, bool deduplicate, QAJ4C_Builder* builder );
+
+/**
+ * This method creates a member within the object using the reference of the handed over string.
+ * This way the string does not have to be copied over to the buffer, but the string has to stay
+ * valid until the DOM is not required anymore.
+ */
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len );
+
+/**
+ * This method creates a member within the object using the reference of the handed over string.
+ * This way the string does not have to be copied over to the buffer, but the string has to stay
+ * valid until the DOM is not required anymore.
+ *
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref_n method, using
+ * strlen to calculate the string length.
+ */
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str );
+
+/**
+ * This method creates a member within the object doing a copy of the handed over string.
+ * The allocation will be performed on the handed over builder.
+ */
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
+
+/**
+ * This method creates a member within the object doing a copy of the handed over string.
+ * The allocation will be performed on the handed over builder.
+ *
+ * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy_n method, using
+ * strlen to calculate the string length.
+ */
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder );
 
 /**
  * This method creates a deep copy of the source value to the destination value using the
