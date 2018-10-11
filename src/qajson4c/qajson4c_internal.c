@@ -123,6 +123,8 @@ static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg );
 bool QAJ4C_std_sprint_function( void *ptr, const char* buffer, size_t size);
 bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, size_t size);
 
+static char* QAJ4C_do_print_uint64( uint64_t value, char* buffer, size_t size );
+
 bool QAJ4C_print_callback_object( const QAJ4C_Object* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 bool QAJ4C_print_callback_array( const QAJ4C_Array* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 bool QAJ4C_print_callback_primitive( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
@@ -1274,26 +1276,46 @@ bool QAJ4C_print_callback_double( double d, QAJ4C_print_buffer_callback_fn callb
     return result;
 }
 
+static char* QAJ4C_do_print_uint64( uint64_t value, char* buffer, size_t size )
+{
+    uint64_t number = value;
+    char* pos_ptr = buffer + size;
+    if (number == 0) {
+        pos_ptr -= 1;
+        *pos_ptr = '0';
+    } else {
+        while (number != 0) {
+            pos_ptr -= 1;
+            *pos_ptr = '0' + number % 10;
+            number /= 10;
+        }
+    }
+
+    return pos_ptr;
+}
+
 bool QAJ4C_print_callback_uint64( uint64_t value, QAJ4C_print_buffer_callback_fn callback, void *ptr )
 {
     static int BUFFER_SIZE = 32;
     char buffer[BUFFER_SIZE];
-    int chars_copied = QAJ4C_UTOSTRN(buffer, BUFFER_SIZE, value);
-    if ( chars_copied > BUFFER_SIZE ) {
-        return false;
-    }
-    return callback(ptr, buffer, chars_copied);
+    char* pos_ptr = QAJ4C_do_print_uint64(value, buffer, BUFFER_SIZE);
+    return callback(ptr, pos_ptr, (buffer + BUFFER_SIZE) - pos_ptr);
 }
 
 bool QAJ4C_print_callback_int64( int64_t value, QAJ4C_print_buffer_callback_fn callback, void *ptr )
 {
     static int BUFFER_SIZE = 32;
     char buffer[BUFFER_SIZE];
-    int chars_copied = QAJ4C_ITOSTRN(buffer, BUFFER_SIZE, value);
-    if ( chars_copied > BUFFER_SIZE ) {
-        return false;
+    bool negative = value < 0;
+    char* pos_ptr = QAJ4C_do_print_uint64(value * -1, buffer, BUFFER_SIZE);
+
+    /* prepend the sign char, in case the number is negative */
+    if ( negative )
+    {
+        pos_ptr -= 1;
+        *pos_ptr = '-';
     }
-    return callback(ptr, buffer, chars_copied);
+    return callback(ptr, pos_ptr, (buffer + BUFFER_SIZE) - pos_ptr);
 }
 
 bool QAJ4C_print_callback_constant( const char *string, size_t size, QAJ4C_print_buffer_callback_fn callback, void *ptr )

@@ -88,8 +88,6 @@
 #error "Invalid word size detected!"
 #endif
 
-#define QAJ4C_ITOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIi64, value)
-#define QAJ4C_UTOSTRN(buffer, n, value) QAJ4C_SNPRINTF(buffer, n, "%" PRIu64, value)
 #define QAJ4C_STRTOD strtod
 #define QAJ4C_QSORT qsort
 #define QAJ4C_BSEARCH bsearch
