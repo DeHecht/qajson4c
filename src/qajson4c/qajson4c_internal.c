@@ -76,7 +76,7 @@ typedef struct QAJ4C_callback_printer {
     QAJ4C_print_callback_fn callback;
 } QAJ4C_callback_printer;
 
-void QAJ4C_std_err_function(void) {
+void QAJ4C_std_err_function( void ) {
     QAJ4C_RAISE(SIGABRT);
 }
 
@@ -95,13 +95,12 @@ static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser );
 static void QAJ4C_first_pass_skip_whitespaces_and_comments( QAJ4C_First_pass_parser* parser );
 static void QAJ4C_first_pass_skip_comment( QAJ4C_First_pass_parser* parser );
 
-
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* parser, size_type storage_pos );
 static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* me );
 
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser );
 
-static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_First_pass_parser* parser);
+static void QAJ4C_second_pass_parser_init( QAJ4C_Second_pass_parser* me, QAJ4C_First_pass_parser* parser );
 static void QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr );
 static void QAJ4C_second_pass_object( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr );
 static void QAJ4C_second_pass_array( QAJ4C_Second_pass_parser* me, QAJ4C_Value* result_ptr );
@@ -120,8 +119,8 @@ static char QAJ4C_json_message_read( QAJ4C_Json_message* msg );
 static void QAJ4C_json_message_forward( QAJ4C_Json_message* msg );
 static char QAJ4C_json_message_forward_and_peek( QAJ4C_Json_message* msg );
 
-bool QAJ4C_std_sprint_function( void *ptr, const char* buffer, size_t size);
-bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, size_t size);
+bool QAJ4C_std_sprint_function( void *ptr, const char* buffer, size_t size );
+bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, size_t size );
 
 static char* QAJ4C_do_print_uint64( uint64_t value, char* buffer, size_t size );
 
@@ -257,7 +256,7 @@ static void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* parser, 
     }
 }
 
-static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth) {
+static void QAJ4C_first_pass_process( QAJ4C_First_pass_parser* parser, int depth ) {
     QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
     parser->amount_nodes++;
     switch (QAJ4C_json_message_peek(parser->msg)) {
@@ -466,7 +465,7 @@ static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* parser ) {
     return value;
 }
 
-static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser) {
+static int QAJ4C_first_pass_utf16( QAJ4C_First_pass_parser* parser ) {
     int amount_utf8_chars = 0;
     uint32_t value = QAJ4C_first_pass_4digits(parser);
 
@@ -1381,7 +1380,7 @@ size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buf
     return printer.index;
 }
 
-bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr) {
+bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr ) {
     QAJ4C_callback_printer printer = {ptr, callback};
     return QAJ4C_print_buffer_callback(value_ptr, QAJ4C_std_print_callback_function, &printer);
 }

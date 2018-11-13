@@ -422,7 +422,7 @@ bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr );
  * This method will return true, in case the value pointer is not set (thus the NULL-pointer).
  * @note This method is NULL-safe!
  */
-bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr);
+bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr );
 
 /**
  * This method will return true, in case the value pointer is null

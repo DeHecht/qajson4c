@@ -162,7 +162,7 @@ struct QAJ4C_Member {
 extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
-size_t QAJ4C_parse_generic(QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback);
+size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
 size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
@@ -173,17 +173,15 @@ uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr );
 uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr );
 QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );
 
-
 const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
 const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
-
 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
 
 size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
-bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr);
-bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr);
+bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
+bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
 
 #ifdef __cplusplus
 }

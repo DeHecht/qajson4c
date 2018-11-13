@@ -125,7 +125,7 @@ bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buff
     return QAJ4C_print_buffer_callback_impl(value_ptr, callback, ptr);
 }
 
-bool QAJ4C_is_string(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_string( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_STRING;
 }
 
@@ -168,7 +168,7 @@ bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str )
     return QAJ4C_string_equals_n(value_ptr, str, QAJ4C_STRLEN(str));
 }
 
-bool QAJ4C_is_object(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_object( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_OBJECT;
 }
 
@@ -176,7 +176,7 @@ bool QAJ4C_is_array( const QAJ4C_Value* value_ptr ){
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_ARRAY;
 }
 
-bool QAJ4C_is_int(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_int( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_NUMBER && (QAJ4C_get_compatibility_types(value_ptr) & QAJ4C_PRIMITIVE_INT) != 0;
 }
 
@@ -241,7 +241,7 @@ bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr ) {
     return ((QAJ4C_Primitive*) value_ptr)->data.b;
 }
 
-bool QAJ4C_is_not_set(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr ) {
     return value_ptr == NULL;
 }
 
@@ -260,17 +260,17 @@ bool QAJ4C_is_error( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_internal_type(value_ptr) == QAJ4C_ERROR_DESCRIPTION;
 }
 
-const char* QAJ4C_error_get_json(const QAJ4C_Value* value_ptr) {
+const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return "";});
     return ((QAJ4C_Error*) value_ptr)->info->json;
 }
 
-QAJ4C_ERROR_CODE QAJ4C_error_get_errno(const QAJ4C_Value* value_ptr) {
+QAJ4C_ERROR_CODE QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
     return ((QAJ4C_Error*) value_ptr)->info->err_no;
 }
 
-size_t QAJ4C_error_get_json_pos(const QAJ4C_Value* value_ptr) {
+size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
     return ((QAJ4C_Error*) value_ptr)->info->json_pos;
 }
@@ -285,17 +285,17 @@ const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, size_
     return &((QAJ4C_Object*) value_ptr)->top[index];
 }
 
-const QAJ4C_Value* QAJ4C_member_get_key(const QAJ4C_Member* member) {
+const QAJ4C_Value* QAJ4C_member_get_key( const QAJ4C_Member* member ) {
     QAJ4C_ASSERT(member != NULL, {return NULL;});
     return &member->key;
 }
 
-const QAJ4C_Value* QAJ4C_member_get_value(const QAJ4C_Member* member) {
+const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
     QAJ4C_ASSERT(member != NULL, {return NULL;});
     return &member->value;
 }
 
-const QAJ4C_Value* QAJ4C_object_get_n(const QAJ4C_Value* value_ptr, const char* str, size_t len) {
+const QAJ4C_Value* QAJ4C_object_get_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_Value wrapper_value;
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
 
