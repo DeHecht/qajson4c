@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <tuple>
 
 #ifndef _WIN32
 #include <wait.h>
@@ -2339,6 +2340,21 @@ TEST(PrintTests, PrintUint64Max) {
     free((void*)value);
 }
 
+TEST(PrintTests, PrintUintZero) {
+    const char json[] = R"([0])";
+    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+
+    assert(!QAJ4C_is_error(value));
+
+    char output[ARRAY_COUNT(json)];
+    size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+    assert(ARRAY_COUNT(output) == out);
+    assert(strcmp(json, output) == 0);
+
+    free((void*)value);
+}
+
+
 TEST(PrintTests, PrintStringWithNewLine) {
     char json[] = R"(["Hello\nWorld"])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -2398,6 +2414,65 @@ TEST(PrintTests, PrintDoubleDomInfinity) {
     assert(strcmp("null", output) == 0);
 }
 
+/**
+ * This callback method simply compares each individual character and returns true on a match
+ * and false on a miss.
+ */
+static bool simple_print_callback_impl( void *ptr, char c ) {
+    std::pair<size_t, const char*>& data = *reinterpret_cast<std::pair<size_t, const char*>*>(ptr);
+    bool result = data.second[data.first] == c;
+    data.first += 1;
+    return result;
+}
+
+TEST(PrintTests, PrintWithCallback) {
+    const char* msg = "Hello";
+    std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
+    QAJ4C_Value value;
+    QAJ4C_set_string_ref(&value, msg);
+
+    bool result = QAJ4C_print_callback(&value, simple_print_callback_impl, &expected_data );
+    assert(result);
+}
+
+TEST(PrintTests, PrintWithCallbackNullsafe) {
+    const char* msg = "Hello";
+    QAJ4C_Value value;
+    QAJ4C_set_string_ref(&value, msg);
+
+    assert(!QAJ4C_print_callback(&value, NULL, NULL ));
+}
+
+/**
+ * For simplicity the simple_print_callback_impl implementation will be used to check the
+ * message char by char.
+ */
+static bool buffer_print_callback_impl( void* ptr, const char* buffer, size_t buffer_length ) {
+    bool result = true;
+    for (size_t i = 0; i < buffer_length; ++i) {
+        result = result && simple_print_callback_impl(ptr, buffer[i]);
+    }
+    return result;
+}
+
+
+TEST(PrintTests, PrintBufferWithCallback) {
+    const char* msg = "Hello";
+    std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
+    QAJ4C_Value value;
+    QAJ4C_set_string_ref(&value, msg);
+
+    bool result = QAJ4C_print_buffer_callback(&value, buffer_print_callback_impl, &expected_data );
+    assert(result);
+}
+
+TEST(PrintTests, PrintBufferWithCallbackNullsafe) {
+    const char* msg = "Hello";
+    QAJ4C_Value value;
+    QAJ4C_set_string_ref(&value, msg);
+
+    assert(!QAJ4C_print_buffer_callback(&value, NULL, NULL ));
+}
 
 /**
  * Parse the same message twice and compare the results with each other.
@@ -2862,6 +2937,173 @@ TEST(DomCreation, PrintIncompleteObject) {
     assert(strcmp("{}", out) == 0);
 
 }
+
+/**
+ * This test will verify the basic functionality of the QAJ4C_Object_builder
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegers) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+/**
+ * In this test the object builder is created for more fields than actually used.
+ * It is expected that the unused fields will not be printed.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFields) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+/**
+ * In this test the behavior is verified using deduplication. In this case the object
+ * will be ensured to not contain duplicate keys.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplication) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, true, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":1,"value":99})", out) == 0);
+}
+
+/**
+ * In this test the behavior is verified that switching deduplication off will result
+ * in duplicate keys of the printed message.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 3);
+    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegers ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegersAndUnusedFields ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+
+/**
+ * Same test as SimpleObjectWithIntegersDeduplication ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplicationKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, true, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":1,"value":99})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegersNoDeduplication ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 3);
+    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+}
+
 
 /**
  * In this test a cornercase of qajson4c is triggered. The last empty array within the

@@ -117,7 +117,15 @@ bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn
     return QAJ4C_print_callback_impl(value_ptr, callback, ptr);
 }
 
-bool QAJ4C_is_string(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr )
+{
+    if (QAJ4C_UNLIKELY(callback == NULL)) {
+        return false;
+    }
+    return QAJ4C_print_buffer_callback_impl(value_ptr, callback, ptr);
+}
+
+bool QAJ4C_is_string( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_STRING;
 }
 
@@ -160,7 +168,7 @@ bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str )
     return QAJ4C_string_equals_n(value_ptr, str, QAJ4C_STRLEN(str));
 }
 
-bool QAJ4C_is_object(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_object( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_OBJECT;
 }
 
@@ -168,7 +176,7 @@ bool QAJ4C_is_array( const QAJ4C_Value* value_ptr ){
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_ARRAY;
 }
 
-bool QAJ4C_is_int(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_int( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_type(value_ptr) == QAJ4C_TYPE_NUMBER && (QAJ4C_get_compatibility_types(value_ptr) & QAJ4C_PRIMITIVE_INT) != 0;
 }
 
@@ -233,7 +241,7 @@ bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr ) {
     return ((QAJ4C_Primitive*) value_ptr)->data.b;
 }
 
-bool QAJ4C_is_not_set(const QAJ4C_Value* value_ptr) {
+bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr ) {
     return value_ptr == NULL;
 }
 
@@ -252,17 +260,17 @@ bool QAJ4C_is_error( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_internal_type(value_ptr) == QAJ4C_ERROR_DESCRIPTION;
 }
 
-const char* QAJ4C_error_get_json(const QAJ4C_Value* value_ptr) {
+const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return "";});
     return ((QAJ4C_Error*) value_ptr)->info->json;
 }
 
-QAJ4C_ERROR_CODE QAJ4C_error_get_errno(const QAJ4C_Value* value_ptr) {
+QAJ4C_ERROR_CODE QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
     return ((QAJ4C_Error*) value_ptr)->info->err_no;
 }
 
-size_t QAJ4C_error_get_json_pos(const QAJ4C_Value* value_ptr) {
+size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
     return ((QAJ4C_Error*) value_ptr)->info->json_pos;
 }
@@ -277,17 +285,17 @@ const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, size_
     return &((QAJ4C_Object*) value_ptr)->top[index];
 }
 
-const QAJ4C_Value* QAJ4C_member_get_key(const QAJ4C_Member* member) {
+const QAJ4C_Value* QAJ4C_member_get_key( const QAJ4C_Member* member ) {
     QAJ4C_ASSERT(member != NULL, {return NULL;});
     return &member->key;
 }
 
-const QAJ4C_Value* QAJ4C_member_get_value(const QAJ4C_Member* member) {
+const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
     QAJ4C_ASSERT(member != NULL, {return NULL;});
     return &member->value;
 }
 
-const QAJ4C_Value* QAJ4C_object_get_n(const QAJ4C_Value* value_ptr, const char* str, size_t len) {
+const QAJ4C_Value* QAJ4C_object_get_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_Value wrapper_value;
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
 
@@ -496,6 +504,72 @@ void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
         QAJ4C_QSORT(obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
         value_ptr->type = QAJ4C_OBJECT_SORTED_TYPE_CONSTANT;
     }
+}
+
+
+QAJ4C_Object_builder QAJ4C_object_builder_init( QAJ4C_Value* value_ptr, size_t member_count, bool deduplicate, QAJ4C_Builder* builder )
+{
+    QAJ4C_Object_builder object_builder = {value_ptr, deduplicate, 0, member_count};
+    QAJ4C_Object* object_ptr = (QAJ4C_Object*)value_ptr;
+    QAJ4C_set_object(value_ptr, member_count, builder);
+    object_ptr->count = 0; /* The size management is performed by the builder */
+    return object_builder;
+}
+
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len )
+{
+    QAJ4C_Value* return_value = NULL;
+    QAJ4C_Object* object_ptr = ((QAJ4C_Object*)value_ptr->object);
+
+    QAJ4C_ASSERT(value_ptr != NULL && value_ptr->pos < value_ptr->count, {return return_value;});
+
+    if (value_ptr->strict) {
+        return_value = (QAJ4C_Value*)QAJ4C_object_get_n(value_ptr->object, str, len);
+    }
+
+    if (return_value == NULL) {
+        QAJ4C_Member* member = &object_ptr->top[value_ptr->pos];
+        QAJ4C_set_string_ref_n(&member->key, str, len);
+        return_value = &member->value;
+
+        value_ptr->pos += 1;
+        object_ptr->count = value_ptr->pos;
+    }
+
+    return return_value;
+}
+
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str )
+{
+    return QAJ4C_object_builder_create_member_by_ref_n(value_ptr, str, QAJ4C_STRLEN(str));
+}
+
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder )
+{
+    QAJ4C_Value* return_value = NULL;
+    QAJ4C_Object* object_ptr = ((QAJ4C_Object*)value_ptr->object);
+
+    QAJ4C_ASSERT(value_ptr != NULL && value_ptr->pos < value_ptr->count, {return return_value;});
+
+    if (value_ptr->strict) {
+        return_value = (QAJ4C_Value*)QAJ4C_object_get_n(value_ptr->object, str, len);
+    }
+
+    if (return_value == NULL) {
+        QAJ4C_Member* member = &object_ptr->top[value_ptr->pos];
+        QAJ4C_set_string_copy_n(&member->key, str, len, builder);
+        return_value = &member->value;
+
+        value_ptr->pos += 1;
+        object_ptr->count = value_ptr->pos;
+    }
+
+    return return_value;
+}
+
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder )
+{
+    return QAJ4C_object_builder_create_member_by_copy_n(value_ptr, str, QAJ4C_STRLEN(str), builder);
 }
 
 void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {
