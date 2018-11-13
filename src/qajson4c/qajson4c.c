@@ -496,11 +496,6 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, const c
     return QAJ4C_object_create_member_by_copy_n(value_ptr, str, QAJ4C_STRLEN(str), builder);
 }
 
-QAJ4C_Member* QAJ4C_object_get_member_rw( QAJ4C_Value* value_ptr, size_t index ) {
-    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
-    return &((QAJ4C_Object*)value_ptr)->top[index];
-}
-
 void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return;});
 

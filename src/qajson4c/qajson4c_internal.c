@@ -137,9 +137,12 @@ bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_callbac
 static const char QAJ4C_NULL_STR[] = "null";
 static const char QAJ4C_TRUE_STR[] = "true";
 static const char QAJ4C_FALSE_STR[] = "false";
-static const unsigned QAJ4C_NULL_STR_LEN = sizeof(QAJ4C_NULL_STR) / sizeof(QAJ4C_NULL_STR[0]) - 1;
-static const unsigned QAJ4C_TRUE_STR_LEN = sizeof(QAJ4C_TRUE_STR) / sizeof(QAJ4C_TRUE_STR[0]) - 1;
-static const unsigned QAJ4C_FALSE_STR_LEN = sizeof(QAJ4C_FALSE_STR) / sizeof(QAJ4C_FALSE_STR[0]) - 1;
+
+#define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]) - 1)
+
+static const unsigned QAJ4C_NULL_STR_LEN = ARRAY_COUNT(QAJ4C_NULL_STR);
+static const unsigned QAJ4C_TRUE_STR_LEN = ARRAY_COUNT(QAJ4C_TRUE_STR);
+static const unsigned QAJ4C_FALSE_STR_LEN = ARRAY_COUNT(QAJ4C_FALSE_STR);
 
 static int QAJ4C_xdigit( char c ) {
     return (c > '9')? (c &~ 0x20) - 'A' + 10: (c - '0');
@@ -1138,7 +1141,7 @@ int QAJ4C_compare_members( const void* lhs, const void* rhs ) {
     return QAJ4C_is_null(&left->key) ? 1 : -1;
 }
 
-bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr)
+bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr )
 {
     bool result = false;
     switch (QAJ4C_get_internal_type(value_ptr)) {
@@ -1360,11 +1363,11 @@ bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_callbac
 bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr )
 {
     static const char ERR_MSG[] = "{\"error\":\"Unable to parse json message. Error (";
-    static const size_t ERR_MSG_LEN = sizeof(ERR_MSG) / sizeof(ERR_MSG[0]) - 1;
+    static const size_t ERR_MSG_LEN = ARRAY_COUNT(ERR_MSG);
     static const char ERR_MSG_2[] = ") at position ";
-    static const size_t ERR_MSG_2_LEN = sizeof(ERR_MSG_2) / sizeof(ERR_MSG_2[0]) - 1;
+    static const size_t ERR_MSG_2_LEN = ARRAY_COUNT(ERR_MSG_2);
     static const char ERR_MSG_3[] = "\"}";
-    static const size_t ERR_MSG_3_LEN = sizeof(ERR_MSG_3) / sizeof(ERR_MSG_3[0]) - 1;
+    static const size_t ERR_MSG_3_LEN = ARRAY_COUNT(ERR_MSG_3);
 
     return QAJ4C_print_callback_constant(ERR_MSG, ERR_MSG_LEN, callback, ptr)
             && QAJ4C_print_callback_uint64(value_ptr->info->err_no, callback, ptr)
@@ -1389,7 +1392,7 @@ bool QAJ4C_std_sprint_function( void *ptr, const char* buffer, size_t size ) {
     QAJ4C_Buffer_printer* printer = (QAJ4C_Buffer_printer*)ptr;
     size_t bytes_left = printer->len - printer->index;
     size_t copy_bytes = (bytes_left > size) ? size : bytes_left;
-    memcpy(printer->buffer + printer->index, buffer, copy_bytes);
+    QAJ4C_MEMCPY(printer->buffer + printer->index, buffer, copy_bytes);
     printer->index += copy_bytes;
     return copy_bytes == size;
 }
@@ -1399,7 +1402,7 @@ bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, size_t si
     size_t pos = 0;
     QAJ4C_callback_printer* callback_printer = (QAJ4C_callback_printer*)ptr;
     while (result && pos < size) {
-        result = callback_printer->callback(ptr, buffer[pos]);
+        result = callback_printer->callback(callback_printer->external_ptr, buffer[pos]);
         pos += 1;
     }
     return result;

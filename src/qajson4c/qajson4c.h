@@ -672,7 +672,7 @@ QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, const c
  * @param member_count the amount of members
  * @param deduplicate, if set to true, the builder will ensure that no duplicate key strings are used
  *                     and will then return the already present value so the application can overwrite it.
- *                     If sest to false, new members are appended without lookup overhead.
+ *                     If set to false, new members are appended without lookup overhead.
  * @return the builder instance.
  */
 QAJ4C_Object_builder QAJ4C_object_builder_init( QAJ4C_Value* value_ptr, size_t member_count, bool deduplicate, QAJ4C_Builder* builder );
