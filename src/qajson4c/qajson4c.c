@@ -541,7 +541,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* 
 
 QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str )
 {
-    return QAJ4C_object_builder_create_member_by_ref_n( value_ptr, str, QAJ4C_STRLEN( str ) );
+    return QAJ4C_object_builder_create_member_by_ref_n(value_ptr, str, QAJ4C_STRLEN(str));
 }
 
 QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder )
@@ -559,9 +559,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
         QAJ4C_Member* member = &object_ptr->top[value_ptr->pos];
         QAJ4C_set_string_copy_n(&member->key, str, len, builder);
         return_value = &member->value;
-    }
 
-    if (return_value != NULL) {
         value_ptr->pos += 1;
         object_ptr->count = value_ptr->pos;
     }
@@ -571,7 +569,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
 
 QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder )
 {
-    return QAJ4C_object_builder_create_member_by_copy_n( value_ptr, str, QAJ4C_STRLEN( str ), builder );
+    return QAJ4C_object_builder_create_member_by_copy_n(value_ptr, str, QAJ4C_STRLEN(str), builder);
 }
 
 void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {

@@ -2958,25 +2958,6 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegers) {
 }
 
 /**
- * Same as the basic test ... but now by creating members by copy.
- */
-TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
-    uint8_t buff[256];
-    QAJ4C_Builder builder;
-    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
-    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
-
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
-
-    char out[64];
-    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
-    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
-}
-
-/**
  * In this test the object builder is created for more fields than actually used.
  * It is expected that the unused fields will not be printed.
  */
@@ -3034,6 +3015,88 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 3);
+    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegers ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegersAndUnusedFields ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":32,"value":99})", out) == 0);
+}
+
+
+/**
+ * Same test as SimpleObjectWithIntegersDeduplication ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplicationKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, true, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
+
+    char out[64];
+    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
+    assert(QAJ4C_object_size(value_ptr) == 2);
+    assert(strcmp(R"({"id":1,"value":99})", out) == 0);
+}
+
+/**
+ * Same test as SimpleObjectWithIntegersNoDeduplication ... but now by creating members by copy.
+ */
+TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
+    uint8_t buff[256];
+    QAJ4C_Builder builder;
+    QAJ4C_builder_init(&builder, buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
