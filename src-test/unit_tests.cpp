@@ -2074,7 +2074,7 @@ TEST(ErrorHandlingTests, DoubleSmallPrintBuffer) {
 }
 
 TEST(ErrorHandlingTests, MultipleDoublesSmallPrintBuffer) {
-    char json[] = "[0.123456,6.0]";
+    char json[] = "[0.123456,6.9]";
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
@@ -2120,7 +2120,7 @@ TEST(ErrorHandlingTests, PrintStringPartially) {
 }
 
 TEST(ErrorHandlingTests, PrintCompositionOfObjectsAndArraysPartially) {
-    char json[] = R"({"id":5,"values":[{},[],{"key":"val","key2":"val2"},[12,34],5.0]})";
+    char json[] = R"({"id":5,"values":[{},[],{"key":"val","key2":"val2"},[12,34],5.4]})";
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
@@ -2263,7 +2263,7 @@ TEST(PrintTests, PrintEmtpyObject) {
 }
 
 TEST(PrintTests, PrintNumericArray) {
-    const char json[] = R"([1,2.10101,3,4.123456e+100,5.0,-6])";
+    const char json[] = R"([1,2.10101,3,4.123456e+100,5.1,-6])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
@@ -2351,7 +2351,7 @@ TEST(PrintTests, PrintMultiLayerObject) {
 }
 
 TEST(PrintTests, PrintDoubleArray) {
-    const char json[] = R"([0.0])";
+    const char json[] = R"([0.1])";
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));

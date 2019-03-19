@@ -1239,15 +1239,7 @@ bool QAJ4C_print_callback_double( double d, QAJ4C_print_buffer_callback_fn callb
     if ((d * 0) != 0) {
         result = QAJ4C_print_callback_constant(QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN, callback, ptr);
     } else {
-        double absd = d < 0 ? -d: d;
-        double delta = (int64_t)(d) - d;
-        double absDelta = delta < 0 ? -delta : delta;
-        int printf_result = 0;
-        if ((absDelta <= DBL_EPSILON) && (absd < 1.0e60)) {
-            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%.1f", d);
-        } else {
-            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%.10g", d);
-        }
+        int printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%1.10g", d);
 
         if (printf_result > 0 && printf_result < BUFFER_SIZE) {
             result = callback(ptr, buffer, printf_result);
