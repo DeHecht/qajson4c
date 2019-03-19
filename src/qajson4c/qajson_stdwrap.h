@@ -70,7 +70,7 @@
 #endif
 
 #define QAJ4C_STRLEN strlen
-#define QAJ4C_STRNCMP strncmp
+#define QAJ4C_MEMCMP memcmp
 #define QAJ4C_MEMMOVE memmove
 #define QAJ4C_MEMCPY memcpy
 

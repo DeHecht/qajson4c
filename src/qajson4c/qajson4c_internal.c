@@ -315,6 +315,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
 
     if (parser->max_depth < depth) {
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_DEPTH_OVERFLOW);
+        return;
     }
 
     QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
@@ -356,7 +357,7 @@ static void QAJ4C_first_pass_object( QAJ4C_First_pass_parser* parser, int depth 
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     }
 
-    if (parser->builder != NULL) {
+    if (parser->builder != NULL && parser->err_code == QAJ4C_ERROR_NO_ERROR) {
         size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer(parser, storage_pos);
         if (obj_data != NULL) {
             *obj_data = member_count;
@@ -372,6 +373,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
 
     if (parser->max_depth < depth) {
         QAJ4C_first_pass_parser_set_error(parser, QAJ4C_ERROR_DEPTH_OVERFLOW);
+        return;
     }
 
     QAJ4C_first_pass_skip_whitespaces_and_comments(parser);
@@ -401,7 +403,7 @@ static void QAJ4C_first_pass_array( QAJ4C_First_pass_parser* parser, int depth )
 
     QAJ4C_json_message_forward(parser->msg);
 
-    if (parser->builder != NULL) {
+    if (parser->builder != NULL && parser->err_code == QAJ4C_ERROR_NO_ERROR) {
         size_type* obj_data = QAJ4C_first_pass_fetch_stats_buffer( parser, storage_pos );
         if ( obj_data != NULL ) {
             *obj_data = member_count;
@@ -988,9 +990,9 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* parser, size_type storage_pos ) {
     QAJ4C_Builder* builder = parser->builder;
     size_t in_buffer_pos = storage_pos * sizeof(size_type);
-    if (in_buffer_pos >= builder->buffer_size) {
+    if (in_buffer_pos + sizeof(size_type) > builder->buffer_size) {
         void *tmp;
-        size_t required_size = parser->amount_nodes * sizeof(QAJ4C_Value);
+        size_t required_size = QAJ4C_calculate_max_buffer_parser(parser);
         if (parser->realloc_callback == NULL) {
             QAJ4C_first_pass_parser_set_error(parser,
                                               QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
@@ -1103,20 +1105,12 @@ int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     size_type rhs_size = QAJ4C_get_string_length(rhs);
     const char* lhs_string = QAJ4C_get_string(lhs);
     const char* rhs_string = QAJ4C_get_string(rhs);
-    size_type i;
 
     if (lhs_size != rhs_size) {
         return lhs_size - rhs_size;
     }
-
-    for ( i = 0; i < lhs_size; ++i) {
-        if (lhs_string[i] != rhs_string[i]) {
-            return lhs_string[i] - rhs_string[i];
-        }
-    }
-    return 0;
+    return QAJ4C_MEMCMP(lhs_string, rhs_string, lhs_size);
 }
-
 
 /*
  * In some situations objects are not fully filled ... all unset members (key is null)
@@ -1249,29 +1243,13 @@ bool QAJ4C_print_callback_double( double d, QAJ4C_print_buffer_callback_fn callb
         double delta = (int64_t)(d) - d;
         double absDelta = delta < 0 ? -delta : delta;
         int printf_result = 0;
-        bool strip_trailing_zeros = true;
         if ((absDelta <= DBL_EPSILON) && (absd < 1.0e60)) {
             printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%.1f", d);
-        } else if ((absd < 1.0e-6) || (absd > 1.0e9)) {
-            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%e", d);
-            strip_trailing_zeros = false;
         } else {
-            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%f", d);
+            printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%.10g", d);
         }
 
         if (printf_result > 0 && printf_result < BUFFER_SIZE) {
-            if (strip_trailing_zeros) {
-                int pos = printf_result;
-                while (pos > 0 && buffer[pos - 1] == '0') {
-                    pos -= 1;
-                }
-                if (buffer[pos - 1] == '.') {
-                    pos += 1;
-                }
-                buffer[pos] = '\0';
-                printf_result = pos;
-            }
-
             result = callback(ptr, buffer, printf_result);
         }
     }
@@ -1308,15 +1286,12 @@ bool QAJ4C_print_callback_int64( int64_t value, QAJ4C_print_buffer_callback_fn c
 {
     static int BUFFER_SIZE = 32;
     char buffer[BUFFER_SIZE];
-    bool negative = value < 0;
-    char* pos_ptr = QAJ4C_do_print_uint64(value * -1, buffer, BUFFER_SIZE);
 
-    /* prepend the sign char, in case the number is negative */
-    if ( negative )
-    {
-        pos_ptr -= 1;
-        *pos_ptr = '-';
-    }
+	/* this callback is only called with a negative number as it otherwise has been classified uint64 */
+    char* pos_ptr = QAJ4C_do_print_uint64(-value, buffer + 1, BUFFER_SIZE - 1);
+
+	pos_ptr -= 1;
+	*pos_ptr = '-';
     return callback(ptr, pos_ptr, (buffer + BUFFER_SIZE) - pos_ptr);
 }
 
