@@ -320,6 +320,13 @@ const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, size_t index )
     return ((QAJ4C_Array*) value_ptr)->top + index;
 }
 
+QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size )
+{
+   QAJ4C_Builder result;
+   QAJ4C_builder_init( &result, buff, buff_size );
+   return result;
+}
+
 void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size ) {
     me->buffer = buff;
     me->buffer_size = buff_size;
@@ -328,6 +335,11 @@ void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size ) {
     me->cur_obj_pos = sizeof(QAJ4C_Value);
     /* strings from end to front */
     me->cur_str_pos = buff_size;
+}
+
+void QAJ4C_builder_reset( QAJ4C_Builder* me )
+{
+   QAJ4C_builder_init( me, me->buffer, me->buffer_size );
 }
 
 QAJ4C_Value* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {

@@ -523,9 +523,19 @@ size_t QAJ4C_array_size( const QAJ4C_Value* value_ptr );
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, size_t index );
 
 /**
+ * Creates the builder with the given buffer.
+ */
+QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size );
+
+/**
  * Initializes the builder with the given buffer.
  */
 void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size );
+
+/**
+ * Creates the builder with the given buffer.
+ */
+void QAJ4C_builder_reset( QAJ4C_Builder* me );
 
 /**
  * This method will retrieve the document from the builder.
