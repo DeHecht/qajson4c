@@ -1305,13 +1305,13 @@ bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_callbac
     bool result = callback(ptr, "\"", 1);
 
     while( result && p[size] != '\0' ) {
-        char c = p[size];
+    	uint8_t c = (uint8_t)p[size];
         if (QAJ4C_UNLIKELY(c < 32 || c == '"' || c == '/' || c == '\\')) {
             if ( c >= 32 ) {
                 /* set the char in the 2x range so we can use the replacement buffer to replace the string. */
                 c = (c & 0xF) | 0x20;
             }
-            const char* replacement_string = replacement_buf[(uint8_t)c];
+            const char* replacement_string = replacement_buf[c];
             result = result && callback(ptr, p, size); /* flush the string until now */
             result = result && callback(ptr, replacement_string, strlen(replacement_string));
             p = p + size + 1;
