@@ -729,19 +729,19 @@ TEST(SimpleParsingTests, ParseObjectCheckOptimizedNoChangeLater) {
 
     for( size_t i = 0; i < size; ++i )
     {
-		assert(buff1[i] == buff2[i]);
+        assert(buff1[i] == buff2[i]);
     }
 
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 5);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
 
-	QAJ4C_object_optimize((QAJ4C_Value*) value);
+    QAJ4C_object_optimize((QAJ4C_Value*) value);
 
-	// compare the content with the previously backuped content.
+    // compare the content with the previously backuped content.
     for( size_t i = 0; i < size; ++i )
     {
-		assert(buff1[i] == buff2[i]);
+        assert(buff1[i] == buff2[i]);
     }
 
 }
@@ -764,7 +764,7 @@ TEST(SimpleParsingTests, ParseObjectCheckNonOptimizedAndOptimizeLater) {
     assert(QAJ4C_object_size(value) == 5);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
 
-	QAJ4C_object_optimize((QAJ4C_Value*) value);
+    QAJ4C_object_optimize((QAJ4C_Value*) value);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
 
     free((void*)value);
@@ -1052,7 +1052,7 @@ TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
  * will invoke the fatal error handler function and not cause segmentation faults or whatever.
  */
 TEST(ErrorHandlingTests, BuilderOverflowArray) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
 
     static bool called = false;
     auto lambda = [](){
@@ -1073,7 +1073,7 @@ TEST(ErrorHandlingTests, BuilderOverflowArray) {
  * will invoke the fatal error handler function and not cause segmentation faults or whatever.
  */
 TEST(ErrorHandlingTests, BuilderOverflowObject) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
 
     static bool called = false;
     auto lambda = [](){
@@ -1093,7 +1093,7 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
  * will invoke the fatal error handler function and not cause segmentation faults or whatever.
  */
 TEST(ErrorHandlingTests, BuilderOverflowString) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
 
     static bool called = false;
     auto lambda = [](){
@@ -1114,7 +1114,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString) {
  * with the object memory space.
  */
 TEST(ErrorHandlingTests, BuilderOverflowString2) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 256);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 256);
     builder.cur_obj_pos = builder.cur_str_pos;
 
     static bool called = false;
@@ -1459,7 +1459,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
  * the default value will be returned in case a custom fatal function is set.
  */
 TEST(DomObjectAccessTests, ObjectAccess) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
     QAJ4C_set_object(&value, 0, &builder);
 
@@ -1529,7 +1529,7 @@ TEST(DomObjectAccessTests, IncorrectObjectAccess) {
  * the default value will be returned in case a custom fatal function is set.
  */
 TEST(DomObjectAccessTests, ArrayAccess) {
-	QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
+    QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
     QAJ4C_set_array(&value, 0, &builder);
 
@@ -2002,7 +2002,7 @@ TEST(DomObjectAccessTests, StringCopy) {
     const char* str = "abcdefghijklmnopqrstuvwxy";
     uint8_t buff[strlen(str) * 2];
 
-	QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
+    QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_set_string_copy(&value, str, &builder);
     assert(QAJ4C_string_equals(&value, str));
@@ -2211,10 +2211,10 @@ TEST(PrintTests, PrintErrorObject) {
  */
 TEST(PrintTests, PrintDoubleCornercase) {
     QAJ4C_Value value;
-	double d = -63.999999999999943;
+    double d = -63.999999999999943;
     char buffer[64] = {'\0'};
 
-	QAJ4C_set_double(&value, d);
+    QAJ4C_set_double(&value, d);
     size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
     assert( '\0' == buffer[out - 1]);
     assert( '.' != buffer[out - 2]);
@@ -2226,12 +2226,32 @@ TEST(PrintTests, PrintDoubleCornercase) {
  */
 TEST(PrintTests, PrintDoubleCornercase2) {
     QAJ4C_Value value;
-	double d = -1.0e-10;
+    double d = -1.0e-10;
     char buffer[64] = {'\0'};
 
-	QAJ4C_set_double(&value, d);
+    QAJ4C_set_double(&value, d);
     size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
     assert( strchr( buffer, 'e') != nullptr );
+}
+
+TEST(PrintTests, PrintSecondCharIsE) {
+   QAJ4C_Value value;
+   double d = 2.0e-308;
+   char buffer[64] = {'\0'};
+
+   QAJ4C_set_double(&value, d);
+   size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+   assert( strchr( buffer, 'e') != nullptr );
+}
+
+TEST(PrintTests, PrintDoubleZero) {
+   QAJ4C_Value value;
+   double d = 0;
+   char buffer[64] = {'\0'};
+
+   QAJ4C_set_double(&value, d);
+   size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+   assert( strcmp("0", buffer) == 0 );
 }
 
 TEST(PrintTests, PrintCorruptValue) {
@@ -2287,7 +2307,7 @@ TEST(A, PrintAllTwoDigitDecimalsArray) {
     *p = '[';
     p += 1;
     for (unsigned i = 0; i< 100; ++i) {
-    	p += sprintf(p, "%u,", i);
+        p += sprintf(p, "%u,", i);
     }
     *(p-1) = ']';
     const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
@@ -2662,7 +2682,7 @@ TEST(VariousTests, ComparisonAndCopyTest) {
     uint8_t buffer2[buff_size];
     const QAJ4C_Value* value_1;
 
-	QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
+    QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
     QAJ4C_builder_init(&builder, buffer2, buff_size);
 
     QAJ4C_parse(json, buffer, buff_size, &value_1);
@@ -2678,8 +2698,8 @@ TEST(VariousTests, ComparisonAndCopyTest) {
 TEST(VariousTests, CopyNotFullyFilledObject) {
     uint8_t buff1[256];
     uint8_t buff2[ARRAY_COUNT(buff1)];
-	QAJ4C_Builder builder1 = QAJ4C_builder_create(buff1, ARRAY_COUNT(buff1));
-	QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
+    QAJ4C_Builder builder1 = QAJ4C_builder_create(buff1, ARRAY_COUNT(buff1));
+    QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
 
     QAJ4C_Value* root = QAJ4C_builder_get_document(&builder1);
     QAJ4C_set_object(root, 3, &builder1);
@@ -2756,24 +2776,24 @@ TEST(VariousTests, CheckSizes) {
 }
 
 TEST(VariousTests, ResetBuilder) {
-	char buff[256];
+    char buff[256];
 
-	QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
-	QAJ4C_Builder builder2 = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
+    QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
+    QAJ4C_Builder builder2 = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
-	assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
+    assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
 
-	// alter the builder
-	QAJ4C_set_array(QAJ4C_builder_get_document(&builder), 10, &builder);
+    // alter the builder
+    QAJ4C_set_array(QAJ4C_builder_get_document(&builder), 10, &builder);
 
-	// compare should not result in the builders are equal
-	assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) != 0);
+    // compare should not result in the builders are equal
+    assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) != 0);
 
-	// now reset the builder
-	QAJ4C_builder_reset(&builder);
+    // now reset the builder
+    QAJ4C_builder_reset(&builder);
 
-	// builders should be equal again
-	assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
+    // builders should be equal again
+    assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
 }
 
 

@@ -1236,14 +1236,15 @@ bool QAJ4C_print_callback_double( double d, QAJ4C_print_buffer_callback_fn callb
     char buffer[BUFFER_SIZE];
     bool result = true;
 
-    if ((d * 0) != 0) {
-        result = QAJ4C_print_callback_constant(QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN, callback, ptr);
-    } else {
-        int printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%1.10g", d);
+    int printf_result = QAJ4C_SNPRINTF(buffer, BUFFER_SIZE, "%1.10g", d);
 
-        if (printf_result > 0 && printf_result < BUFFER_SIZE) {
-            result = callback(ptr, buffer, printf_result);
-        }
+    if ( printf_result > 0 && printf_result < BUFFER_SIZE && (QAJ4C_is_digit(buffer[1]) || QAJ4C_is_double_separation_char(buffer[1]) || printf_result == 1) )
+    {
+       result = callback(ptr, buffer, printf_result);
+    }
+    else
+    {
+       result = QAJ4C_print_callback_constant(QAJ4C_NULL_STR, QAJ4C_NULL_STR_LEN, callback, ptr);
     }
     return result;
 }
