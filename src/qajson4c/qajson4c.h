@@ -1,11 +1,11 @@
 /**
   @file
 
-  Quite-Alright JSON for C - https://github.com/USESystemEngineeringBV/qajson4c
+  Quite-Alright JSON for C - https://github.com/DeHecht/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 
-  Copyright (c) 2016 Pascal Proksch - USE System Engineering BV
+  Copyright (c) 2019 Pascal Proksch
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

@@ -1,11 +1,11 @@
 /**
   @file
 
-  Quite-Alright JSON for C - https://github.com/USESystemEngineeringBV/qajson4c
+  Quite-Alright JSON for C - https://github.com/DeHecht/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 
-  Copyright (c) 2016 Pascal Proksch - USE System Engineering BV
+  Copyright (c) 2019 Pascal Proksch
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,11 @@
 #define QAJSON4C_INTERNAL_H_
 
 #include "qajson_stdwrap.h"
+#include "../qajson4c.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** Define unlikely macro to be used in asserts
  *  Basically because the compiler should compile for the non-failure scenario.
@@ -67,9 +72,7 @@
 #define QAJ4C_INT32_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT << 24) | ((QAJ4C_PRIMITIVE_INT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
 #define QAJ4C_DOUBLE_TYPE_CONSTANT (((QAJ4C_PRIMITIVE_DOUBLE << 24) | (QAJ4C_PRIMITIVE_DOUBLE << 16)) | (QAJ4C_NUMBER_TYPE_CONSTANT))
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define QAJ4C_ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]) - 1)
 
 typedef uint32_t size_type;
 
@@ -94,6 +97,22 @@ typedef enum QAJ4C_Primitive_type {
     QAJ4C_PRIMITIVE_UINT64 = (1 << 4),
     QAJ4C_PRIMITIVE_DOUBLE = (1 << 5)
 } QAJ4C_Primitive_type;
+
+typedef enum QAJ4C_Char_type {
+	QAJ4C_CHAR_NULL = 0,
+	QAJ4C_CHAR_WHITESPACE,
+	QAJ4C_CHAR_NUMERIC_START,
+	QAJ4C_CHAR_OBJECT_START,
+	QAJ4C_CHAR_OBJECT_END,
+	QAJ4C_CHAR_ARRAY_START,
+	QAJ4C_CHAR_ARRAY_END,
+	QAJ4C_CHAR_COLON,
+	QAJ4C_CHAR_COMMA,
+	QAJ4C_CHAR_COMMENT_START,
+	QAJ4C_CHAR_STRING_START,
+	QAJ4C_CHAR_LITERAL_START,
+	QAJ4C_CHAR_UNSUPPORTED
+} QAJ4C_Char_type;
 
 typedef struct QAJ4C_Object {
     QAJ4C_Member* top;
@@ -159,6 +178,12 @@ struct QAJ4C_Member {
     QAJ4C_Value value;
 };
 
+typedef struct QAJ4C_Json_message {
+    const char* begin;
+    const char* end;
+    const char* pos;
+} QAJ4C_Json_message;
+
 extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
@@ -182,6 +207,10 @@ int QAJ4C_compare_members( const void* lhs, const void * rhs );
 size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
 bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
 bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
+
+QAJ4C_Char_type QAJ4C_parse_char( char c );
+
+void QAJ4C_json_message_skip_whitespaces(QAJ4C_Json_message* msg);
 
 #ifdef __cplusplus
 }

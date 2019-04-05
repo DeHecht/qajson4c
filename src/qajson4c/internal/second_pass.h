@@ -1,4 +1,6 @@
-/*
+/**
+  @file
+
   Quite-Alright JSON for C - https://github.com/DeHecht/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -24,8 +26,34 @@
   THE SOFTWARE.
 */
 
-#include "unit_tests/test.h"
+#ifndef QAJSON4C_INTERNAL_SECOND_PASS_H_
+#define QAJSON4C_INTERNAL_SECOND_PASS_H_
 
-int main(int argc, char** argv) {
-	return test_main(argc, argv);
+#include "../qajson4c.h"
+#include "first_pass.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct QAJ4C_Second_pass_parser {
+    QAJ4C_Builder* builder;
+    QAJ4C_realloc_fn realloc_callback;
+    bool insitu_parsing;
+    bool optimize_object;
+
+    size_type curr_buffer_pos;
+} QAJ4C_Second_pass_parser;
+
+QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( QAJ4C_First_pass_parser* parser );
+
+/**
+ * @note the first pass parser validates that all objects, arrays and strings are closed properly.
+ */
+QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg );
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* QAJSON4C_INTERNAL_SECOND_PASS_H_ */

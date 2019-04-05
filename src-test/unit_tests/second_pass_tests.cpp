@@ -24,8 +24,22 @@
   THE SOFTWARE.
 */
 
-#include "unit_tests/test.h"
+#include <cassert>
 
-int main(int argc, char** argv) {
-	return test_main(argc, argv);
+#include "unit_tests/test.h"
+#include "qajson4c/internal/second_pass.h"
+
+static uint8_t BUFFER[1024];
+
+TEST(SecondPassParserTests, SimpleExample) {
+    const char json[] = R"({"id":1})";
+
+	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+
+	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+    auto second_parser = QAJ4C_second_pass_parser_create(&parser);
+
+    auto result = QAJ4C_second_pass_process(&second_parser, &msg);
+    assert( nullptr != result );
 }

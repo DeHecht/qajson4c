@@ -1,4 +1,6 @@
-/*
+/**
+  @file
+
   Quite-Alright JSON for C - https://github.com/DeHecht/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -24,8 +26,13 @@
   THE SOFTWARE.
 */
 
-#include "unit_tests/test.h"
+#ifndef QAJSON4C_INTERNAL_PRINT_H_
+#define QAJSON4C_INTERNAL_PRINT_H_
 
-int main(int argc, char** argv) {
-	return test_main(argc, argv);
-}
+#include "types.h"
+
+size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
+bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
+bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
+
+#endif /* QAJSON4C_INTERNAL_PRINT_H_ */

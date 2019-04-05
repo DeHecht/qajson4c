@@ -24,8 +24,43 @@
   THE SOFTWARE.
 */
 
-#include "unit_tests/test.h"
+#ifndef TEST_UNIT_TESTS_TEST_H_
+#define TEST_UNIT_TESTS_TEST_H_
 
-int main(int argc, char** argv) {
-	return test_main(argc, argv);
-}
+#ifdef __STRICT_ANSI__
+#undef __STRICT_ANSI__
+#endif
+
+#ifndef _WIN32
+#include <wait.h>
+#define FMT_SIZE "%zu"
+#else
+#define FMT_SIZE "%Iu"
+#endif
+
+/**
+ * This has been copied from gtest
+ */
+#if defined(__GNUC__) && !defined(COMPILER_ICC)
+# define UNITTESTS_ATTRIBUTE_UNUSED_ __attribute__ ((unused))
+#else
+# define UNITTESTS_ATTRIBUTE_UNUSED_
+#endif
+
+#define ARRAY_COUNT(x)  (sizeof(x) / sizeof(x[0]))
+
+typedef struct QAJ4C_TEST_DEF QAJ4C_TEST_DEF;
+
+QAJ4C_TEST_DEF* create_test( const char* subject, const char* test, void (*test_func)() );
+
+int test_main( int argc, char **argv );
+
+#define TEST(a, b) \
+   void a## _## b## _test(); \
+   UNITTESTS_ATTRIBUTE_UNUSED_ QAJ4C_TEST_DEF* a## _## b## _test_ptr = create_test(#a, #b, a## _## b## _test); \
+   void a## _## b## _test()
+
+
+
+
+#endif /* TEST_UNIT_TESTS_TEST_H_ */
