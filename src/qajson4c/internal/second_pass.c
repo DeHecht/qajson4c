@@ -31,14 +31,14 @@
 
 typedef struct QAJ4C_Second_pass_stack_entry {
 	QAJ4C_TYPE type;
-	QAJ4C_Value* current_key; /* unused for arrays */
-	QAJ4C_Value* current_value;
-	size_type index;
+	QAJ4C_Value* base_ptr;
+	QAJ4C_Value* value_ptr;
+	bool value_flag;
 } QAJ4C_Second_pass_stack_entry;
 
 typedef struct QAJ4C_Second_pass_stack {
 	QAJ4C_Second_pass_stack_entry info[32];
-	size_t pos;
+	QAJ4C_Second_pass_stack_entry* it;
 } QAJ4C_Second_pass_stack;
 
 
@@ -64,23 +64,26 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( QAJ4C_First_pass_parse
     return me;
 }
 
-static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_object_open( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_object_close( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_array_open( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_array_close( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_comma( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
-static void QAJ4C_second_pass_comment_start( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack );
+static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_comma( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static void QAJ4C_second_pass_comment_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
+static void QAJ4C_second_pass_parser_set_error( QAJ4C_Second_pass_parser* parser, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error );
 
 QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg ) {
 	QAJ4C_Value* result = QAJ4C_builder_get_document(me->builder);
 
 	QAJ4C_Second_pass_stack stack;
-	stack.info[0].current_value = result;
+	stack.it = stack.info;
+	stack.it->type = QAJ4C_TYPE_ARRAY;
+	stack.it->base_ptr = result;
+	stack.it->value_ptr = result;
+	stack.it->value_flag = false;
 	msg->pos = msg->begin;
 	QAJ4C_json_message_skip_whitespaces(msg);
 
@@ -89,34 +92,30 @@ QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json
 		QAJ4C_Char_type type = QAJ4C_parse_char(*msg->pos);
 		switch (type) {
 		case QAJ4C_CHAR_NUMERIC_START:
-			QAJ4C_second_pass_number(me, msg, &stack);
+			QAJ4C_second_pass_number(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_OBJECT_START:
-			QAJ4C_second_pass_object_open(me, msg, &stack);
-			break;
-		case QAJ4C_CHAR_OBJECT_END:
-			QAJ4C_second_pass_object_close(me, msg, &stack);
-			break;
 		case QAJ4C_CHAR_ARRAY_START:
-			QAJ4C_second_pass_array_open(me, msg, &stack);
+			QAJ4C_second_pass_stack_up(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_ARRAY_END:
-			QAJ4C_second_pass_array_close(me, msg, &stack);
+		case QAJ4C_CHAR_OBJECT_END:
+			QAJ4C_second_pass_stack_down(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_COLON:
-			QAJ4C_second_pass_object_colon(me, msg, &stack);
+			QAJ4C_second_pass_object_colon(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_COMMA:
-			QAJ4C_second_pass_comma(me, msg, &stack);
+			QAJ4C_second_pass_comma(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_COMMENT_START:
-			QAJ4C_second_pass_comment_start(me, msg, &stack);
+			QAJ4C_second_pass_comment_start(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_STRING_START:
-			QAJ4C_second_pass_string_start(me, msg, &stack);
+			QAJ4C_second_pass_string_start(me, &stack, msg);
 			break;
 		case QAJ4C_CHAR_LITERAL_START:
-			QAJ4C_second_pass_literal_start(me, msg, &stack);
+			QAJ4C_second_pass_literal_start(me, &stack, msg);
 			break;
 		default:
 			// Unreachable error!
@@ -128,62 +127,85 @@ QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json
 	return result;
 }
 
-static void QAJ4C_second_pass_number(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
+static void QAJ4C_second_pass_number(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
+	(void)me;
+
+	char* c = (char*)msg->pos;
+	QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
+
+	if ( stack_entry->value_flag ) {
+		QAJ4C_second_pass_parser_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
+	} else {
+		QAJ4C_Char_type char_type = QAJ4C_CHAR_UNSUPPORTED;
+		if ( *msg->pos == '-' ) {
+			int64_t i = QAJ4C_STRTOL(msg->pos, &c, 10);
+			QAJ4C_set_int64(stack_entry->value_ptr, i);
+		} else {
+			uint64_t i = QAJ4C_STRTOL(msg->pos, &c, 10);
+			QAJ4C_set_uint64(stack_entry->value_ptr, i);
+		}
+		char_type = QAJ4C_parse_char(*c);
+		if (char_type == QAJ4C_CHAR_UNSUPPORTED) {
+			double d = QAJ4C_STRTOD(msg->pos, &c );
+			QAJ4C_set_double(stack_entry->value_ptr, d);
+		}
+		stack_entry->value_flag = true;
+		stack_entry->value_ptr += 1;
+	}
 }
 
-static void QAJ4C_second_pass_object_open(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void)msg;
+static void QAJ4C_second_pass_stack_up(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
 	(void)stack;
+	(void)msg;
 	size_type count = QAJ4C_second_pass_fetch_stats_data(me);
 	(void)count;
 }
 
-static void QAJ4C_second_pass_object_colon(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
+static void QAJ4C_second_pass_stack_down(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
+	(void)me;
+	(void)stack;
+	(void)msg;
+
+	/* FIXME: Check for trailing comma */
+}
+
+static void QAJ4C_second_pass_object_colon(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
+	size_type diff = stack->it->value_ptr - stack->it->base_ptr;
+	bool is_index_odd = (diff & 1) == 1;
+
+	if (stack->it->type == QAJ4C_TYPE_OBJECT && is_index_odd) {
+		stack->it->value_flag = false;
+		msg->pos += 1;
+	} else {
+		QAJ4C_second_pass_parser_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
+	}
+}
+
+static void QAJ4C_second_pass_comma(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
+	size_type diff = stack->it->value_ptr - stack->it->base_ptr;
+	bool is_index_even = (diff & 1) == 0;
+
+	if (stack->it->type == QAJ4C_TYPE_ARRAY || is_index_even) {
+		stack->it->value_flag = false;
+		msg->pos += 1;
+	} else {
+		QAJ4C_second_pass_parser_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
+	}
+}
+
+static void QAJ4C_second_pass_string_start(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
 	(void) me;
 	(void) msg;
 	(void) stack;
 }
 
-static void QAJ4C_second_pass_object_close(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
+static void QAJ4C_second_pass_literal_start(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
 	(void) me;
 	(void) msg;
 	(void) stack;
 }
 
-static void QAJ4C_second_pass_array_open(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
-}
-
-static void QAJ4C_second_pass_array_close(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
-}
-
-static void QAJ4C_second_pass_comma(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
-}
-
-static void QAJ4C_second_pass_string_start(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
-}
-
-static void QAJ4C_second_pass_literal_start(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
-	(void) me;
-	(void) msg;
-	(void) stack;
-}
-
-static void QAJ4C_second_pass_comment_start(QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Second_pass_stack* stack) {
+static void QAJ4C_second_pass_comment_start(QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg) {
 	(void) me;
 	(void) msg;
 	(void) stack;
@@ -203,3 +225,11 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
     me->curr_buffer_pos += sizeof(size_type);
     return data;
 }
+
+static void QAJ4C_second_pass_parser_set_error( QAJ4C_Second_pass_parser* parser, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error )
+{
+	(void)parser;
+	(void)msg;
+	(void)error;
+}
+

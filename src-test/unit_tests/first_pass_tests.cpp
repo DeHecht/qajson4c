@@ -43,6 +43,7 @@ TEST(FirstPassParserTests, SimpleExample) {
 
     assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
     assert(3 == parser.amount_nodes);
+	assert(2 == ((size_type* )BUFFER)[0]);
 }
 
 TEST(FirstPassParserTests, SimpleArrayExample) {
@@ -71,6 +72,23 @@ TEST(FirstPassParserTests, SimpleArrayExampleWithWhitespaces) {
 
     assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
     assert(6 == parser.amount_nodes);
+}
+
+/**
+ * The first pass does not interpret more than required, trailing data
+ * will not trigger a fault.
+ */
+TEST(FirstPassParserTests, NumberTrailingCurlyBrace) {
+    const char json[] = R"(42})";
+
+	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+
+	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
 }
 
 /**
@@ -106,6 +124,19 @@ TEST(FirstPassParserTests, SimpleExampleTrailingNullChars) {
 
     assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
     assert(3 == parser.amount_nodes);
+}
+
+TEST(FirstPassParserTests, EmptyMessage) {
+    const char json[] = "";
+
+	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+
+	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    assert(QAJ4C_ERROR_NO_ERROR != parser.err_code);
 }
 
 TEST(FirstPassParserTests, EmptyObject) {
@@ -292,6 +323,6 @@ TEST(FirstPassParserTests, Invalid_json_comma) {
 
     QAJ4C_first_pass_parse(&parser, &msg);
 
-    assert(QAJ4C_ERROR_UNEXPECTED_CHAR == parser.err_code);
+    assert(QAJ4C_ERROR_NO_ERROR != parser.err_code);
 }
 
