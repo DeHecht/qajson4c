@@ -38,8 +38,12 @@ TEST(SecondPassParserTests, SimpleExample) {
 
     auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+    QAJ4C_first_pass_parse(&parser, &msg);
     auto second_parser = QAJ4C_second_pass_parser_create(&parser);
 
     auto result = QAJ4C_second_pass_process(&second_parser, &msg);
     assert(QAJ4C_is_object(result));
+    auto id_ptr = QAJ4C_object_get(result, "id");
+    assert(QAJ4C_is_uint(id_ptr));
+    assert(QAJ4C_get_uint(id_ptr) == 1);
 }

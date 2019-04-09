@@ -142,6 +142,7 @@ static void QAJ4C_first_pass_stack_up( QAJ4C_First_pass_parser* me, QAJ4C_First_
         entry_ptr->type = *msg->pos == '{' ? QAJ4C_TYPE_OBJECT : QAJ4C_TYPE_ARRAY;
         msg->pos += 1;
         me->amount_nodes += 1;
+        me->storage_counter += 1;
     }
 }
 

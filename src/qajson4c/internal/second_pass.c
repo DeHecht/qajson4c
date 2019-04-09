@@ -58,7 +58,7 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( QAJ4C_First_pass_parse
     me.err_code = QAJ4C_ERROR_NO_ERROR;
 
     /* reset the builder to its original state! */
-    QAJ4C_builder_init(builder, builder->buffer, builder->buffer_size);
+    QAJ4C_builder_reset(builder);
     builder->cur_str_pos = required_object_storage;
 
     return me;
@@ -122,7 +122,6 @@ QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json
             // Unreachable error!
             break;
         }
-        msg->pos += 1;
         QAJ4C_json_message_skip_whitespaces(msg);
     }
     return result;
@@ -131,7 +130,7 @@ QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json
 static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
     size_type count = QAJ4C_second_pass_fetch_stats_data(me);
-    QAJ4C_Second_pass_stack_entry* new_stack_entry = stack_entry + 1;
+    QAJ4C_Second_pass_stack_entry* new_stack_entry = ++stack->it;
 
     if (stack_entry->value_flag) {
         QAJ4C_second_pass_set_missing_seperator_error(me, msg);
@@ -140,19 +139,22 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
 
     new_stack_entry->type = *msg->pos == '{' ? QAJ4C_TYPE_OBJECT : QAJ4C_TYPE_ARRAY;
     new_stack_entry->value_ptr = (QAJ4C_Value*)&me->builder->buffer[me->builder->cur_obj_pos];
+    new_stack_entry->base_ptr = new_stack_entry->value_ptr;
     new_stack_entry->value_flag = false;
     me->builder->cur_obj_pos += sizeof(QAJ4C_Value) * count;
 
     if (new_stack_entry->type == QAJ4C_TYPE_OBJECT) {
         QAJ4C_Object* obj_ptr = (QAJ4C_Object*)stack_entry->value_ptr;
+        stack_entry->value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
         obj_ptr->count = count >> 1;
         obj_ptr->top = (QAJ4C_Member*)new_stack_entry->value_ptr;
     } else {
         QAJ4C_Array* a_ptr = (QAJ4C_Array*)stack_entry->value_ptr;
+        stack_entry->value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
         a_ptr->count = count >> 1;
         a_ptr->top = new_stack_entry->value_ptr;
     }
-    msg += 1;
+    msg->pos += 1;
     stack_entry->value_flag = true;
     stack_entry->value_ptr += 1;
 }
@@ -172,7 +174,7 @@ static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_
     size_type diff = stack->it->value_ptr - stack->it->base_ptr;
     bool is_index_odd = (diff & 1) == 1;
 
-    if (stack->it->type == QAJ4C_TYPE_OBJECT && is_index_odd && QAJ4C_is_string(stack->it->value_ptr)) {
+    if (stack->it->type == QAJ4C_TYPE_OBJECT && is_index_odd && QAJ4C_is_string(stack->it->value_ptr - 1)) {
         stack->it->value_flag = false;
         msg->pos += 1;
     } else {
@@ -182,7 +184,7 @@ static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_
 
 static void QAJ4C_second_pass_comma( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     size_type diff = stack->it->value_ptr - stack->it->base_ptr;
-    bool is_index_even = (diff & 1) == 0;
+    bool is_index_even = diff > 0 && (diff & 1) == 0;
 
     if (stack->it->type == QAJ4C_TYPE_ARRAY || is_index_even) {
         stack->it->value_flag = false;
@@ -226,9 +228,9 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
         string_ptr->count = chars;
     }
 
-    /* FIXME: Implement */
     stack_entry->value_flag = true;
     stack_entry->value_ptr += 1;
+    msg->pos += 1;
 }
 
 static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
@@ -304,7 +306,7 @@ static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg ) {
     msg->pos += 1;
     // First pass has already validated that comments end correctly!
     if (*msg->pos == '/') {
-        /* line comment */
+        /* ptrline comment */
         while (*msg->pos != '\n') {
             msg->pos += 1;
         }
@@ -320,8 +322,10 @@ static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg ) {
 static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     /* FIXME: Implement */
     (void)me;
-    (void)stack;
     (void)msg;
+
+    QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack->it->base_ptr;
+    short_string_ptr->count = 0;
     return false;
 }
 
