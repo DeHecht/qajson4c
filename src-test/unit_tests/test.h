@@ -60,7 +60,4 @@ int test_main( int argc, char **argv );
    UNITTESTS_ATTRIBUTE_UNUSED_ QAJ4C_TEST_DEF* a## _## b## _test_ptr = create_test(#a, #b, a## _## b## _test); \
    void a## _## b## _test()
 
-
-
-
 #endif /* TEST_UNIT_TESTS_TEST_H_ */

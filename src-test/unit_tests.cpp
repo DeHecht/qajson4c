@@ -26,6 +26,6 @@
 
 #include "unit_tests/test.h"
 
-int main(int argc, char** argv) {
-	return test_main(argc, argv);
+int main( int argc, char** argv ) {
+    return test_main(argc, argv);
 }

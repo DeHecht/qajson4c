@@ -34,24 +34,24 @@ static uint8_t BUFFER[1024];
 TEST(FirstPassParserTests, SimpleExample) {
     const char json[] = R"({"id":1})";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
 
     assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
     assert(3 == parser.amount_nodes);
-	assert(2 == ((size_type* )BUFFER)[0]);
+    assert(2 == ((size_type* )BUFFER)[0]);
 }
 
 TEST(FirstPassParserTests, SimpleArrayExample) {
     const char json[] = R"(["id",1,true,null,false])";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -63,9 +63,9 @@ TEST(FirstPassParserTests, SimpleArrayExample) {
 TEST(FirstPassParserTests, SimpleArrayExampleWithWhitespaces) {
     const char json[] = R"( [ "id" , 1 , true , null , false ] )";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -81,9 +81,9 @@ TEST(FirstPassParserTests, SimpleArrayExampleWithWhitespaces) {
 TEST(FirstPassParserTests, NumberTrailingCurlyBrace) {
     const char json[] = R"(42})";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -98,9 +98,9 @@ TEST(FirstPassParserTests, NumberTrailingCurlyBrace) {
 TEST(FirstPassParserTests, TruncatedExample) {
     const char json[] = R"({"id":1)";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -115,9 +115,9 @@ TEST(FirstPassParserTests, TruncatedExample) {
 TEST(FirstPassParserTests, SimpleExampleTrailingNullChars) {
     const char json[] = R"({"id":1})" "\0\0\0";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -129,9 +129,9 @@ TEST(FirstPassParserTests, SimpleExampleTrailingNullChars) {
 TEST(FirstPassParserTests, EmptyMessage) {
     const char json[] = "";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -142,9 +142,9 @@ TEST(FirstPassParserTests, EmptyMessage) {
 TEST(FirstPassParserTests, EmptyObject) {
     const char json[] = R"({})";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -156,9 +156,9 @@ TEST(FirstPassParserTests, EmptyObject) {
 TEST(FirstPassParserTests, EmptyArray) {
     const char json[] = R"([])";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -170,9 +170,9 @@ TEST(FirstPassParserTests, EmptyArray) {
 TEST(FirstPassParserTests, EmptyObjectWhitespaces) {
     const char json[] = R"({           })";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -184,9 +184,9 @@ TEST(FirstPassParserTests, EmptyObjectWhitespaces) {
 TEST(FirstPassParserTests, EmptyArrayWhitespaces) {
     const char json[] = R"([          ])";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -198,9 +198,9 @@ TEST(FirstPassParserTests, EmptyArrayWhitespaces) {
 TEST(FirstPassParserTests, PlainString) {
     const char json[] = R"("Hello World")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -213,9 +213,9 @@ TEST(FirstPassParserTests, PlainString) {
 TEST(FirstPassParserTests, Integer) {
     const char json[] = R"(42)";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -227,9 +227,9 @@ TEST(FirstPassParserTests, Integer) {
 TEST(FirstPassParserTests, Double) {
     const char json[] = R"(4.2)";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -241,9 +241,9 @@ TEST(FirstPassParserTests, Double) {
 TEST(FirstPassParserTests, UTF16_1_Byte) {
     const char json[] = R"("Hello World\u0021")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -256,9 +256,9 @@ TEST(FirstPassParserTests, UTF16_1_Byte) {
 TEST(FirstPassParserTests, UTF16_2_Bytes) {
     const char json[] = R"("Hello World\u0721")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -271,9 +271,9 @@ TEST(FirstPassParserTests, UTF16_2_Bytes) {
 TEST(FirstPassParserTests, UTF16_3_Bytes_1rst_range) {
     const char json[] = R"("Hello World\u0821")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -286,9 +286,9 @@ TEST(FirstPassParserTests, UTF16_3_Bytes_1rst_range) {
 TEST(FirstPassParserTests, UTF16_3_Bytes_2nd_range) {
     const char json[] = R"("Hello World\uF021")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -301,9 +301,9 @@ TEST(FirstPassParserTests, UTF16_3_Bytes_2nd_range) {
 TEST(FirstPassParserTests, UTF16_4_Bytes) {
     const char json[] = R"("Hello World\ud821\u0000")";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);
@@ -316,9 +316,9 @@ TEST(FirstPassParserTests, UTF16_4_Bytes) {
 TEST(FirstPassParserTests, Invalid_json_comma) {
     const char json[] = R"(,)";
 
-	QAJ4C_Json_message msg { json, json + ARRAY_COUNT(json) - 1, json };
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-	auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
     auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
 
     QAJ4C_first_pass_parse(&parser, &msg);

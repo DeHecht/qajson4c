@@ -41,7 +41,7 @@ typedef struct QAJ4C_Second_pass_parser {
     QAJ4C_realloc_fn realloc_callback;
     bool insitu_parsing;
     bool optimize_object;
-
+    QAJ4C_ERROR_CODE err_code;
     size_type curr_buffer_pos;
 } QAJ4C_Second_pass_parser;
 

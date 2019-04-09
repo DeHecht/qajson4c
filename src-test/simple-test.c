@@ -178,14 +178,14 @@ int main(int argc, char **argv) {
 
     FILE* output_file = NULL;
 
-	if (arguments.output_file) {
-		output_file = fopen(arguments.output_file, "w");
-		if (output_file == NULL) {
-			fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
-			free(input_string);
-			exit(1);
-		}
-	}
+    if (arguments.output_file) {
+        output_file = fopen(arguments.output_file, "w");
+        if (output_file == NULL) {
+            fprintf(stderr, "Unable to open file '%s'\n", arguments.output_file);
+            free(input_string);
+            exit(1);
+        }
+    }
 
     char* buffer = NULL;
     const QAJ4C_Value* document = NULL;
@@ -231,11 +231,11 @@ int main(int argc, char **argv) {
         puts(output_string);
     }
 
-	if (buffer == NULL) {
-		free((void*)document);
-	} else {
-		free(buffer);
-	}
+    if (buffer == NULL) {
+        free((void*)document);
+    } else {
+        free(buffer);
+    }
     free(input_string);
     free(output_string);
     return 0;

@@ -69,14 +69,14 @@ size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t jso
 
     if (parser.strict_parsing && *msg.pos != '\0') {
         /* skip whitespaces and comments after the json, even though we are graceful */
-    	// FIXME: Skip whitespaces!
+        // FIXME: Skip whitespaces!
         if (*msg.pos != '\0') {
-        	// FIXME: Set error!
+            // FIXME: Set error!
             // QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
         }
     }
 
-    if ( parser.err_code != QAJ4C_ERROR_NO_ERROR ) {
+    if (parser.err_code != QAJ4C_ERROR_NO_ERROR) {
         *result_ptr = QAJ4C_create_error_description(&parser, &msg);
         return builder->cur_obj_pos;
     }
@@ -86,13 +86,13 @@ size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t jso
         if (parser.realloc_callback != NULL) {
             void* tmp = parser.realloc_callback(builder->buffer, required_size);
             if (tmp == NULL) {
-            	// FIXME: Set error!
+                // FIXME: Set error!
                 // QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_ALLOCATION_ERROR);
             } else {
                 QAJ4C_builder_init(builder, tmp, required_size);
             }
         } else {
-        	// FIXME: Set error!
+            // FIXME: Set error!
             // QAJ4C_first_pass_parser_set_error(&parser, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
         }
     }
@@ -270,58 +270,58 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
 }
 
 QAJ4C_Char_type QAJ4C_parse_char( char c ) {
-	switch( c ) {
-	case '\0':
-		return QAJ4C_CHAR_NULL;
-	case ' ':
-	case '\t':
-	case '\n':
-	case '\r':
-		return QAJ4C_CHAR_WHITESPACE;
-	case 'f':
-	case 't':
-	case 'n':
-		return QAJ4C_CHAR_LITERAL_START;
-	case '0':
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-	case '8':
-	case '9':
-	case '+':
-	case '-':
-		return QAJ4C_CHAR_NUMERIC_START;
-	case '{':
-		return QAJ4C_CHAR_OBJECT_START;
-	case '[':
-		return QAJ4C_CHAR_ARRAY_START;
-	case '"':
-		return QAJ4C_CHAR_STRING_START;
-	case '/':
-		return QAJ4C_CHAR_COMMENT_START;
-	case '}':
-		return QAJ4C_CHAR_OBJECT_END;
-	case ']':
-		return QAJ4C_CHAR_ARRAY_END;
-	case ':':
-		return QAJ4C_CHAR_COLON;
-	case ',':
-		return QAJ4C_CHAR_COMMA;
-	default:
-		return QAJ4C_CHAR_UNSUPPORTED;
-	}
+    switch (c) {
+    case '\0':
+        return QAJ4C_CHAR_NULL;
+    case ' ':
+    case '\t':
+    case '\n':
+    case '\r':
+        return QAJ4C_CHAR_WHITESPACE;
+    case 'f':
+    case 't':
+    case 'n':
+        return QAJ4C_CHAR_LITERAL_START;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '+':
+    case '-':
+        return QAJ4C_CHAR_NUMERIC_START;
+    case '{':
+        return QAJ4C_CHAR_OBJECT_START;
+    case '[':
+        return QAJ4C_CHAR_ARRAY_START;
+    case '"':
+        return QAJ4C_CHAR_STRING_START;
+    case '/':
+        return QAJ4C_CHAR_COMMENT_START;
+    case '}':
+        return QAJ4C_CHAR_OBJECT_END;
+    case ']':
+        return QAJ4C_CHAR_ARRAY_END;
+    case ':':
+        return QAJ4C_CHAR_COLON;
+    case ',':
+        return QAJ4C_CHAR_COMMA;
+    default:
+        return QAJ4C_CHAR_UNSUPPORTED;
+    }
 }
 
-void QAJ4C_json_message_skip_whitespaces(QAJ4C_Json_message* msg) {
-	while (msg->pos < msg->end) {
-		if (QAJ4C_parse_char(*msg->pos) != QAJ4C_CHAR_WHITESPACE) {
-			break;
-		}
-		msg->pos += 1;
-	}
+void QAJ4C_json_message_skip_whitespaces( QAJ4C_Json_message* msg ) {
+    while (msg->pos < msg->end) {
+        if (QAJ4C_parse_char(*msg->pos) != QAJ4C_CHAR_WHITESPACE) {
+            break;
+        }
+        msg->pos += 1;
+    }
 }
 

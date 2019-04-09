@@ -101,7 +101,7 @@ QAJ4C_TEST_DEF* create_test( const char* subject, const char* test, void (*test_
             while (current->next != NULL && strcmp(current->next->subject_name, subject) <= 0) {
                 current = current->next;
             }
-            if ( current->next == NULL ) {
+            if (current->next == NULL) {
                 current->next = tmp;
             } else {
                 tmp->next = current->next;
@@ -120,21 +120,18 @@ int fork_and_run( QAJ4C_TEST_DEF* test ) {
     QAJ4C_register_fatal_error_function(NULL);
 
 #ifndef _WIN32
-    if ( DEBUGGING ) {
+    if (DEBUGGING) {
 #endif
         test->test_func();
         tests_passed++;
 #ifndef _WIN32
-    }
-    else
-    {
+    } else {
         test->execution = -time(NULL);
         pid_t pid = fork();
-        if ( pid == 0 ) {
-           test->test_func();
-           exit(0);
-        }
-        else {
+        if (pid == 0) {
+            test->test_func();
+            exit(0);
+        } else {
             int status;
             pid_t wait_pid;
             while ((wait_pid = wait(&status)) > 0) {
@@ -184,11 +181,17 @@ struct test_suite_stats {
     }
 };
 
-void flush_test_suite( FILE* fp, const char* suite_name, char* buff, size_t buff_size, test_suite_stats* stats) {
+void flush_test_suite( FILE* fp, const char* suite_name, char* buff, size_t buff_size, test_suite_stats* stats ) {
     char testsuite_buffer[1024];
-    int w = snprintf(testsuite_buffer, ARRAY_COUNT(testsuite_buffer), "<testsuite errors=\"" FMT_SIZE "\" failures=\"" FMT_SIZE "\" name=\"%s\" skips=\"" FMT_SIZE "\" tests=\"" FMT_SIZE "\" time=\"" FMT_SIZE "\">%c", stats->errors, stats->fails, suite_name, (size_t)0, (size_t)(stats->errors + stats->fails + stats->pass), stats->total_time, '\n');
+    int w =
+            snprintf(
+                    testsuite_buffer,
+                    ARRAY_COUNT(testsuite_buffer),
+                    "<testsuite errors=\"" FMT_SIZE "\" failures=\"" FMT_SIZE "\" name=\"%s\" skips=\"" FMT_SIZE "\" tests=\"" FMT_SIZE "\" time=\"" FMT_SIZE "\">%c",
+                    stats->errors, stats->fails, suite_name, (size_t)0,
+                    (size_t)(stats->errors + stats->fails + stats->pass), stats->total_time, '\n');
     fwrite(testsuite_buffer, w, sizeof(char), fp);
-    fwrite(buff, sizeof(char), buff_size , fp);
+    fwrite(buff, sizeof(char), buff_size, fp);
     fwrite("</testsuite>\n", sizeof(char), ARRAY_COUNT("</testsuite>\n") - 1, fp);
     fflush(fp);
 }
@@ -198,22 +201,21 @@ int test_main( int argc, char **argv ) {
     static const char* gtest_xml_notation = "xml:";
 
     const char* filename = "test.xml";
-    for ( int i = 0; i < argc; ++i ) {
+    for (int i = 0; i < argc; ++i) {
         char* candidate = NULL;
-        if ( strstr(argv[i], "--debug") == argv[i] ) {
+        if (strstr(argv[i], "--debug") == argv[i]) {
             DEBUGGING = true;
-        } else if( strstr(argv[i], "output=") != NULL) {
+        } else if (strstr(argv[i], "output=") != NULL) {
             candidate = (strstr(argv[i], "output=") + strlen("output="));
-        } else if(strstr(argv[i], "output") != NULL) {
+        } else if (strstr(argv[i], "output") != NULL) {
             if (i + 1 < argc) {
-                candidate = argv[i+1];
+                candidate = argv[i + 1];
             }
         }
-        if( candidate != NULL ) {
-            if ( strncmp(candidate, gtest_xml_notation, strlen(gtest_xml_notation)) == 0) {
+        if (candidate != NULL) {
+            if (strncmp(candidate, gtest_xml_notation, strlen(gtest_xml_notation)) == 0) {
                 filename = candidate + strlen(gtest_xml_notation);
-            }
-            else{
+            } else {
                 filename = candidate;
             }
         }
@@ -225,7 +227,6 @@ int test_main( int argc, char **argv ) {
     char all_suites_end[] = "</testsuites>\n";
     const char* current_testsuite_name = NULL;
     test_suite_stats test_suite_stats;
-
 
     FILE* out = fopen(filename, "w");
     fwrite(all_suites_start, sizeof(char), strlen(all_suites_start), out);
@@ -247,12 +248,16 @@ int test_main( int argc, char **argv ) {
             current_testsuite_name = curr_test->subject_name;
             test_suite_stats.reset();
         }
-        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, "<testcase classname=\"%s\" name=\"%s\" time=\"" FMT_SIZE "\">", curr_test->subject_name, curr_test->test_name, curr_test->execution);
-        if ( curr_test->failure_message != NULL ) {
-            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<failure message="test failure">%s</failure>)", curr_test->failure_message);
+        pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size,
+                        "<testcase classname=\"%s\" name=\"%s\" time=\"" FMT_SIZE "\">", curr_test->subject_name,
+                        curr_test->test_name, curr_test->execution);
+        if (curr_test->failure_message != NULL) {
+            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size,
+                            R"(<failure message="test failure">%s</failure>)", curr_test->failure_message);
             test_suite_stats.fails += 1;
-        } else if( curr_test->error_message != NULL ) {
-            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size, R"(<error message="test failure">%s</error>)", curr_test->error_message);
+        } else if (curr_test->error_message != NULL) {
+            pos += snprintf(testsuite_content_buffer + pos, testsuite_content_buffer_size,
+                            R"(<error message="test failure">%s</error>)", curr_test->error_message);
             test_suite_stats.errors += 1;
         } else {
             test_suite_stats.pass += 1;
@@ -265,12 +270,12 @@ int test_main( int argc, char **argv ) {
             testsuite_content_buffer = (char*)realloc(testsuite_content_buffer, testsuite_content_buffer_size * 2);
             testsuite_content_buffer_size *= 2;
         }
-        free( curr_test->error_message );
-        free( curr_test->failure_message );
+        free(curr_test->error_message);
+        free(curr_test->failure_message);
 
         auto tmp = curr_test;
         curr_test = curr_test->next;
-        free ( tmp );
+        free(tmp);
     }
 
     flush_test_suite(out, current_testsuite_name, testsuite_content_buffer, pos, &test_suite_stats);

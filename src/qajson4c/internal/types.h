@@ -99,19 +99,19 @@ typedef enum QAJ4C_Primitive_type {
 } QAJ4C_Primitive_type;
 
 typedef enum QAJ4C_Char_type {
-	QAJ4C_CHAR_NULL = 0,
-	QAJ4C_CHAR_WHITESPACE,
-	QAJ4C_CHAR_NUMERIC_START,
-	QAJ4C_CHAR_OBJECT_START,
-	QAJ4C_CHAR_OBJECT_END,
-	QAJ4C_CHAR_ARRAY_START,
-	QAJ4C_CHAR_ARRAY_END,
-	QAJ4C_CHAR_COLON,
-	QAJ4C_CHAR_COMMA,
-	QAJ4C_CHAR_COMMENT_START,
-	QAJ4C_CHAR_STRING_START,
-	QAJ4C_CHAR_LITERAL_START,
-	QAJ4C_CHAR_UNSUPPORTED
+    QAJ4C_CHAR_NULL = 0,
+    QAJ4C_CHAR_WHITESPACE,
+    QAJ4C_CHAR_NUMERIC_START,
+    QAJ4C_CHAR_OBJECT_START,
+    QAJ4C_CHAR_OBJECT_END,
+    QAJ4C_CHAR_ARRAY_START,
+    QAJ4C_CHAR_ARRAY_END,
+    QAJ4C_CHAR_COLON,
+    QAJ4C_CHAR_COMMA,
+    QAJ4C_CHAR_COMMENT_START,
+    QAJ4C_CHAR_STRING_START,
+    QAJ4C_CHAR_LITERAL_START,
+    QAJ4C_CHAR_UNSUPPORTED
 } QAJ4C_Char_type;
 
 typedef struct QAJ4C_Object {
@@ -169,7 +169,7 @@ typedef struct QAJ4C_Primitive {
 } QAJ4C_ALIGN QAJ4C_Primitive;
 
 struct QAJ4C_Value {
-	char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
+    char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
     size_type type;
 } QAJ4C_ALIGN; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
 
