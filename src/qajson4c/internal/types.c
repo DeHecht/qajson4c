@@ -56,25 +56,27 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
 
 QAJ4C_fatal_error_fn g_qaj4c_err_function = &QAJ4C_std_err_function;
 
-size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback ) {
+size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback ) {
     QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(builder, opts, realloc_callback);
     QAJ4C_Second_pass_parser second_parser;
     QAJ4C_Json_message msg;
     size_type required_size;
     msg.begin = json;
-    msg.end = json + json_len;
+    msg.end = json_end;
     msg.pos = json;
 
     QAJ4C_first_pass_parse(&parser, &msg);
 
     if (parser.strict_parsing && *msg.pos != '\0') {
-        /* skip whitespaces and comments after the json, even though we are graceful */
-        // FIXME: Skip whitespaces!
-        if (*msg.pos != '\0') {
-            // FIXME: Set error!
-            // QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
+        /* skip whitespaces and comments after the json (we are graceful) */
+        while (msg.pos < msg.end && QAJ4C_parse_char(*msg.pos) == QAJ4C_CHAR_WHITESPACE) {
+            msg.pos += 1;
+        }
+        if ( msg.pos < msg.end && *msg.pos != '\0') {
+            QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
         }
     }
+    msg.end = msg.pos;
 
     if (parser.err_code != QAJ4C_ERROR_NO_ERROR) {
         *result_ptr = QAJ4C_create_error_description(&parser, &msg);
@@ -86,14 +88,12 @@ size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t jso
         if (parser.realloc_callback != NULL) {
             void* tmp = parser.realloc_callback(builder->buffer, required_size);
             if (tmp == NULL) {
-                // FIXME: Set error!
-                // QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_ALLOCATION_ERROR);
+                QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_ALLOCATION_ERROR);
             } else {
                 QAJ4C_builder_init(builder, tmp, required_size);
             }
         } else {
-            // FIXME: Set error!
-            // QAJ4C_first_pass_parser_set_error(&parser, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
+            QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
         }
     }
     else
@@ -261,7 +261,7 @@ static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* par
     err_info = (QAJ4C_Error_information*)(parser->builder->buffer + sizeof(QAJ4C_Value));
     err_info->err_no = parser->err_code;
     err_info->json = msg->begin;
-    err_info->json_pos = 0; // FIXME: With the new approach this can be extremely misleading!
+    err_info->json_pos = msg->pos - msg->begin;
 
     parser->builder->cur_obj_pos = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
     ((QAJ4C_Error*)document)->info = err_info;

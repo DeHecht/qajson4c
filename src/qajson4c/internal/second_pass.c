@@ -72,10 +72,14 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
 static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg );
-static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
+static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Short_string* short_string );
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
 static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_set_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error );
+
+static int QAJ4C_xdigit( char c ) {
+    return (c > '9') ? (c & ~0x20) - 'A' + 10 : (c - '0');
+}
 
 QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg ) {
     QAJ4C_Value* result = QAJ4C_builder_get_document(me->builder);
@@ -151,7 +155,7 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
     } else {
         QAJ4C_Array* a_ptr = (QAJ4C_Array*)stack_entry->value_ptr;
         stack_entry->value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
-        a_ptr->count = count >> 1;
+        a_ptr->count = count;
         a_ptr->top = new_stack_entry->value_ptr;
     }
     msg->pos += 1;
@@ -161,13 +165,13 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
 
 static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
+    stack->it -= 1;
+    msg->pos += 1;
 
     /* FIXME: Check for trailing comma */
     if (stack_entry->type == QAJ4C_TYPE_OBJECT && me->optimize_object) {
-        /* FIXME: Implement sorting members */
+        QAJ4C_object_optimize(stack->it->value_ptr - 1);
     }
-    stack->it -= 1;
-    msg->pos += 1;
 }
 
 static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
@@ -194,8 +198,147 @@ static void QAJ4C_second_pass_comma( QAJ4C_Second_pass_parser* me, QAJ4C_Second_
     }
 }
 
+static char QAJ4C_second_pass_escape_char( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, char c )
+{
+    switch (c) {
+    case '"':
+        return '"';
+    case '\\':
+        return '\\';
+    case '/':
+        return '/';
+    case 'b':
+        return '\b';
+    case 'f':
+        return '\f';
+    case 'n':
+        return '\n';
+    case 'r':
+        return '\r';
+    case 't':
+        return '\t';
+    default: /* all others are failures */
+        QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
+        return '\0';
+    }
+}
+
+static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Json_message* msg ) {
+    uint32_t value = QAJ4C_xdigit(msg->pos[0]) << 12 | QAJ4C_xdigit(msg->pos[1]) << 8 | QAJ4C_xdigit(msg->pos[2]) << 4 | QAJ4C_xdigit(msg->pos[3]);
+    msg->pos += 4;
+    if (value >= 0xd800 && value <= 0xdbff) {
+        uint32_t low_surrogate;
+        msg->pos += 2;
+        low_surrogate = QAJ4C_xdigit(msg->pos[0]) << 12 | QAJ4C_xdigit(msg->pos[1]) << 8 | QAJ4C_xdigit(msg->pos[2]) << 4 | QAJ4C_xdigit(msg->pos[3]);
+        value = ((((value-0xD800)&0x3FF)<<10)|((low_surrogate-0xDC00)&0x3FF))+0x010000;
+        msg->pos += 4;
+    }
+    /* set pointer to last char */
+    msg->pos -= 1;
+    return value;
+}
+static bool QAJ4C_second_pass_unicode_sequence( QAJ4C_Short_string* string, QAJ4C_Json_message* msg )
+{
+    static const uint8_t FIRST_BYTE_TWO_BYTE_MARK_MASK = 0xC0;
+    static const uint8_t FIRST_BYTE_TWO_BYTE_PAYLOAD_MASK = 0x1F;
+    static const uint8_t FIRST_BYTE_THREE_BYTE_MARK_MASK = 0xE0;
+    static const uint8_t FIRST_BYTE_THREE_BYTE_PAYLOAD_MASK = 0x0F;
+    static const uint8_t FIRST_BYTE_FOUR_BYTE_MARK_MASK = 0xF0;
+    static const uint8_t FIRST_BYTE_FOUR_BYTE_PAYLOAD_MASK = 0x07;
+    static const uint8_t FOLLOW_BYTE_MARK_MASK = 0x80;
+    static const uint8_t FOLLOW_BYTE_PAYLOAD_MASK = 0x3F;
+
+    uint32_t utf16 = QAJ4C_second_pass_utf16(msg); // FIXME: check low and high suggorate!!
+    /* utf-8 conversion inspired by parson */
+    if (utf16 < 0x80) {
+        string->s[0] = (char)utf16;
+        string->count = 1;
+    } else if (utf16 < 0x800) {
+        string->s[0] = ((utf16 >> 6) & FIRST_BYTE_TWO_BYTE_PAYLOAD_MASK) | FIRST_BYTE_TWO_BYTE_MARK_MASK;
+        string->s[1] = (utf16 & 0x3f) | FOLLOW_BYTE_MARK_MASK;
+        string->count = 2;
+    } else if (utf16 < 0x010000) {
+        string->s[0] = ((utf16 >> 12) & FIRST_BYTE_THREE_BYTE_PAYLOAD_MASK) | FIRST_BYTE_THREE_BYTE_MARK_MASK;
+        string->s[1] = ((utf16 >> 6) & FOLLOW_BYTE_PAYLOAD_MASK) | FOLLOW_BYTE_MARK_MASK;
+        string->s[2] = ((utf16) & FOLLOW_BYTE_PAYLOAD_MASK) | FOLLOW_BYTE_MARK_MASK;
+        string->count = 3;
+    } else {
+        string->s[0] = (((utf16 >> 18) & FIRST_BYTE_FOUR_BYTE_PAYLOAD_MASK) | FIRST_BYTE_FOUR_BYTE_MARK_MASK);
+        string->s[1] = (((utf16 >> 12) & FOLLOW_BYTE_PAYLOAD_MASK) | FOLLOW_BYTE_MARK_MASK);
+        string->s[2] = (((utf16 >> 6) & FOLLOW_BYTE_PAYLOAD_MASK) | FOLLOW_BYTE_MARK_MASK);
+        string->s[3] = (((utf16) & FOLLOW_BYTE_PAYLOAD_MASK) | FOLLOW_BYTE_MARK_MASK);
+        string->count = 4;
+    }
+    return true;
+}
+
+static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Short_string* short_string ) {
+    ((QAJ4C_Value*)short_string)->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
+    short_string->count = 0;
+    while (*msg->pos != '"' && me->err_code == QAJ4C_ERROR_NO_ERROR) {
+        if (short_string->count >= QAJ4C_INLINE_STRING_SIZE) {
+            return false;
+        }
+        if ( QAJ4C_UNLIKELY(*msg->pos == '\\' ) ) {
+            msg->pos += 1;
+            if ( QAJ4C_UNLIKELY(*msg->pos == 'u' ) ) {
+                /* Handle utf-16 escape sequence */
+                QAJ4C_Short_string tmp;
+                tmp.count = 0;
+                if (!QAJ4C_second_pass_unicode_sequence(&tmp, msg)) {
+                    QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+                } else if ( short_string->count + tmp.count > QAJ4C_INLINE_STRING_SIZE) {
+                    return false;
+                }
+                QAJ4C_MEMCPY(short_string->s + short_string->count, tmp.s, tmp.count);
+                short_string->count += tmp.count - 1;
+            } else {
+                /* Handle simple escape char */
+                short_string->s[short_string->count] = QAJ4C_second_pass_escape_char( me, msg, *msg->pos );
+            }
+        }
+        else {
+            short_string->s[short_string->count] = *msg->pos;
+        }
+        short_string->count += 1;
+        msg->pos += 1;
+    }
+    return true;
+}
+
+static size_type QAJ4C_second_pass_string_append( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, char* append_ptr ) {
+    char* base_string_ptr = append_ptr;
+    while (*msg->pos != '"'  && me->err_code == QAJ4C_ERROR_NO_ERROR) {
+        if ( QAJ4C_UNLIKELY(*msg->pos == '\\' ) ) {
+            msg->pos += 1;
+            if ( QAJ4C_UNLIKELY(*msg->pos == 'u' ) ) {
+                /* Handle utf-16 escape sequence */
+                QAJ4C_Short_string tmp;
+                tmp.count = 0;
+                if (!QAJ4C_second_pass_unicode_sequence(&tmp, msg)) {
+                    QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+                }
+                QAJ4C_MEMCPY(append_ptr, tmp.s, tmp.count);
+                append_ptr += tmp.count - 1;
+            } else {
+                /* Handle simple escape char */
+                *append_ptr = QAJ4C_second_pass_escape_char( me, msg, *msg->pos );
+            }
+        }
+        else {
+            *append_ptr = *msg->pos;
+        }
+        append_ptr += 1;
+        msg->pos += 1;
+    }
+    return append_ptr - base_string_ptr;
+}
+
 static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
+    QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack_entry->value_ptr;
+    QAJ4C_String* string_ptr = (QAJ4C_String*)stack_entry->value_ptr;
+    QAJ4C_Builder* builder = me->builder;
 
     if (stack_entry->value_flag) {
         QAJ4C_second_pass_set_missing_seperator_error(me, msg);
@@ -203,29 +346,18 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
     }
 
     msg->pos += 1;
-    if (!QAJ4C_second_pass_short_string(me, stack, msg)) {
-        char* base_put_str = (char*)&me->builder->buffer[me->builder->cur_str_pos];
-        QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack_entry->base_ptr;
-        QAJ4C_String* string_ptr = (QAJ4C_String*)stack_entry->base_ptr;
+    if ( me->insitu_parsing ) {
+        stack_entry->value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        string_ptr->s = msg->pos;
+        string_ptr->count = QAJ4C_second_pass_string_append(me, msg, (char*)msg->pos);
+    } else if (!QAJ4C_second_pass_short_string(me, msg, short_string_ptr)) {
+        char* base_put_str = (char*)&builder->buffer[builder->cur_str_pos];
         size_type chars = short_string_ptr->count;
-        char* put_str = base_put_str + chars;
 
         QAJ4C_MEMCPY(base_put_str, short_string_ptr->s, chars * sizeof(char));
-        stack_entry->base_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        stack_entry->value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
         string_ptr->s = base_put_str;
-
-        while (*msg->pos != '"') {
-            if ( *msg->pos == '\\') {
-                /* escape char */
-            } else {
-                *put_str = *msg->pos;
-            }
-            put_str += 1;
-            msg->pos += 1;
-        }
-        *put_str = '\0';
-        chars = put_str - base_put_str;
-        string_ptr->count = chars;
+        string_ptr->count = chars + QAJ4C_second_pass_string_append(me, msg, base_put_str + chars);
     }
 
     stack_entry->value_flag = true;
@@ -275,9 +407,7 @@ static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C
     }
     const char* str = NULL;
     int len = 0;
-    /* FIXME: Implement */
     if (*msg->pos == 't') {
-        //QAJ4C_set_bool(stack->it->base_ptr, true);
         str = TRUE_CONST;
         len = QAJ4C_ARRAY_COUNT(TRUE_CONST) - 1;
     } else if (*msg->pos == 'f') {
@@ -319,16 +449,6 @@ static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg ) {
     }
 }
 
-static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
-    /* FIXME: Implement */
-    (void)me;
-    (void)msg;
-
-    QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack->it->base_ptr;
-    short_string_ptr->count = 0;
-    return false;
-}
-
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
     if (QAJ4C_UNLIKELY(me->curr_buffer_pos <= me->builder->cur_obj_pos - sizeof(size_type))) {
         /*
@@ -348,6 +468,7 @@ static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_par
     (void)me;
     (void)msg;
     /* FIXME: Determine if its either a colon or a comma missing */
+    QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
 }
 
 static void QAJ4C_second_pass_set_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error ) {

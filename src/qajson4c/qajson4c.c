@@ -74,13 +74,15 @@ size_t QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size, const Q
 
 size_t QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr ) {
     QAJ4C_Builder builder;
+    const char* json_end = (json_len != SIZE_MAX) ? (json + json_len) : (const char*)INTPTR_MAX;
     QAJ4C_builder_init(&builder, buffer, buffer_size);
-    return QAJ4C_parse_generic(&builder, json, json_len, opts, result_ptr, NULL);
+    return QAJ4C_parse_generic(&builder, json, json_end, opts, result_ptr, NULL);
 }
 
 const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback ) {
     static size_type MIN_SIZE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
     void* buffer = realloc_callback( NULL, MIN_SIZE);
+    const char* json_end = (json_len != SIZE_MAX) ? (json + json_len) : (const char*)INTPTR_MAX;
     QAJ4C_Builder builder;
     const QAJ4C_Value* result = NULL;
     if (buffer == NULL) {
@@ -88,7 +90,7 @@ const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, i
     }
 
     QAJ4C_builder_init(&builder, buffer, MIN_SIZE);
-    QAJ4C_parse_generic(&builder, json, json_len, opts, &result, realloc_callback);
+    QAJ4C_parse_generic(&builder, json, json_end, opts, &result, realloc_callback);
     return result;
 }
 

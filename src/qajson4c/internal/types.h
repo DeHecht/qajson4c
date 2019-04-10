@@ -187,7 +187,7 @@ typedef struct QAJ4C_Json_message {
 extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
-size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
+size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
 size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );

@@ -24,22 +24,8 @@
   THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
-#include <signal.h>
-#include <string.h>
-#include <time.h>
+#include <cassert>
 #include <tuple>
-
-#ifndef _WIN32
-#include <wait.h>
-#define FMT_SIZE "%zu"
-#else
-#define FMT_SIZE "%Iu"
-#endif
 
 #include "unit_tests/test.h"
 #include "qajson4c/qajson4c.h"
@@ -156,11 +142,11 @@ TEST(BufferSizeTests, ParseObjectWithEscapedString) {
     size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
     size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
 
-    size_t expected_string_size = strlen("blah blubbh ubbel!dipup") + 1;
-	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
-
     // one object + one member
     assert(insitu_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
+
+    size_t expected_string_size = strlen("blah blubbh ubbel!dipup") + 1;
+	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
 }
 
 TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
@@ -169,11 +155,11 @@ TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
     size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
     size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
 
-    size_t expected_string_size = 11;
-	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
-
     // one object + one member
     assert(insitu_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
+
+    size_t expected_string_size = 11;
+	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
 }
 
 TEST(BufferSizeTests, ParseObjectWithUnicode3BytesString) {

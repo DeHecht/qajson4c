@@ -71,6 +71,8 @@ void QAJ4C_first_pass_parse( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* ms
  */
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* parser );
 
+void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE code );
+
 #endif /* QAJSON4C_INTERNAL_FIRST_PASS_H_ */
 
 #ifdef __cplusplus

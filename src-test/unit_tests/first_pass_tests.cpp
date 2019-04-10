@@ -253,6 +253,38 @@ TEST(FirstPassParserTests, UTF16_1_Byte) {
     assert(13 == parser.complete_string_length);
 }
 
+TEST(FirstPassParserTests, String_escape_multiple_escapes) {
+    const char json[] = R"("\t\n\r\t\n\r\t\n\r\t\n\r")";
+
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
+
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    printf("%u\n", parser.complete_string_length);
+
+    assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
+    assert(1 == parser.amount_nodes);
+    assert(13 == parser.complete_string_length);
+}
+
+TEST(FirstPassParserTests, UTF16_Multiple_1_Byte) {
+    const char json[] = R"("\u0021\u0021\u0021\u0021\u0021\u0021\u0021\u0021\u0021\u0021\u0021\u0021")";
+
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
+
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
+    assert(1 == parser.amount_nodes);
+    assert(13 == parser.complete_string_length);
+}
+
 TEST(FirstPassParserTests, UTF16_2_Bytes) {
     const char json[] = R"("Hello World\u0721")";
 
@@ -268,6 +300,22 @@ TEST(FirstPassParserTests, UTF16_2_Bytes) {
     assert(14 == parser.complete_string_length);
 }
 
+TEST(FirstPassParserTests, UTF16_Multiple_2_Byte) {
+    const char json[] = R"("\u0721\u0721\u0721\u0721\u0721\u0721")";
+
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
+
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
+    assert(1 == parser.amount_nodes);
+    assert(13 == parser.complete_string_length);
+}
+
+
 TEST(FirstPassParserTests, UTF16_3_Bytes_1rst_range) {
     const char json[] = R"("Hello World\u0821")";
 
@@ -282,6 +330,22 @@ TEST(FirstPassParserTests, UTF16_3_Bytes_1rst_range) {
     assert(1 == parser.amount_nodes);
     assert(15 == parser.complete_string_length);
 }
+
+TEST(FirstPassParserTests, UTF16_Multiple_3_Byte) {
+    const char json[] = R"("\u0821\u0821\u0821\u0821")";
+
+    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
+
+    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+
+    QAJ4C_first_pass_parse(&parser, &msg);
+
+    assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
+    assert(1 == parser.amount_nodes);
+    assert(13 == parser.complete_string_length);
+}
+
 
 TEST(FirstPassParserTests, UTF16_3_Bytes_2nd_range) {
     const char json[] = R"("Hello World\uF021")";

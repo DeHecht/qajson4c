@@ -131,7 +131,13 @@ size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* me ) {
     return me->amount_nodes * sizeof(QAJ4C_Value) + me->complete_string_length;
 }
 
+void QAJ4C_first_pass_parser_set_error( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE code ) {
+    QAJ4C_first_pass_set_error(me, msg, code);
+}
+
 static void QAJ4C_first_pass_stack_up( QAJ4C_First_pass_parser* me, QAJ4C_First_pass_stack* stack, QAJ4C_Json_message* msg ) {
+    stack->it->size += 1;
+
     if (stack->it + 1 >= stack->info + QAJ4C_ARRAY_COUNT(stack->info)) {
         QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_DEPTH_OVERFLOW);
     } else {
@@ -160,7 +166,7 @@ static void QAJ4C_first_pass_string_start( QAJ4C_First_pass_parser* me, QAJ4C_Fi
         }
         msg->pos += 1;
     }
-    if (size > QAJ4C_INLINE_STRING_SIZE) {
+    if (!me->insitu_parsing && size >= QAJ4C_INLINE_STRING_SIZE) {
         me->complete_string_length += size + 1;
     }
     if (*msg->pos == '\"') {
@@ -195,32 +201,33 @@ static void QAJ4C_first_pass_literal_start( QAJ4C_First_pass_parser* me, QAJ4C_F
 }
 
 static size_t QAJ4C_first_pass_string_escape( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
-    int amount_utf8_chars = 0;
+    int string_length = 1;
     msg->pos += 1;
     if (*msg->pos == 'u') {
         msg->pos += 1;
 
         uint32_t value = QAJ4C_first_pass_4digits(me, msg);
-
-        if (*msg->pos == '\0') {
-            QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
-        } else if (value < 0x80) { /* [0, 0x80) */
-            amount_utf8_chars = 1;
-        } else if (value < 0x800) { /* [0x80, 0x800) */
-            amount_utf8_chars = 2;
-        } else if (value < 0xd800 || value > 0xdfff) { /* [0x800, 0xd800) or (0xdfff, 0xffff] */
-            amount_utf8_chars = 3;
-        } else { /* [0xd800,0xdbff] or invalid => can be checked in 2nd pass*/
-            if (*msg->pos != '\\' || *(msg->pos + 1) != 'u') {
-                QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+        if ( me->err_code == QAJ4C_ERROR_NO_ERROR )
+        {
+            if (value < 0x80) { /* [0, 0x80) */
+                string_length = 1;
+            } else if (value < 0x800) { /* [0x80, 0x800) */
+                string_length = 2;
+            } else if (value < 0xd800 || value > 0xdfff) { /* [0x800, 0xd800) or (0xdfff, 0xffff] */
+                string_length = 3;
+            } else { /* [0xd800,0xdbff] or invalid => can be checked in 2nd pass*/
+                msg->pos += 1;
+                if (*msg->pos != '\\' || *(msg->pos + 1) != 'u') {
+                    QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+                }
+                msg->pos += 2;
+                QAJ4C_first_pass_4digits(me, msg); // expect 4 digits!
+                string_length = 4;
             }
-            msg->pos += 2;
-            QAJ4C_first_pass_4digits(me, msg); // expect 4 digits!
-            amount_utf8_chars = 4;
         }
     }
 
-    return amount_utf8_chars;
+    return string_length;
 }
 
 static void QAJ4C_first_pass_comment( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
@@ -310,17 +317,18 @@ static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* 
 static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
     uint32_t value = 0;
 
-    const char* end = QAJ4C_MIN(msg->end, msg->pos + 4);
-    while (msg->pos < end && *msg->pos != '\0') {
-        char json_char = *msg->pos;
-        uint8_t xdigit = QAJ4C_xdigit(json_char);
-
-        if (xdigit > 0xF) {
-            QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
-            break;
+    if (msg->pos + 3 < msg->end) {
+        size_type i = 0;
+        for (i = 0; i < 4; ++i) {
+            uint8_t xdigit = QAJ4C_xdigit(msg->pos[i]);
+            if (xdigit > 0xF) {
+                QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+            }
+            value = value << 4 | xdigit;
         }
-        value = value << 4 | xdigit;
-        ++msg->pos;
+        msg->pos += 3; // point to the last digit character
+    } else {
+        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     }
 
     return value;
