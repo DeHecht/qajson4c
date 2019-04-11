@@ -1,4 +1,6 @@
-/*
+/**
+  @file
+
   Quite-Alright JSON for C - https://github.com/DeHecht/qajson4c
 
   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -24,27 +26,21 @@
   THE SOFTWARE.
 */
 
-#include <cassert>
+#ifndef QAJSON4C_INTERNAL_PARSE_H_
+#define QAJSON4C_INTERNAL_PARSE_H_
 
-#include "unit_tests/test.h"
-#include "qajson4c/internal/second_pass.h"
-#include "qajson4c/qajson4c_util.h"
+#include "../qajson4c_parse.h"
 
-static uint8_t BUFFER[1024];
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-TEST(SecondPassParserTests, SimpleExample) {
-    const char json[] = R"({"id":1})";
+size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
 
-    QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
+size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 
-    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
-    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
-    QAJ4C_first_pass_parse(&parser, &msg);
-    auto second_parser = QAJ4C_second_pass_parser_create(&parser);
-
-    auto result = QAJ4C_second_pass_process(&second_parser, &msg);
-    assert(QAJ4C_is_object(result));
-    auto id_ptr = QAJ4C_object_get(result, "id");
-    assert(QAJ4C_is_uint(id_ptr));
-    assert(QAJ4C_get_uint(id_ptr) == 1);
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* QAJSON4C_INTERNAL_PRINT_H_ */

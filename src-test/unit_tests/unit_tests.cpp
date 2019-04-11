@@ -150,7 +150,7 @@ TEST(BufferSizeTests, ParseObjectWithEscapedString) {
 }
 
 TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
-    const char json[] = R"({"name":"\u07FF\u07FF\u07FF\u07FF\u07FF"})";
+    const char json[] = R"({"name":"\u07FF\u07FF\u07FF\u07FF\u07FF\u07FF"})";
 
     size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
     size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
@@ -158,7 +158,7 @@ TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
     // one object + one member
     assert(insitu_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
 
-    size_t expected_string_size = 11;
+    size_t expected_string_size = 13;
 	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
 }
 

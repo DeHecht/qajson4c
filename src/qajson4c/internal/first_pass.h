@@ -30,7 +30,7 @@
 #define QAJSON4C_INTERNAL_FIRST_PASS_H_
 
 #include "types.h"
-#include "../qajson4c.h"
+#include "../qajson4c_parse.h"
 
 #ifdef __cplusplus
 extern "C" {

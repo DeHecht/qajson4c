@@ -32,17 +32,6 @@
 #include "first_pass.h"
 #include "second_pass.h"
 
-typedef struct QAJ4C_Buffer_printer {
-    char* buffer;
-    size_type index;
-    size_type len;
-} QAJ4C_Buffer_printer;
-
-typedef struct QAJ4C_callback_printer {
-    void* external_ptr;
-    QAJ4C_print_callback_fn callback;
-} QAJ4C_callback_printer;
-
 void QAJ4C_std_err_function( void ) {
     QAJ4C_RAISE(SIGABRT);
 }
@@ -51,79 +40,7 @@ static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
     return builder->cur_obj_pos - 1 <= builder->cur_str_pos;
 }
 
-static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* parser, QAJ4C_Json_message* msg );
-
-
 QAJ4C_fatal_error_fn g_qaj4c_err_function = &QAJ4C_std_err_function;
-
-size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback ) {
-    QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(builder, opts, realloc_callback);
-    QAJ4C_Second_pass_parser second_parser;
-    QAJ4C_Json_message msg;
-    size_type required_size;
-    msg.begin = json;
-    msg.end = json_end;
-    msg.pos = json;
-
-    QAJ4C_first_pass_parse(&parser, &msg);
-
-    if (parser.strict_parsing && *msg.pos != '\0') {
-        /* skip whitespaces and comments after the json (we are graceful) */
-        while (msg.pos < msg.end && QAJ4C_parse_char(*msg.pos) == QAJ4C_CHAR_WHITESPACE) {
-            msg.pos += 1;
-        }
-        if ( msg.pos < msg.end && *msg.pos != '\0') {
-            QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
-        }
-    }
-    msg.end = msg.pos;
-
-    if (parser.err_code != QAJ4C_ERROR_NO_ERROR) {
-        *result_ptr = QAJ4C_create_error_description(&parser, &msg);
-        return builder->cur_obj_pos;
-    }
-
-    required_size = QAJ4C_calculate_max_buffer_parser(&parser);
-    if (required_size > builder->buffer_size) {
-        if (parser.realloc_callback != NULL) {
-            void* tmp = parser.realloc_callback(builder->buffer, required_size);
-            if (tmp == NULL) {
-                QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_ALLOCATION_ERROR);
-            } else {
-                QAJ4C_builder_init(builder, tmp, required_size);
-            }
-        } else {
-            QAJ4C_first_pass_parser_set_error(&parser, &msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
-        }
-    }
-    else
-    {
-        QAJ4C_builder_init(builder, builder->buffer, required_size);
-    }
-
-    if ( parser.err_code != QAJ4C_ERROR_NO_ERROR ) {
-        *result_ptr = QAJ4C_create_error_description(&parser, &msg);
-        return builder->cur_obj_pos;
-    }
-
-    second_parser = QAJ4C_second_pass_parser_create(&parser);
-    *result_ptr = QAJ4C_second_pass_process(&second_parser, &msg);
-
-return builder->buffer_size;
-}
-
-size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts ) {
-    QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(NULL, opts, NULL);
-    QAJ4C_Json_message msg;
-    msg.begin = json;
-    msg.end = json + json_len;
-    msg.pos = json;
-
-    QAJ4C_first_pass_parse(&parser, &msg);
-
-    return QAJ4C_calculate_max_buffer_parser(&parser);
-}
-
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
     QAJ4C_Value* new_pointer;
@@ -244,29 +161,6 @@ int QAJ4C_compare_members( const void* lhs, const void* rhs ) {
      * will always be moved to the end of the array!
      */
     return QAJ4C_is_null(&left->key) ? 1 : -1;
-}
-
-static QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parser* parser, QAJ4C_Json_message* msg ) {
-    QAJ4C_Value* document;
-    QAJ4C_Error_information* err_info;
-    /* not enough space to store error information in buffer... */
-    if (parser->builder->buffer_size < sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information)) {
-        return NULL;
-    }
-
-    QAJ4C_builder_init(parser->builder, parser->builder->buffer, parser->builder->buffer_size);
-    document = QAJ4C_builder_get_document(parser->builder);
-    document->type = QAJ4C_ERROR_DESCRIPTION_TYPE_CONSTANT;
-
-    err_info = (QAJ4C_Error_information*)(parser->builder->buffer + sizeof(QAJ4C_Value));
-    err_info->err_no = parser->err_code;
-    err_info->json = msg->begin;
-    err_info->json_pos = msg->pos - msg->begin;
-
-    parser->builder->cur_obj_pos = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
-    ((QAJ4C_Error*)document)->info = err_info;
-
-    return document;
 }
 
 QAJ4C_Char_type QAJ4C_parse_char( char c ) {

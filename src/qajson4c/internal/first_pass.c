@@ -166,7 +166,7 @@ static void QAJ4C_first_pass_string_start( QAJ4C_First_pass_parser* me, QAJ4C_Fi
         }
         msg->pos += 1;
     }
-    if (!me->insitu_parsing && size >= QAJ4C_INLINE_STRING_SIZE) {
+    if (!me->insitu_parsing && size > QAJ4C_INLINE_STRING_SIZE) {
         me->complete_string_length += size + 1;
     }
     if (*msg->pos == '\"') {

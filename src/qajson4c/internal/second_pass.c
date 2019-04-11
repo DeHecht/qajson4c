@@ -26,8 +26,8 @@
   THE SOFTWARE.
 */
 
-#include "first_pass.h"
 #include "second_pass.h"
+#include "../qajson4c_builder.h"
 
 typedef struct QAJ4C_Second_pass_stack_entry {
     QAJ4C_TYPE type;
@@ -41,7 +41,7 @@ typedef struct QAJ4C_Second_pass_stack {
     QAJ4C_Second_pass_stack_entry* it;
 } QAJ4C_Second_pass_stack;
 
-QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( QAJ4C_First_pass_parser* parser ) {
+QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass_parser* parser ) {
     QAJ4C_Second_pass_parser me;
 
     QAJ4C_Builder* builder = parser->builder;
@@ -347,7 +347,7 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
 
     msg->pos += 1;
     if ( me->insitu_parsing ) {
-        stack_entry->value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        stack_entry->value_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
         string_ptr->s = msg->pos;
         string_ptr->count = QAJ4C_second_pass_string_append(me, msg, (char*)msg->pos);
     } else if (!QAJ4C_second_pass_short_string(me, msg, short_string_ptr)) {
@@ -418,7 +418,7 @@ static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C
         len = QAJ4C_ARRAY_COUNT(FALSE_CONST) - 1;
     }
 
-    if (msg->end - msg->pos >= len && QAJ4C_MEMCMP(str, msg->pos, len)) {
+    if (msg->end - msg->pos >= len && QAJ4C_MEMCMP(str, msg->pos, len) == 0) {
         if (str == NULL_CONST) {
             QAJ4C_set_null(stack_entry->value_ptr);
         } else {

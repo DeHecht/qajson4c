@@ -26,33 +26,49 @@
   THE SOFTWARE.
 */
 
-#ifndef QAJSON4C_INTERNAL_SECOND_PASS_H_
-#define QAJSON4C_INTERNAL_SECOND_PASS_H_
+#ifndef QAJ4C_PRINT_H_
+#define QAJ4C_PRINT_H_
 
-#include "first_pass.h"
+#include "qajson4c_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct QAJ4C_Second_pass_parser {
-    QAJ4C_Builder* builder;
-    QAJ4C_realloc_fn realloc_callback;
-    bool insitu_parsing;
-    bool optimize_object;
-    QAJ4C_ERROR_CODE err_code;
-    size_type curr_buffer_pos;
-} QAJ4C_Second_pass_parser;
-
-QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass_parser* parser );
+/**
+ * This type defines a callback method for the print method. This callback will be called
+ * for each individual char.
+ * @return true, on success else false.
+ */
+typedef bool (*QAJ4C_print_callback_fn)( void *ptr, char c );
 
 /**
- * @note the first pass parser validates that all objects, arrays and strings are closed properly.
+ * Second print callback type that will be called with a buffer and size.
+ * @return true, on success else false.
  */
-QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg );
+typedef bool (*QAJ4C_print_buffer_callback_fn)( void *ptr, const char* buffer, size_t size );
+
+/**
+ * This method prints the DOM as JSON in the handed over buffer.
+ *
+ * @return the amount of data written to the buffer, including the '\0' character.
+ */
+size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size );
+
+/**
+ * This method prints the DOM as JSON using the provided callback. Also a data ptr can be
+ * supplied to be handed over to the callback.
+ */
+bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
+
+/**
+ * This method prints the DOM as JSON using the provided callback. Also a data ptr can be
+ * supplied to be handed over to the callback.
+ */
+bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* QAJSON4C_INTERNAL_SECOND_PASS_H_ */
+#endif /* QAJ4C_PRINT_H_ */

@@ -30,7 +30,9 @@
 #define QAJSON4C_INTERNAL_H_
 
 #include "qajson_stdwrap.h"
-#include "../qajson4c.h"
+#include "../qajson4c_types.h"
+#include "../qajson4c_builder.h" // FIXME: Remove this dependency
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -187,8 +189,6 @@ typedef struct QAJ4C_Json_message {
 extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
-size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
-size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
 
 QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
 char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
@@ -204,13 +204,9 @@ const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
 
-size_t QAJ4C_sprint_impl( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size, size_t index );
-bool QAJ4C_print_buffer_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr );
-bool QAJ4C_print_callback_impl( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr );
-
 QAJ4C_Char_type QAJ4C_parse_char( char c );
 
-void QAJ4C_json_message_skip_whitespaces(QAJ4C_Json_message* msg);
+void QAJ4C_json_message_skip_whitespaces( QAJ4C_Json_message* msg );
 
 #ifdef __cplusplus
 }
