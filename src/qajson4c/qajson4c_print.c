@@ -26,21 +26,35 @@
   THE SOFTWARE.
 */
 
-#ifndef QAJSON4C_INTERNAL_PARSE_H_
-#define QAJSON4C_INTERNAL_PARSE_H_
+#include "qajson4c_print.h"
+#include "internal/print.h"
 
-#include "../qajson4c_parse.h"
+size_t QAJ4C_sprint( const QAJ4C_Value* value_ptr, char* buffer, size_t buffer_size ) {
+    size_t index;
+    if (QAJ4C_UNLIKELY(buffer_size == 0)) {
+        return 0;
+    }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    index = QAJ4C_sprint_impl( value_ptr, buffer, buffer_size, 0 );
 
-size_t QAJ4C_parse_generic( QAJ4C_Builder* builder, const char* json, const char* json_end, int opts, const QAJ4C_Value** result_ptr, QAJ4C_realloc_fn realloc_callback );
-
-size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts );
-
-#ifdef __cplusplus
+    if (QAJ4C_UNLIKELY(index >= buffer_size)) {
+        index = buffer_size - 1;
+    }
+    buffer[index] = '\0';
+    return index + 1;
 }
-#endif
 
-#endif /* QAJSON4C_INTERNAL_PRINT_H_ */
+bool QAJ4C_print_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_callback_fn callback, void* ptr ) {
+    if (QAJ4C_UNLIKELY(callback == NULL)) {
+        return false;
+    }
+    return QAJ4C_print_callback_impl(value_ptr, callback, ptr);
+}
+
+bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void* ptr )
+{
+    if (QAJ4C_UNLIKELY(callback == NULL)) {
+        return false;
+    }
+    return QAJ4C_print_buffer_callback_impl(value_ptr, callback, ptr);
+}

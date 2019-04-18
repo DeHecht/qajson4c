@@ -75,29 +75,20 @@ typedef enum QAJ4C_PARSE_OPTS {
 } QAJ4C_PARSE_OPTS;
 
 /**
- * This method will walk through the json message (with a given size) and analyze what buffer
- * size would be required to store the complete DOM.
- */
-size_t QAJ4C_calculate_max_buffer_size_n( const char* json, size_t n );
-
-/**
  * This method will walk through the json message and analyze what buffer size would be required
  * to store the complete DOM.
+ *
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  */
-size_t QAJ4C_calculate_max_buffer_size( const char* json );
-
-/**
- * This method will walk through the json message (with a given size and analyze the maximum
- * required buffer size that would be required to store the DOM (in case the strings do not
- * have to be copied into the buffer)
- */
-size_t QAJ4C_calculate_max_buffer_size_insitu_n( const char* json, size_t n );
+size_t QAJ4C_calculate_max_buffer_size( const char* json, size_t json_len );
 
 /**
  * This method will walk through the json message and analyze the maximum required buffer size that
  * would be required to store the DOM (in case the strings do not have to be copied into the buffer)
+ *
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  */
-size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json );
+size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json, size_t json_len );
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM
@@ -106,18 +97,25 @@ size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json );
  * In case the parse fails the document's root value will contain an error value. Usually, a
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  *
- * @return the amount of data written to the buffer
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
+ *
+ * @param bytes_written pointer where the parse method should write the amount of data written to (nullable).
+ *                      only valid in case result is not NULL.
+ *
+ * @return the parsed object on success. Else an error description or in case the buffer size was insufficient NULL.
  */
-size_t QAJ4C_parse( const char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
+const QAJ4C_Value* QAJ4C_parse( const char* json, size_t json_len, void* buffer, size_t buffer_size, int opts, size_t* bytes_written );
 
 /**
  * This method will parse the json message without a handed over buffer but with a realloc
  * callback method. The realloc method will called each time allocated buffer is insufficient.
  *
+ * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
+ *
  * @returns NULL, in case no memory could ever get allocated at all. In all other cases
  * a valid instance (that may contain an error instead of parsed content).
  */
-const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn realloc_callback );
+const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback );
 
 /**
  * This method will parse the json message and will use the handed over buffer to store the DOM.
@@ -127,44 +125,13 @@ const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, QAJ4C_realloc_fn reall
  * In case the parse fails the document's root value will contain an error value. Usually, a
  * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
  *
- * @return the amount of data written to the buffer
- */
-size_t QAJ4C_parse_insitu( char* json, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
-
-/**
- * This method will parse the json message and will use the handed over buffer to store the DOM
- * and the strings. Additionally the method will modify the buffer_size to the actual amount written
- * to the buffer and will accept parsing options.
- *
  * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
  *
- * @return the amount of data written to the buffer
+ * @param bytes_written pointer where the parse method should write the amount of data written to (nullable).
+ *                      only valid in case result is not NULL.
+ * @return the parsed object on success. Else an error description or in case the buffer size was insufficient NULL.
  */
-size_t QAJ4C_parse_opt( const char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
-
-/**
- * This method will parse the json message  without a handed over buffer but with a realloc
- * callback method. The realloc method will called each time allocated buffer is insufficient.
- * Additionally will accept parsing options.
- *
- * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
- */
-const QAJ4C_Value* QAJ4C_parse_opt_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback );
-
-/**
- * This method will parse the json message and will use the handed over buffer to store the DOM.
- * The strings will not be copied within the buffer and will be referenced to the json message.
- * Just like strtok, the json message will be adjusted in place. Additionally the method will modify
- * the buffer_size to the actual amount written to the buffer and will accept parsing options.
- *
- * In case the parse fails the document's root value will contain an error value. Usually, a
- * object is expected so you should in each case check the document's root value with QAJ4C_is_object.
- *
- * @note In case the json string is null terminated, json_len can also be set to SIZE_MAX (or -1).
- *
- * @return the amount of data written to the buffer
- */
-size_t QAJ4C_parse_opt_insitu( char* json, size_t json_len, int opts, void* buffer, size_t buffer_size, const QAJ4C_Value** result_ptr );
+const QAJ4C_Value* QAJ4C_parse_insitu( char* json, size_t json_len, void* buffer, size_t buffer_size, int opts, size_t* bytes_written );
 
 /**
  * Checks if the value is an error (not a valid json type)

@@ -36,9 +36,16 @@
 extern "C" {
 #endif
 
-typedef struct QAJ4C_First_pass_parser {
-    QAJ4C_Builder* builder; /* Storage about object sizes */
+typedef struct QAJ4C_First_pass_builder {
+    size_type* elements;
+    uint_fast32_t pos;
+    uint_fast32_t length;
+    size_t alloc_length;
     QAJ4C_realloc_fn realloc_callback;
+} QAJ4C_First_pass_builder;
+
+typedef struct QAJ4C_First_pass_parser {
+    QAJ4C_First_pass_builder* builder; /* Storage about object sizes */
 
     bool strict_parsing;
     bool insitu_parsing;
@@ -52,6 +59,8 @@ typedef struct QAJ4C_First_pass_parser {
 
 } QAJ4C_First_pass_parser;
 
+QAJ4C_First_pass_builder QAJ4C_First_pass_builder_create( void* buffer, size_t length, QAJ4C_realloc_fn realloc_callback );
+
 /**
  * Creates a initialized QAJ4C_First_pass_parser struct.
  * @param builder the builder to use (or NULL when only statistics should be calculated)
@@ -59,7 +68,7 @@ typedef struct QAJ4C_First_pass_parser {
  * @param realloc_callback the realloc method to use in case the buffer size is insufficient.
  * @return the initialized instance of the QAJ4C_First_pass_parser.
  */
-QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_Builder* builder, int opts, QAJ4C_realloc_fn realloc_callback );
+QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_First_pass_builder* builder, int opts );
 
 /**
  * Performs the actual parsing and stores the results into the QAJ4C_First_pass_parser.

@@ -190,10 +190,6 @@ extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
 
-QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
-char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
-QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
-
 uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr );
 uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr );
 QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );

@@ -36,31 +36,31 @@ extern "C" {
 #endif
 
 struct QAJ4C_Builder {
-    uint8_t* buffer;
+    void* buffer;
     size_t buffer_size;
 
-    size_t cur_str_pos;
-    size_t cur_obj_pos;
+    char* str_ptr;
+    QAJ4C_Value* obj_ptr;
 };
 typedef struct QAJ4C_Builder QAJ4C_Builder;
 
 struct QAJ4C_Object_builder {
     QAJ4C_Value* object;
     bool strict;
-    size_t pos;
-    size_t count;
+    size_t capacity;
 };
 typedef struct QAJ4C_Object_builder QAJ4C_Object_builder;
+
+struct QAJ4C_Array_builder {
+    QAJ4C_Value* array;
+    size_t capacity;
+};
+typedef struct QAJ4C_Array_builder QAJ4C_Array_builder;
 
 /**
  * Creates the builder with the given buffer.
  */
 QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size );
-
-/**
- * Initializes the builder with the given buffer.
- */
-void QAJ4C_builder_init( QAJ4C_Builder* me, void* buff, size_t buff_size );
 
 /**
  * Creates the builder with the given buffer.
@@ -139,83 +139,30 @@ void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t le
 void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder );
 
 /**
- * This method will set the values type to array with the given value count. The
- * memory allocation will be performed on the builder.
- *
- * @note objects and arrays cannot be resized. Thus in case invoking this function twice
- * on the same value will cause the memory allocated for the old "members" to be wasted!
+ * This method creates an array builder with a given (maximum) capacity. It is not possible
+ * to exceed the capacity later on. It is possible to append less values than the capacity
+ * to the builder. Not used capacity will be skipped when printing.
  */
-void QAJ4C_set_array( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder );
+QAJ4C_Array_builder QAJ4C_array_builder_create( QAJ4C_Value* value_ptr, size_t capacity, QAJ4C_Builder* builder );
 
 /**
- * Will retrieve the entry of the array at the given index.
- *
- * @note a QAJ4C_array is organized as a c-array internally, thus random access
- * is possible with low cost.
+ * This method will increase the array length and return a pointer to the value or NULL in case
+ * the capacity has been exceeded. Fails in case the capacity is exceeded.
+ * @param initialize when set to true, the value will be initialized to NULL
  */
-QAJ4C_Value* QAJ4C_array_get_rw( QAJ4C_Value* value_ptr, size_t index );
-
-/**
- * This method will set the values type to object with the given member count. The
- * memory allocation will be performed on the builder.
- *
- * @note objects and arrays cannot be resized. Thus in case invoking this function twice
- * on the same value will cause the memory allocated for the old "members" to be wasted!
- */
-void QAJ4C_set_object( QAJ4C_Value* value_ptr, size_t count, QAJ4C_Builder* builder );
-
-/**
- * This method will optimize the current content on of the object (for faster DOM access).
- * Adding new members will require to call optimize again.
- *
- * @note invoking optimize on an already optimized object will leave the object untouched.
- * @note the behavior is undefined in case keys are present multiple times.
- */
-void QAJ4C_object_optimize( QAJ4C_Value* value_ptr );
-
-/**
- * This method creates a member within the object using the reference of the handed over string.
- * This way the string does not have to be copied over to the buffer, but the string has to stay
- * valid until the DOM is not required anymore.
- */
-QAJ4C_Value* QAJ4C_object_create_member_by_ref_n( QAJ4C_Value* value_ptr, const char* str, size_t len );
-
-/**
- * This method creates a member within the object using the reference of the handed over string.
- * This way the string does not have to be copied over to the buffer, but the string has to stay
- * valid until the DOM is not required anymore.
- *
- * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref_n method, using
- * strlen to calculate the string length.
- */
-QAJ4C_Value* QAJ4C_object_create_member_by_ref( QAJ4C_Value* value_ptr, const char* str );
-
-/**
- * This method creates a member within the object doing a copy of the handed over string.
- * The allocation will be performed on the handed over builder.
- */
-QAJ4C_Value* QAJ4C_object_create_member_by_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
-
-/**
- * This method creates a member within the object doing a copy of the handed over string.
- * The allocation will be performed on the handed over builder.
- *
- * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy_n method, using
- * strlen to calculate the string length.
- */
-QAJ4C_Value* QAJ4C_object_create_member_by_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder );
+QAJ4C_Value* QAJ4C_array_builder_next( QAJ4C_Array_builder* builder );
 
 /**
  * This method creates a QAJ4C_Object_builder to fill the data of an QAJ4C_Object with a given size.
  *
  * @param value_ptr the value pointer to allocate the object.
- * @param member_count the amount of members
+ * @param member_capacity the (maximum) amount of members
  * @param deduplicate, if set to true, the builder will ensure that no duplicate key strings are used
  *                     and will then return the already present value so the application can overwrite it.
  *                     If set to false, new members are appended without lookup overhead.
  * @return the builder instance.
  */
-QAJ4C_Object_builder QAJ4C_object_builder_init( QAJ4C_Value* value_ptr, size_t member_count, bool deduplicate, QAJ4C_Builder* builder );
+QAJ4C_Object_builder QAJ4C_object_builder_create( QAJ4C_Value* value_ptr, size_t member_capacity, bool deduplicate, QAJ4C_Builder* builder );
 
 /**
  * This method creates a member within the object using the reference of the handed over string.
@@ -248,6 +195,21 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
  * strlen to calculate the string length.
  */
 QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder );
+
+/**
+ * This method will optimize the current content on of the object (for faster DOM access).
+ * Adding new members will require to call optimize again.
+ *
+ * @note invoking optimize on an already optimized object will leave the object untouched.
+ * @note the behavior is undefined in case keys are present multiple times.
+ */
+void QAJ4C_object_optimize( QAJ4C_Value* value_ptr );
+
+/**
+ * This method creates a deep copy of the source value to the destination value using the
+ * handed over builder.
+ */
+void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder );
 
 #ifdef __cplusplus
 }

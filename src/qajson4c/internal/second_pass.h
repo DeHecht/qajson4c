@@ -35,9 +35,16 @@
 extern "C" {
 #endif
 
+typedef struct QAJ4C_Second_pass_builder {
+    void* buffer;
+    size_t buffer_length;
+    QAJ4C_Value* object_pos;
+    size_type* stats_pos;
+    char* str_pos;
+} QAJ4C_Second_pass_builder;
+
 typedef struct QAJ4C_Second_pass_parser {
-    QAJ4C_Builder* builder;
-    QAJ4C_realloc_fn realloc_callback;
+    QAJ4C_Second_pass_builder* builder;
     bool insitu_parsing;
     bool optimize_object;
     QAJ4C_ERROR_CODE err_code;
@@ -48,8 +55,11 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass
 
 /**
  * @note the first pass parser validates that all objects, arrays and strings are closed properly.
+ *
+ * @param bytes_written the amount of bytes written
+ * @returns the parsed value
  */
-QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg );
+const QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, size_t* bytes_written );
 
 #ifdef __cplusplus
 }

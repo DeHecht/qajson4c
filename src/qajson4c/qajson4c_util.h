@@ -67,12 +67,6 @@ bool QAJ4C_string_equals_n( const QAJ4C_Value* value_ptr, const char* str, size_
 bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str );
 
 /**
- * This method creates a deep copy of the source value to the destination value using the
- * handed over builder.
- */
-void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder );
-
-/**
  * This method checks if two elements are equal to each other.
  */
 bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );

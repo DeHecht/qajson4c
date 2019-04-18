@@ -41,29 +41,6 @@ typedef struct QAJ4C_Second_pass_stack {
     QAJ4C_Second_pass_stack_entry* it;
 } QAJ4C_Second_pass_stack;
 
-QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass_parser* parser ) {
-    QAJ4C_Second_pass_parser me;
-
-    QAJ4C_Builder* builder = parser->builder;
-    size_type required_object_storage = parser->amount_nodes * sizeof(QAJ4C_Value);
-    size_type required_tempoary_storage = parser->storage_counter * sizeof(size_type);
-    size_type copy_to_index = required_object_storage - required_tempoary_storage;
-
-    memmove(builder->buffer + copy_to_index, builder->buffer, required_tempoary_storage);
-    me.builder = parser->builder;
-    me.realloc_callback = parser->realloc_callback;
-    me.insitu_parsing = parser->insitu_parsing;
-    me.optimize_object = parser->optimize_object;
-    me.curr_buffer_pos = copy_to_index;
-    me.err_code = QAJ4C_ERROR_NO_ERROR;
-
-    /* reset the builder to its original state! */
-    QAJ4C_builder_reset(builder);
-    builder->cur_str_pos = required_object_storage;
-
-    return me;
-}
-
 static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
@@ -76,13 +53,35 @@ static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
 static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_set_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error );
+static const QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_Second_pass_parser* parser, QAJ4C_Json_message* msg, size_t* bytes_written );
 
 static int QAJ4C_xdigit( char c ) {
     return (c > '9') ? (c & ~0x20) - 'A' + 10 : (c - '0');
 }
 
-QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg ) {
-    QAJ4C_Value* result = QAJ4C_builder_get_document(me->builder);
+QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass_parser* parser ) {
+    QAJ4C_Second_pass_parser me;
+    QAJ4C_First_pass_builder* builder = parser->builder;
+    size_type required_object_storage = parser->amount_nodes * sizeof(QAJ4C_Value);
+    size_type required_tempoary_storage = parser->storage_counter * sizeof(size_type);
+    size_type copy_to_index = required_object_storage - required_tempoary_storage;
+    uint8_t* buffer_ptr = (uint8_t*)builder->elements;
+
+    memmove(buffer_ptr + copy_to_index, buffer_ptr, required_tempoary_storage);
+    me.builder->buffer = builder->elements;
+    me.builder->buffer_length = builder->alloc_length;
+    me.builder->object_pos = (QAJ4C_Value*)buffer_ptr;
+    me.builder->str_pos = (char*)(buffer_ptr + required_object_storage);
+    me.builder->stats_pos = (size_type*)(buffer_ptr + copy_to_index);
+    me.insitu_parsing = parser->insitu_parsing;
+    me.optimize_object = parser->optimize_object;
+    me.curr_buffer_pos = copy_to_index;
+    me.err_code = QAJ4C_ERROR_NO_ERROR;
+    return me;
+}
+
+const QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, size_t* bytes_written ) {
+    QAJ4C_Value* result = me->builder->object_pos;
 
     QAJ4C_Second_pass_stack stack;
     stack.it = stack.info;
@@ -128,6 +127,17 @@ QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json
         }
         QAJ4C_json_message_skip_whitespaces(msg);
     }
+
+    if (me->err_code != QAJ4C_ERROR_NO_ERROR) {
+        return QAJ4C_create_error_description(me, msg, bytes_written);
+    }
+
+    if (bytes_written != NULL) {
+        // str_pos points to the char after the last written string. Thus is perfect to
+        // be used to determine the overall buffer usage size.
+        *bytes_written = me->builder->str_pos - (char*)me->builder->buffer;
+    }
+
     return result;
 }
 
@@ -142,10 +152,10 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
     }
 
     new_stack_entry->type = *msg->pos == '{' ? QAJ4C_TYPE_OBJECT : QAJ4C_TYPE_ARRAY;
-    new_stack_entry->value_ptr = (QAJ4C_Value*)&me->builder->buffer[me->builder->cur_obj_pos];
+    new_stack_entry->value_ptr = me->builder->object_pos;
     new_stack_entry->base_ptr = new_stack_entry->value_ptr;
     new_stack_entry->value_flag = false;
-    me->builder->cur_obj_pos += sizeof(QAJ4C_Value) * count;
+    me->builder->object_pos += count;
 
     if (new_stack_entry->type == QAJ4C_TYPE_OBJECT) {
         QAJ4C_Object* obj_ptr = (QAJ4C_Object*)stack_entry->value_ptr;
@@ -338,7 +348,7 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
     QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack_entry->value_ptr;
     QAJ4C_String* string_ptr = (QAJ4C_String*)stack_entry->value_ptr;
-    QAJ4C_Builder* builder = me->builder;
+    QAJ4C_Second_pass_builder* builder = me->builder;
 
     if (stack_entry->value_flag) {
         QAJ4C_second_pass_set_missing_seperator_error(me, msg);
@@ -351,13 +361,14 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
         string_ptr->s = msg->pos;
         string_ptr->count = QAJ4C_second_pass_string_append(me, msg, (char*)msg->pos);
     } else if (!QAJ4C_second_pass_short_string(me, msg, short_string_ptr)) {
-        char* base_put_str = (char*)&builder->buffer[builder->cur_str_pos];
+        char* base_put_str = (char*)&builder->str_pos;
         size_type chars = short_string_ptr->count;
 
         QAJ4C_MEMCPY(base_put_str, short_string_ptr->s, chars * sizeof(char));
         stack_entry->value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
         string_ptr->s = base_put_str;
         string_ptr->count = chars + QAJ4C_second_pass_string_append(me, msg, base_put_str + chars);
+        builder->str_pos += string_ptr->count;
     }
 
     stack_entry->value_flag = true;
@@ -450,7 +461,7 @@ static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg ) {
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
-    if (QAJ4C_UNLIKELY(me->curr_buffer_pos <= me->builder->cur_obj_pos - sizeof(size_type))) {
+    if (QAJ4C_UNLIKELY((void*)me->builder->stats_pos <= (void*)me->builder->object_pos)) {
         /*
          * Corner case that the last entry is empty. In some cases this causes that
          * the statistics are already overwritten (see Corner-case tests).
@@ -459,8 +470,8 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
          */
         return 0;
     }
-    size_type data = *((size_type*)(me->builder->buffer + me->curr_buffer_pos));
-    me->curr_buffer_pos += sizeof(size_type);
+    size_type data = *me->builder->stats_pos;
+    me->builder->stats_pos += 1;
     return data;
 }
 
@@ -476,5 +487,30 @@ static void QAJ4C_second_pass_set_error( QAJ4C_Second_pass_parser* me, QAJ4C_Jso
         me->err_code = error;
         msg->end = msg->pos;
     }
+}
+
+static const QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_Second_pass_parser* parser, QAJ4C_Json_message* msg, size_t* bytes_written ) {
+    static const size_t REQUIRED_STORAGE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
+    QAJ4C_Value* document;
+    QAJ4C_Error_information* err_info;
+    /* not enough space to store error information in buffer... */
+    if (parser->builder->buffer_length < REQUIRED_STORAGE) {
+        return NULL;
+    }
+
+    //QAJ4C_builder_init(parser->builder, parser->builder->buffer, parser->builder->buffer_size);
+    document = (QAJ4C_Value*)parser->builder->buffer;
+    document->type = QAJ4C_ERROR_DESCRIPTION_TYPE_CONSTANT;
+
+    err_info = (QAJ4C_Error_information*)(document + 1);
+    err_info->err_no = parser->err_code;
+    err_info->json = msg->begin;
+    err_info->json_pos = msg->pos - msg->begin;
+    ((QAJ4C_Error*)document)->info = err_info;
+
+    if (bytes_written != NULL) {
+       *bytes_written = REQUIRED_STORAGE;
+    }
+    return document;
 }
 

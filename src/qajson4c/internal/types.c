@@ -36,54 +36,6 @@ void QAJ4C_std_err_function( void ) {
     QAJ4C_RAISE(SIGABRT);
 }
 
-static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
-    return builder->cur_obj_pos - 1 <= builder->cur_str_pos;
-}
-
-QAJ4C_fatal_error_fn g_qaj4c_err_function = &QAJ4C_std_err_function;
-
-QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
-    QAJ4C_Value* new_pointer;
-    size_type i;
-    if (count == 0) {
-        return NULL;
-    }
-    new_pointer = (QAJ4C_Value*)(&builder->buffer[builder->cur_obj_pos]);
-    builder->cur_obj_pos += count * sizeof(QAJ4C_Value);
-
-    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
-
-    for (i = 0; i < count; i++) {
-        (new_pointer + i)->type = QAJ4C_NULL_TYPE_CONSTANT;
-    }
-    return new_pointer;
-}
-
-char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
-    QAJ4C_ASSERT(builder->cur_str_pos >= length * sizeof(char), {return NULL;});
-    builder->cur_str_pos -= length * sizeof(char);
-    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
-    return (char*)(&builder->buffer[builder->cur_str_pos]);
-}
-
-QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count ) {
-    QAJ4C_Member* new_pointer;
-    size_type i;
-    if (count == 0) {
-        return NULL;
-    }
-    new_pointer = (QAJ4C_Member*)(&builder->buffer[builder->cur_obj_pos]);
-    builder->cur_obj_pos += count * sizeof(QAJ4C_Member);
-    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
-
-    for (i = 0; i < count; i++) {
-        new_pointer[i].key.type = QAJ4C_NULL_TYPE_CONSTANT;
-        new_pointer[i].value.type = QAJ4C_NULL_TYPE_CONSTANT;
-    }
-
-    return new_pointer;
-}
-
 QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr ) {
     if (value_ptr == NULL) {
         return QAJ4C_NULL;

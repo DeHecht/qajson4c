@@ -50,15 +50,34 @@ static void QAJ4C_first_pass_end_of_message( QAJ4C_First_pass_parser* me, QAJ4C_
 static void QAJ4C_first_pass_set_error( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error );
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, size_type storage_pos );
 static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg );
+static void QAJ4C_first_pass_evaluate( QAJ4C_First_pass_parser* me, QAJ4C_First_pass_stack* stack, QAJ4C_Json_message* msg );
+static bool QAJ4C_first_pass_reserve_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg );
 
 static int QAJ4C_xdigit( char c ) {
     return (c > '9') ? (c & ~0x20) - 'A' + 10 : (c - '0');
 }
 
-QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_Builder* builder, int opts, QAJ4C_realloc_fn realloc_callback ) {
+QAJ4C_First_pass_builder QAJ4C_First_pass_builder_create( void* buffer, size_t length, QAJ4C_realloc_fn realloc_callback ) {
+    QAJ4C_First_pass_builder result;
+
+    if (result.elements == NULL && realloc_callback != NULL) {
+        static size_type MIN_SIZE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
+        result.elements = realloc_callback( NULL, MIN_SIZE);
+        result.alloc_length = MIN_SIZE;
+    } else {
+        result.elements = buffer;
+        result.alloc_length = length;
+    }
+
+    result.pos = 0;
+    result.realloc_callback = realloc_callback;
+    result.length = result.alloc_length / sizeof(result.elements[0]);
+    return result;
+}
+
+QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_First_pass_builder* builder, int opts ) {
     QAJ4C_First_pass_parser parser;
     parser.builder = builder;
-    parser.realloc_callback = realloc_callback;
 
     parser.strict_parsing = (opts & QAJ4C_PARSE_OPTS_STRICT) != 0;
     parser.optimize_object = (opts & QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS) == 0;
@@ -117,11 +136,7 @@ void QAJ4C_first_pass_parse( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* ms
         } while (msg->pos < msg->end && stack.it > stack.info);
     }
 
-    if (stack.it != stack.info) {
-        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
-    } else if (me->amount_nodes == 0) {
-        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_FATAL_PARSER_ERROR);
-    }
+    QAJ4C_first_pass_evaluate(me, &stack, msg);
 }
 
 size_t QAJ4C_calculate_max_buffer_parser( QAJ4C_First_pass_parser* me ) {
@@ -292,26 +307,42 @@ static void QAJ4C_first_pass_set_error( QAJ4C_First_pass_parser* me, QAJ4C_Json_
     }
 }
 
-static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, size_type storage_pos ) {
-    QAJ4C_Builder* builder = me->builder;
-    size_t in_buffer_pos = storage_pos * sizeof(size_type);
-    if (in_buffer_pos + sizeof(size_type) > builder->buffer_size) {
-        void *tmp;
-        size_t required_size = QAJ4C_calculate_max_buffer_parser(me);
-        if (me->realloc_callback == NULL) {
-            QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
-            return NULL;
-        }
+/*
+ * This method reserves the required amount of data and returns true, in case this was successful.
+ * On failure the error data is set on the parser and false is returned.
+ */
+static bool QAJ4C_first_pass_reserve_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
+    QAJ4C_First_pass_builder* builder = me->builder;
+    size_t required_size = QAJ4C_calculate_max_buffer_parser(me);
+    bool success = true;
 
-        tmp = me->realloc_callback(builder->buffer, required_size);
-        if (tmp == NULL) {
-            QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_ALLOCATION_ERROR);
-            return NULL;
+    if (required_size < builder->alloc_length) {
+        if (builder->realloc_callback == NULL) {
+            QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
+            success = false;
+        } else {
+            void *tmp = builder->realloc_callback(builder->elements, required_size);
+            if (tmp == NULL) {
+                QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_ALLOCATION_ERROR);
+                success = false;
+            } else {
+                builder->elements = tmp;
+                builder->alloc_length = required_size;
+                builder->length = builder->alloc_length / sizeof(builder->elements[0]);
+
+            }
         }
-        builder->buffer = tmp;
-        builder->buffer_size = required_size;
     }
-    return (size_type*)&builder->buffer[in_buffer_pos];
+    return success;
+}
+
+static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, size_type storage_pos ) {
+    QAJ4C_First_pass_builder* builder = me->builder;
+    //size_t in_buffer_pos = storage_pos * sizeof(size_type);
+    if (storage_pos > builder->length && !QAJ4C_first_pass_reserve_buffer(me, msg)) {
+        return NULL;
+    }
+    return builder->elements + storage_pos;
 }
 
 static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
@@ -332,4 +363,31 @@ static uint32_t QAJ4C_first_pass_4digits( QAJ4C_First_pass_parser* me, QAJ4C_Jso
     }
 
     return value;
+}
+
+static void QAJ4C_first_pass_evaluate( QAJ4C_First_pass_parser* me, QAJ4C_First_pass_stack* stack, QAJ4C_Json_message* msg )
+{
+    if (stack->it != stack->info) {
+        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
+    } else if (me->amount_nodes == 0) {
+        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_FATAL_PARSER_ERROR);
+    }
+
+    QAJ4C_first_pass_reserve_buffer(me, msg);
+
+    if (me->strict_parsing && *msg->pos != '\0') {
+        const char* pos = msg->pos;
+        /* skip whitespaces and comments after the json (we are graceful) */
+        while (msg->pos < msg->end && QAJ4C_parse_char(*msg->pos) == QAJ4C_CHAR_WHITESPACE) {
+            msg->pos += 1;
+        }
+        if (msg->pos < msg->end && *msg->pos != '\0') {
+            QAJ4C_first_pass_parser_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
+        } else {
+            msg->pos = pos;
+        }
+    }
+
+    msg->end = msg->pos;
+
 }
