@@ -200,10 +200,6 @@ const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
 
-QAJ4C_Char_type QAJ4C_parse_char( char c );
-
-void QAJ4C_json_message_skip_whitespaces( QAJ4C_Json_message* msg );
-
 #ifdef __cplusplus
 }
 #endif

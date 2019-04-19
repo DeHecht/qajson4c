@@ -27,6 +27,7 @@
 */
 
 #include "second_pass.h"
+#include "parse.h"
 #include "../qajson4c_builder.h"
 
 typedef struct QAJ4C_Second_pass_stack_entry {

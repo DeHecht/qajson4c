@@ -27,6 +27,7 @@
 */
 
 #include "first_pass.h"
+#include "parse.h"
 
 typedef struct QAJ4C_First_pass_stack_entry {
     size_type size;
