@@ -190,21 +190,21 @@ int main(int argc, char **argv) {
     char* buffer = NULL;
     const QAJ4C_Value* document = NULL;
     if ( arguments.dynamic_parsing ) {
-        document = QAJ4C_parse_opt_dynamic(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, realloc);
+        document = QAJ4C_parse_dynamic(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, realloc);
     } else {
         size_t buffer_size = 0;
         if (arguments.insitu_parsing) {
-            buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string);
+            buffer_size = QAJ4C_calculate_max_buffer_size_insitu(input_string, -1);
         } else {
-            buffer_size = QAJ4C_calculate_max_buffer_size(input_string);
+            buffer_size = QAJ4C_calculate_max_buffer_size(input_string, -1);
         }
 
         buffer = malloc(buffer_size);
 
         if( arguments.insitu_parsing ) {
-            QAJ4C_parse_opt_insitu(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
+            document = QAJ4C_parse_insitu(input_string, input_string_size, buffer, buffer_size, QAJ4C_PARSE_OPTS_STRICT, NULL);
         } else {
-            QAJ4C_parse_opt(input_string, input_string_size, QAJ4C_PARSE_OPTS_STRICT, buffer, buffer_size, &document);
+            document = QAJ4C_parse(input_string, input_string_size, buffer, buffer_size, QAJ4C_PARSE_OPTS_STRICT, NULL);
             if (arguments.verbose) {
                 printf("Size of value " FMT_SIZE " (inclusive doc)\n", QAJ4C_value_sizeof(document));
             }

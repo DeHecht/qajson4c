@@ -106,17 +106,13 @@ void QAJ4C_set_null( QAJ4C_Value* value_ptr ) {
     value_ptr->type = QAJ4C_NULL_TYPE_CONSTANT;
 }
 
-void QAJ4C_set_string_ref_n( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     value_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
     ((QAJ4C_String*)value_ptr)->s = str;
     ((QAJ4C_String*)value_ptr)->count = len;
 }
 
-void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str ) {
-    QAJ4C_set_string_ref_n(value_ptr, str, QAJ4C_STRLEN(str));
-}
-
-void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder ) {
+void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder ) {
     if (len <= QAJ4C_INLINE_STRING_SIZE) {
         value_ptr->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
         ((QAJ4C_Short_string*)value_ptr)->count = (uint8_t)len;
@@ -133,10 +129,6 @@ void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t le
         ((QAJ4C_String*)value_ptr)->s = new_string;
         new_string[len] = '\0';
     }
-}
-
-void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder ) {
-    QAJ4C_set_string_copy_n(value_ptr, str, QAJ4C_STRLEN(str), builder);
 }
 
 QAJ4C_Array_builder QAJ4C_array_builder_create( QAJ4C_Value* value_ptr, size_t capacity, QAJ4C_Builder* builder ) {
@@ -172,7 +164,7 @@ QAJ4C_Object_builder QAJ4C_object_builder_create( QAJ4C_Value* value_ptr, size_t
     return object_builder;
 }
 
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* object_builder, const char* str, size_t len )
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* object_builder, const char* str, size_t len )
 {
     QAJ4C_Value* return_value = NULL;
     QAJ4C_Object* object_ptr = ((QAJ4C_Object*)object_builder->object);
@@ -185,24 +177,19 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* 
 
     if (return_value == NULL) {
         QAJ4C_Member* member = &object_ptr->top[object_ptr->count];
-        QAJ4C_set_string_ref_n(&member->key, str, len);
+        QAJ4C_set_string_ref(&member->key, str, len);
         return_value = &member->value;
         object_ptr->count += 1;
     }
 
-    if (object_builder->strict) {
+    if (object_builder->strict && object_ptr->count > 1) {
         // FIXME: sort if the last appended value does not match the sorting!
     }
 
     return return_value;
 }
 
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str )
-{
-    return QAJ4C_object_builder_create_member_by_ref_n(value_ptr, str, QAJ4C_STRLEN(str));
-}
-
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder* object_builder, const char* str, size_t len, QAJ4C_Builder* builder )
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* object_builder, const char* str, size_t len, QAJ4C_Builder* builder )
 {
     QAJ4C_Value* return_value = NULL;
     QAJ4C_Object* object_ptr = ((QAJ4C_Object*)object_builder->object);
@@ -215,7 +202,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
 
     if (return_value == NULL) {
         QAJ4C_Member* member = &object_ptr->top[object_ptr->count];
-        QAJ4C_set_string_copy_n(&member->key, str, len, builder);
+        QAJ4C_set_string_copy(&member->key, str, len, builder);
         return_value = &member->value;
         object_ptr->count += 1;
     }
@@ -225,11 +212,6 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
     }
 
     return return_value;
-}
-
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder )
-{
-    return QAJ4C_object_builder_create_member_by_copy_n(value_ptr, str, QAJ4C_STRLEN(str), builder);
 }
 
 void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
@@ -254,7 +236,7 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         *dest = *src;
         break;
     case QAJ4C_STRING:
-        QAJ4C_set_string_copy_n(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
+        QAJ4C_set_string_copy(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
         break;
     case QAJ4C_OBJECT:
     case QAJ4C_OBJECT_SORTED:

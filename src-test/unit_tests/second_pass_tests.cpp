@@ -37,12 +37,12 @@ TEST(SecondPassParserTests, SimpleExample) {
 
     QAJ4C_Json_message msg{json, json + ARRAY_COUNT(json) - 1, json};
 
-    auto builder = QAJ4C_builder_create(&BUFFER, ARRAY_COUNT(BUFFER));
-    auto parser = QAJ4C_first_pass_parser_create(&builder, 0, NULL);
+    auto builder = QAJ4C_First_pass_builder_create(&BUFFER, ARRAY_COUNT(BUFFER), NULL);
+    auto parser = QAJ4C_first_pass_parser_create(&builder, 0);
     QAJ4C_first_pass_parse(&parser, &msg);
     auto second_parser = QAJ4C_second_pass_parser_create(&parser);
 
-    auto result = QAJ4C_second_pass_process(&second_parser, &msg);
+    auto result = QAJ4C_second_pass_process(&second_parser, &msg, NULL);
     assert(QAJ4C_is_object(result));
     auto id_ptr = QAJ4C_object_get(result, "id");
     assert(QAJ4C_is_uint(id_ptr));

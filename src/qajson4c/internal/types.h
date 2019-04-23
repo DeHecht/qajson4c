@@ -31,8 +31,6 @@
 
 #include "qajson_stdwrap.h"
 #include "../qajson4c_types.h"
-#include "../qajson4c_builder.h" // FIXME: Remove this dependency
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +43,10 @@ extern "C" {
 #define QAJ4C_UNLIKELY(expr) __builtin_expect(expr, 0)
 #else
 #define QAJ4C_UNLIKELY(expr) expr
+#endif
+
+#ifndef QAJ4C_STACK_SIZE
+#define QAJ4C_STACK_SIZE (32)
 #endif
 
 #define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { g_qaj4c_err_function(); alt } while(0)
@@ -77,6 +79,7 @@ extern "C" {
 #define QAJ4C_ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]) - 1)
 
 typedef uint32_t size_type;
+typedef uint_fast32_t fast_size_type;
 
 typedef enum QAJ4C_INTERNAL_TYPE {
     QAJ4C_NULL = 0,

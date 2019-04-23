@@ -110,33 +110,18 @@ void QAJ4C_set_null( QAJ4C_Value* value_ptr );
 
 /**
  * This method will set the value to string with a pointer to the handed over
- * string with the given size.
- *
- * @note As the string is a reference, the lifetime of the string must at least
- * be as long as the lifetime of the DOM object.
- */
-void QAJ4C_set_string_ref_n( QAJ4C_Value* value_ptr, const char* str, size_t len );
-
-/**
- * This method will set the value to string with a pointer to the handed over
  * string using strlen() to determine the string size.
  *
  * @note As the string is a reference, the lifetime of the string must at least
  * be as long as the lifetime of the DOM object.
  */
-void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str );
-
-/**
- * This method will copy the handed over string with the given string size
- * using the builder.
- */
-void QAJ4C_set_string_copy_n( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
+void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * This method will copy the handed over string using the builder. The string
  * size is determined by using strlen.
  */
-void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, QAJ4C_Builder* builder );
+void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
 
 /**
  * This method creates an array builder with a given (maximum) capacity. It is not possible
@@ -168,24 +153,11 @@ QAJ4C_Object_builder QAJ4C_object_builder_create( QAJ4C_Value* value_ptr, size_t
  * This method creates a member within the object using the reference of the handed over string.
  * This way the string does not have to be copied over to the buffer, but the string has to stay
  * valid until the DOM is not required anymore.
- */
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len );
-
-/**
- * This method creates a member within the object using the reference of the handed over string.
- * This way the string does not have to be copied over to the buffer, but the string has to stay
- * valid until the DOM is not required anymore.
  *
  * @note This is a shortcut version of the QAJ4C_object_create_member_by_ref_n method, using
  * strlen to calculate the string length.
  */
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str );
-
-/**
- * This method creates a member within the object doing a copy of the handed over string.
- * The allocation will be performed on the handed over builder.
- */
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* value_ptr, const char* str, size_t len );
 
 /**
  * This method creates a member within the object doing a copy of the handed over string.
@@ -194,7 +166,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy_n( QAJ4C_Object_builder*
  * @note This is a shortcut version of the QAJ4C_object_create_member_by_copy_n method, using
  * strlen to calculate the string length.
  */
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, QAJ4C_Builder* builder );
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder );
 
 /**
  * This method will optimize the current content on of the object (for faster DOM access).

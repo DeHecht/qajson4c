@@ -38,8 +38,8 @@ extern "C" {
 
 typedef struct QAJ4C_First_pass_builder {
     size_type* elements;
-    uint_fast32_t pos;
-    uint_fast32_t length;
+    fast_size_type pos;
+    fast_size_type length;
     size_t alloc_length;
     QAJ4C_realloc_fn realloc_callback;
 } QAJ4C_First_pass_builder;

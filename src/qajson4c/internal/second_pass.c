@@ -38,7 +38,7 @@ typedef struct QAJ4C_Second_pass_stack_entry {
 } QAJ4C_Second_pass_stack_entry;
 
 typedef struct QAJ4C_Second_pass_stack {
-    QAJ4C_Second_pass_stack_entry info[32];
+    QAJ4C_Second_pass_stack_entry info[QAJ4C_STACK_SIZE];
     QAJ4C_Second_pass_stack_entry* it;
 } QAJ4C_Second_pass_stack;
 

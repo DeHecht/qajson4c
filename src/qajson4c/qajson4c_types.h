@@ -71,6 +71,8 @@ typedef enum QAJ4C_TYPE {
     QAJ4C_TYPE_INVALID   /*!< Type for non-json compliant type (like parsing errors) */
 } QAJ4C_TYPE;
 
+#define QAJ4C_S(string) string, strlen(string)
+
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function );
 
 /**

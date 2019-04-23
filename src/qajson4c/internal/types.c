@@ -32,6 +32,8 @@
 #include "first_pass.h"
 #include "second_pass.h"
 
+QAJ4C_fatal_error_fn g_qaj4c_err_function = NULL;
+
 void QAJ4C_std_err_function( void ) {
     QAJ4C_RAISE(SIGABRT);
 }

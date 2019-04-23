@@ -48,7 +48,7 @@ typedef struct QAJ4C_Second_pass_parser {
     bool insitu_parsing;
     bool optimize_object;
     QAJ4C_ERROR_CODE err_code;
-    size_type curr_buffer_pos;
+    fast_size_type curr_buffer_pos;
 } QAJ4C_Second_pass_parser;
 
 QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass_parser* parser );

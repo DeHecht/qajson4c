@@ -34,8 +34,8 @@
 TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
     const char json[] = R"({"id":1})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
     assert(normal_required_buffer_size == insitu_required_buffer_size);
 
     // one object + one member
@@ -45,8 +45,8 @@ TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
 TEST(BufferSizeTests, ParseObjectWithTwoNumericMembers) {
     const char json[] = R"({"id":1,"foo":2})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
     assert(normal_required_buffer_size == insitu_required_buffer_size);
 
     // one object + two members
@@ -55,28 +55,28 @@ TEST(BufferSizeTests, ParseObjectWithTwoNumericMembers) {
 
 TEST(BufferSizeTests, ParseArrayWithOneNumericMember) {
     const char json[] = R"([1])";
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
     // one object + one member (also of type value)
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Value)));
 }
 
 TEST(BufferSizeTests, ParseArrayWithTwoNumericMembers) {
     const char json[] = R"([1,2])";
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
     // one object + two members  (also of type value)
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Value) * 2));
 }
 
 TEST(BufferSizeTests, ParseArrayWithBlockComments) {
     const char json[] = R"([1/*,2*/])";
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
     // one object + one member as the other is commented out
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Value)));
 }
 
 TEST(BufferSizeTests, ParseArrayWithLineComment) {
     const char json[] = "([1//,2\n]";
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
     // one object + one member as the other is commented out
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Value)));
 }
@@ -84,7 +84,7 @@ TEST(BufferSizeTests, ParseArrayWithLineComment) {
 TEST(SimpleParsingTests, ParseObjectWithOneNumericMember) {
     const char json[] = R"({"id":1})";
 
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -98,7 +98,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMember) {
 TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberNoOptions) {
     const char json[] = R"({"id":1})";
 
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -112,7 +112,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberNoOptions) {
 TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberWhitespaces) {
     const char json[] = R"({ "id" : 1 })";
 
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -127,8 +127,8 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberWhitespaces) {
 TEST(BufferSizeTests, ParseObjectWithOneStringVeryLongMember) {
     const char json[] = R"({"name":"blahblubbhubbeldipup"})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
 
 	assert(normal_required_buffer_size == insitu_required_buffer_size + strlen("blahblubbhubbeldipup") + 1 );
 
@@ -139,8 +139,8 @@ TEST(BufferSizeTests, ParseObjectWithOneStringVeryLongMember) {
 TEST(BufferSizeTests, ParseObjectWithEscapedString) {
     const char json[] = R"({"name":"blah\nblubbh\tubbel\u0021dipup"})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
 
     // one object + one member
     assert(insitu_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
@@ -152,8 +152,8 @@ TEST(BufferSizeTests, ParseObjectWithEscapedString) {
 TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
     const char json[] = R"({"name":"\u07FF\u07FF\u07FF\u07FF\u07FF\u07FF"})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
 
     // one object + one member
     assert(insitu_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member)));
@@ -165,8 +165,8 @@ TEST(BufferSizeTests, ParseObjectWithUnicode2BytesString) {
 TEST(BufferSizeTests, ParseObjectWithUnicode3BytesString) {
     const char json[] = R"({"name":"\uFFFF\uFFFF\uFFFF\uFFFF\uFFFF"})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
 
     size_t expected_string_size = 16;
 	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
@@ -178,8 +178,8 @@ TEST(BufferSizeTests, ParseObjectWithUnicode3BytesString) {
 TEST(BufferSizeTests, ParseObjectWithUnicodeAndLowSurrogateString) {
     const char json[] = R"({"name":"\uD800\uDFFF\uD800\uDFFF\uD800\uDFFF"})";
 
-    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size_n(json, ARRAY_COUNT(json));
-    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu_n(json, ARRAY_COUNT(json));
+    size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
+    size_t insitu_required_buffer_size = QAJ4C_calculate_max_buffer_size_insitu(json, ARRAY_COUNT(json));
 
     size_t expected_string_size = 13;
 	assert(normal_required_buffer_size == insitu_required_buffer_size + expected_string_size);
@@ -190,7 +190,7 @@ TEST(BufferSizeTests, ParseObjectWithUnicodeAndLowSurrogateString) {
 
 TEST(SimpleParsingTests, ParseObjectWithOneStringMember) {
     const char json[] = R"({"name":"blah"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -202,7 +202,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringMember) {
 
 TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMember) {
     const char json[] = R"({"name":"blahblubbhubbeldipup"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -219,7 +219,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
 
     size_t required = ARRAY_COUNT(buffer);
 
-    required = QAJ4C_parse_insitu(json, (void*)buffer, required, &value);
+    value = QAJ4C_parse_insitu(json, -1, (void*)buffer, required, 0, &required);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
     assert(required == sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member));
@@ -231,7 +231,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
 
 TEST(SimpleParsingTests, ParseStringWithNewLine) {
     char json[] = R"(["Hello\nWorld"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -245,7 +245,7 @@ TEST(SimpleParsingTests, ParseStringWithNewLine) {
 TEST(SimpleParsingTests, ParseStringWithNewLineUnicode) {
     char json[] = R"(["Hello\u000AWorld"])";
     char expected[] = "Hello\nWorld";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -260,7 +260,7 @@ TEST(SimpleParsingTests, ParseStringWithNewLineUnicode) {
 
 TEST(SimpleParsingTests, ParseStringWithEndOfStringUnicode) {
     char json[] = R"(["Hello\u0000World"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -281,7 +281,7 @@ TEST(SimpleParsingTests, ParseStringWithEndOfStringUnicode) {
 TEST(SimpleParsingTests, ParseDollarSign) {
     const char json[] = R"(["\u0024"])";
     const char expected[] = "$";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -297,7 +297,7 @@ TEST(SimpleParsingTests, ParseJapaneseTeaSign) {
 
     const char json[] = R"(["\u8336"])";
     const char expected[] = "茶";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -313,7 +313,7 @@ TEST(SimpleParsingTests, ParseYenSign) {
 
     const char json[] = R"(["\u00A5"])";
     const char expected[] = "¥";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -328,7 +328,7 @@ TEST(SimpleParsingTests, ParseYenSign) {
 TEST(SimpleParsingTests, ParseBigUtf16) {
     const char json[] = R"(["\uD834\uDD1E"])";
     const char expected[] = "𝄞";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -342,7 +342,7 @@ TEST(SimpleParsingTests, ParseBigUtf16) {
 
 TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
     char json[] = R"(["Hello\"World"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 1);
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
@@ -355,7 +355,7 @@ TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
 
 TEST(SimpleParsingTests, ParseEmptyObject) {
     const char json[] = R"({})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 0);
     free((void*)value);
@@ -363,7 +363,7 @@ TEST(SimpleParsingTests, ParseEmptyObject) {
 
 TEST(SimpleParsingTests, ParseEmptyObjectWhitespaces) {
     const char json[] = R"({ })";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 0);
     free((void*)value);
@@ -371,7 +371,7 @@ TEST(SimpleParsingTests, ParseEmptyObjectWhitespaces) {
 
 TEST(SimpleParsingTests, ParseEmptyArray) {
     const char json[] = R"([])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 0);
     free((void*)value);
@@ -379,7 +379,7 @@ TEST(SimpleParsingTests, ParseEmptyArray) {
 
 TEST(SimpleParsingTests, ParseEmptyArrayWhitespaces) {
     const char json[] = R"([ ])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 0);
     free((void*)value);
@@ -388,7 +388,7 @@ TEST(SimpleParsingTests, ParseEmptyArrayWhitespaces) {
 
 TEST(SimpleParsingTests, ParseNumberArray) {
     const char json[] = R"([1,2,3,-4,5,+6])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
 
@@ -404,7 +404,7 @@ TEST(SimpleParsingTests, ParseNumberArray) {
 
 TEST(SimpleParsingTests, ParseNumberArrayWithComments) {
     const char json[] = R"([/* HO */1, /* HO **/ 2, /**/ 3, /***/4,5,6])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
 
@@ -420,7 +420,7 @@ TEST(SimpleParsingTests, ParseNumberArrayWithComments) {
 
 TEST(SimpleParsingTests, ParseArraysWithinArray) {
     const char json[] = "[[],[],[],[],[],[],[],[],[]]";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 9);
 
@@ -445,7 +445,7 @@ TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
  3, //
 4,5,6])";
 
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
 
@@ -461,7 +461,7 @@ TEST(SimpleParsingTests, ParseNumberArrayWithLineComments) {
 
 TEST(SimpleParsingTests, ParseMultilayeredObject) {
     const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 2);
@@ -487,7 +487,7 @@ TEST(SimpleParsingTests, ParseMultilayeredObject) {
 
 TEST(SimpleParsingTests, ParseNumberArrayTrailingComma) {
     const char json[] = R"([1,2,])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 2);
 
@@ -499,7 +499,7 @@ TEST(SimpleParsingTests, ParseNumberArrayTrailingComma) {
 
 TEST(SimpleParsingTests, ParseNumberArrayWhitespaces) {
     const char json[] = R"([ 1 , 2  , ])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 2);
 
@@ -511,7 +511,7 @@ TEST(SimpleParsingTests, ParseNumberArrayWhitespaces) {
 
 TEST(SimpleParsingTests, ParseObjectArrayObjectCombination) {
     const char json[] = R"({"services":[{"id":1},{"id":2},{"id":3}]})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
@@ -524,7 +524,7 @@ TEST(SimpleParsingTests, ParseObjectArrayObjectCombination) {
 
 TEST(SimpleParsingTests, ParseObjectTrailingComma) {
     const char json[] = R"({"id":1,"name":"foo",})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 2);
 
@@ -533,7 +533,7 @@ TEST(SimpleParsingTests, ParseObjectTrailingComma) {
 
 TEST(SimpleParsingTests, ParseObjectCheckOptimized) {
     const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 5);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
@@ -552,9 +552,8 @@ TEST(SimpleParsingTests, ParseObjectCheckOptimizedNoChangeLater) {
     uint8_t buff1[SIZE];
     uint8_t buff2[SIZE];
 
-    const QAJ4C_Value* value = nullptr;
-
-    size_t size = QAJ4C_parse(json, buff1, SIZE, &value);
+    size_t size = 0;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff1, SIZE, 0, &size);
 
     // backup the content of the old buffer
     memcpy(buff2, buff1, size * sizeof(uint8_t));
@@ -581,7 +580,7 @@ TEST(SimpleParsingTests, ParseObjectCheckOptimizedNoChangeLater) {
 
 TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
     const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 5);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
@@ -591,7 +590,7 @@ TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
 
 TEST(SimpleParsingTests, ParseObjectCheckNonOptimizedAndOptimizeLater) {
     const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 5);
     assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
@@ -609,7 +608,7 @@ TEST(SimpleParsingTests, ParseObjectCheckNonOptimizedAndOptimizeLater) {
  */
 TEST(SimpleParsingTests, ParseMemoryCornerCase) {
     const char json[] = R"({"b":[1],"c":"d"})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(!QAJ4C_is_error(value));
     free((void*)value);
 }
@@ -617,14 +616,14 @@ TEST(SimpleParsingTests, ParseMemoryCornerCase) {
 
 TEST(SimpleParsingTests, ParseLineCommentInString) {
     const char json[] = R"(["Hallo//Welt"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(!QAJ4C_is_error(value));
     free((void*)value);
 }
 
 TEST(SimpleParsingTests, ParseDoubleValues) {
     const char json[] = R"([0.123456789e-12, 1.234567890E+34, 23456789012E66, -9876.543210])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_is_double(QAJ4C_array_get(value, 0)));
     assert(QAJ4C_is_double(QAJ4C_array_get(value, 1)));
@@ -635,7 +634,7 @@ TEST(SimpleParsingTests, ParseDoubleValues) {
 
 TEST(SimpleParsingTests, ParseNumericEValues) {
     const char json[] = R"([1e1,0.1e1])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_is_double(QAJ4C_array_get(value, 0)));
     assert(QAJ4C_is_double(QAJ4C_array_get(value, 1)));
@@ -644,7 +643,7 @@ TEST(SimpleParsingTests, ParseNumericEValues) {
 
 TEST(SimpleParsingTests, ParseUint64Max) {
     const char json[] = R"([18446744073709551615])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
 
@@ -660,7 +659,7 @@ TEST(SimpleParsingTests, ParseUint64Max) {
 
 TEST(SimpleParsingTests, ParseInt64Max) {
     const char json[] = R"([9223372036854775807])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
 
@@ -676,7 +675,7 @@ TEST(SimpleParsingTests, ParseInt64Max) {
 
 TEST(SimpleParsingTests, ParseInt64MaxPlus1) {
     const char json[] = R"([9223372036854775808])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
 
@@ -691,7 +690,7 @@ TEST(SimpleParsingTests, ParseInt64MaxPlus1) {
 
 TEST(SimpleParsingTests, ParseInt64Min) {
     const char json[] = R"([-9223372036854775808])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
 
@@ -707,7 +706,7 @@ TEST(SimpleParsingTests, ParseInt64Min) {
 
 TEST(SimpleParsingTests, ParseInt64MaxMinus1) {
     const char json[] = R"([-9223372036854775809])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     const QAJ4C_Value* array_value = QAJ4C_array_get(value, 0);
 
@@ -723,7 +722,7 @@ TEST(SimpleParsingTests, ParseInt64MaxMinus1) {
 
 TEST(SimpleParsingTests, ParseUint64MaxPlus1) {
     const char json[] = R"([18446744073709551616])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(!QAJ4C_is_uint(QAJ4C_array_get(value, 0)));
     assert(!QAJ4C_is_int(QAJ4C_array_get(value, 0)));
@@ -751,10 +750,10 @@ TEST(SimpleParsingTests, ParseStringUnicodeOverlapsInlineStringLimit) {
     json[index++] = ']';
     json[index++] = '\0';
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     uint8_t buff[buff_size];
-    const QAJ4C_Value* value;
-    size_t write_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t write_size = 0;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &write_size);
     assert(write_size == buff_size);
 
     assert(QAJ4C_is_array(value));
@@ -765,7 +764,7 @@ TEST(SimpleParsingTests, ParseStringUnicodeOverlapsInlineStringLimit) {
 
 TEST(SimpleParsingTests, ParseStringWithAllEscapeCharacters) {
     const char json[]  = R"(["\" \\ \/ \b \f \n \r \t"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(QAJ4C_is_array(value));
 
@@ -788,7 +787,7 @@ TEST(SimpleParsingTests, ParseStringWithAllEscapeCharacters) {
 
 TEST(ErrorHandlingTests, ParseIncompleteObject) {
     const char json[] = R"({)";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     assert(QAJ4C_error_get_json(value) == json);
@@ -798,7 +797,7 @@ TEST(ErrorHandlingTests, ParseIncompleteObject) {
 
 TEST(ErrorHandlingTests, ParseInvalidComment) {
     const char json[] = R"([/# #/])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_CHAR);
     free((void*)value);
@@ -806,7 +805,7 @@ TEST(ErrorHandlingTests, ParseInvalidComment) {
 
 TEST(ErrorHandlingTests, ParseNeverEndingLineComment) {
     const char json[] = R"([// ])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
@@ -814,7 +813,7 @@ TEST(ErrorHandlingTests, ParseNeverEndingLineComment) {
 
 TEST(ErrorHandlingTests, ParseNeverEndingLineBlockComment) {
     const char json[] = R"([/* ])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
@@ -822,7 +821,7 @@ TEST(ErrorHandlingTests, ParseNeverEndingLineBlockComment) {
 
 TEST(ErrorHandlingTests, ParseIncompleteArray) {
     const char json[] = R"([)";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     assert(QAJ4C_error_get_json(value) == json);
@@ -832,7 +831,7 @@ TEST(ErrorHandlingTests, ParseIncompleteArray) {
 
 TEST(ErrorHandlingTests, ParseIncompleteString) {
     const char json[] = R"(")";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     free((void*)value);
@@ -840,7 +839,7 @@ TEST(ErrorHandlingTests, ParseIncompleteString) {
 
 TEST(ErrorHandlingTests, ParseObjectKeyWithoutStartingQuotes) {
     const char json[] = R"({id":1})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_CHAR);
     free((void*)value);
@@ -849,7 +848,7 @@ TEST(ErrorHandlingTests, ParseObjectKeyWithoutStartingQuotes) {
 
 TEST(ErrorHandlingTests, ParseBombasticArray) {
     char json[] = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_DEPTH_OVERFLOW);
     free((void*)value);
@@ -857,7 +856,7 @@ TEST(ErrorHandlingTests, ParseBombasticArray) {
 
 TEST(ErrorHandlingTests, ParseBombasticObject) {
     char json[] = R"({"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_DEPTH_OVERFLOW);
     free((void*)value);
@@ -865,7 +864,7 @@ TEST(ErrorHandlingTests, ParseBombasticObject) {
 
 TEST(ErrorHandlingTests, IncompleteNumberAfterComma) {
     char json[] = R"([1.])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
     free((void*)value);
@@ -873,7 +872,7 @@ TEST(ErrorHandlingTests, IncompleteNumberAfterComma) {
 
 TEST(ErrorHandlingTests, InvalidUnicodeSequence) {
     char json[] = R"(["\u99XA"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
     free((void*)value);
@@ -893,8 +892,7 @@ TEST(ErrorHandlingTests, BuilderOverflowArray) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    QAJ4C_set_array(&value, 5, &builder);
-
+    auto array_builder = QAJ4C_array_builder_create(&value, 5, &builder);
     assert(called == true);
     assert(QAJ4C_is_array(&value));
     assert(0 == QAJ4C_array_size(&value));
@@ -914,7 +912,7 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    QAJ4C_set_object(&value, 5, &builder);
+    auto object_builder = QAJ4C_object_builder_create(&value, 5, false, &builder);
     assert(called == true);
     assert(QAJ4C_is_object(&value));
     assert(0 == QAJ4C_object_size(&value));
@@ -934,7 +932,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    QAJ4C_set_string_copy(&value, "abcdefghijklmnopqrstuvwxyz", &builder);
+    QAJ4C_set_string_copy(&value, QAJ4C_S("abcdefghijklmnopqrstuvwxyz"), &builder);
     assert(called == true);
     assert(QAJ4C_is_string(&value));
     assert(0 == QAJ4C_get_string_length(&value));
@@ -956,7 +954,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString2) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    QAJ4C_set_string_copy(&value, "abcdefghijklmnopqrstuvwxyz", &builder);
+    QAJ4C_set_string_copy(&value, QAJ4C_S("abcdefghijklmnopqrstuvwxyz"), &builder);
     assert(called == true);
     assert(QAJ4C_is_string(&value));
     assert(0 == QAJ4C_get_string_length(&value));
@@ -981,8 +979,7 @@ TEST(ErrorHandlingTests, InvalidConstantJsons) {
     };
     // Non of these string should result in something else then an error!
     for (const char* invalid_string : invalid_strings) {
-        const QAJ4C_Value* val = nullptr;
-        QAJ4C_parse(invalid_string, buff, ARRAY_COUNT(buff), &val);
+        const QAJ4C_Value* val = QAJ4C_parse(invalid_string, -1, buff, ARRAY_COUNT(buff), 0, NULL);
         assert(QAJ4C_is_error(val));
     }
 }
@@ -994,8 +991,7 @@ TEST(ErrorHandlingTests, InvalidConstantJsons) {
 TEST(ErrorHandlingTests, ParseTruncatedString) {
     const char json[] = R"({"id":123, "name": )";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
@@ -1004,8 +1000,7 @@ TEST(ErrorHandlingTests, ParseTruncatedString) {
 TEST(ErrorHandlingTests, TabInJsonString) {
     const char json[] = R"({"id":123, "name": ")" "\t" "\"";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
@@ -1014,8 +1009,7 @@ TEST(ErrorHandlingTests, TabInJsonString) {
 TEST(ErrorHandlingTests, InvalidEscapeCharacterInString) {
     const char json[] = R"({"id":123, "name": "\x")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
@@ -1027,8 +1021,7 @@ TEST(ErrorHandlingTests, InvalidEscapeCharacterInString) {
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoAppendingSurrogate) {
     const char json[] = R"({"id":123, "name": "\uD800")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1040,8 +1033,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoAppendingSurrogate) {
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate) {
     const char json[] = R"({"id":123, "name": "\uD800\")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1053,8 +1045,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate)
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate2) {
     const char json[] = R"({"id":123, "name": "\uD800\udC0")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1066,8 +1057,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate2
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooLowValue) {
     const char json[] = R"({"id":123, "name": "\uD800\udbff")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1079,8 +1069,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooLowValu
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooHighValue) {
     const char json[] = R"({"id":123, "name": "\uD800\ue000")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1092,8 +1081,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooHighVal
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoHighSurrogate) {
     const char json[] = R"({"id":123, "name": "\uDc00")";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -1106,8 +1094,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoHighSurrogate) {
 TEST(ErrorHandlingTests, ParseObjectWithoutQuotesOnValue) {
     const char json[] = R"({"id":123, "name": hossa})";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
@@ -1116,8 +1103,7 @@ TEST(ErrorHandlingTests, ParseObjectWithoutQuotesOnValue) {
 TEST(ErrorHandlingTests, ParseObjectMissingComma) {
     const char json[] = R"({"id":123 "name": "hossa"})";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
@@ -1126,8 +1112,7 @@ TEST(ErrorHandlingTests, ParseObjectMissingComma) {
 TEST(ErrorHandlingTests, ParseObjectMissingColon) {
     const char json[] = R"({"id":123, "name" "hossa"})";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COLON);
@@ -1136,8 +1121,7 @@ TEST(ErrorHandlingTests, ParseObjectMissingColon) {
 TEST(ErrorHandlingTests, ParseArrayMissingComma) {
     const char json[] = R"([1, 2 3])";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
@@ -1146,8 +1130,7 @@ TEST(ErrorHandlingTests, ParseArrayMissingComma) {
 TEST(ErrorHandlingTests, ParseDoubleWithInvalidExponentFormat) {
     const char json[] = R"(1.2e)";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
@@ -1156,8 +1139,7 @@ TEST(ErrorHandlingTests, ParseDoubleWithInvalidExponentFormat) {
 TEST(ErrorHandlingTests, InvalidBufferSizeToReportError) {
     uint8_t buff[sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information) - 1];
     const char json[] = "";
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
     assert(QAJ4C_is_not_set(val)); // buffer is event too small to store the error
 }
 
@@ -1168,8 +1150,7 @@ TEST(ErrorHandlingTests, InvalidBufferSizeToReportError) {
 TEST(ErrorHandlingTests, BufferTooSmallToStoreStatstics) {
     uint8_t buff[sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information)];
     const char json[] = "[[],[],[],[],[],[],[],[],[]]";
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse(json, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
 }
@@ -1189,7 +1170,7 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFails) {
         return (void*)NULL;
     };
     // just reduce the buffer size by one single byte
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, lambda);
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
@@ -1212,7 +1193,7 @@ TEST(ErrorHandlingTests, BufferTooSmallToStoreStatsticsReallocFailsWithObject) {
         return (void*)NULL;
     };
     // just reduce the buffer size by one single byte
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, lambda);
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
@@ -1228,7 +1209,7 @@ TEST(ErrorHandlingTests, LookupMemberUninitializedObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 4, &builder);
+    QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
 
     assert(NULL == QAJ4C_object_get(value_ptr, "id"));
 }
@@ -1268,7 +1249,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
     }
     )json";
 
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, -1, 0, realloc);
     assert(QAJ4C_is_object(value));
 
     const QAJ4C_Value* startup_array = QAJ4C_object_get(value, "startup");
@@ -1293,7 +1274,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
 TEST(DomObjectAccessTests, ObjectAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
-    QAJ4C_set_object(&value, 0, &builder);
+    auto object_builder = QAJ4C_object_builder_create(&value, 0, true, &builder);
 
     static int called = 0;
     auto lambda = [](){
@@ -1319,7 +1300,7 @@ TEST(DomObjectAccessTests, ObjectAccess) {
     // as the object is empty this should also fail!
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(8 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
+    assert(NULL == QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S("blubb")));
     assert(9 == called);
 }
 
@@ -1344,9 +1325,11 @@ TEST(DomObjectAccessTests, IncorrectObjectAccess) {
     assert(++expected == called);
     assert(NULL == QAJ4C_object_get(NULL, "id"));
     assert(++expected == called);
-    assert(NULL == QAJ4C_object_create_member_by_copy(NULL, "id", NULL));
+    assert(NULL == QAJ4C_object_builder_create_member_by_copy(NULL, QAJ4C_S("id"), NULL));
     assert(++expected == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(NULL, "id"));
+    assert(NULL == QAJ4C_object_builder_create_member_by_ref(NULL, QAJ4C_S("id")));
+    assert(++expected == called);
+    assert(NULL == QAJ4C_array_builder_next(NULL));
     assert(++expected == called);
     QAJ4C_object_optimize(NULL);
     assert(++expected == called);
@@ -1363,7 +1346,8 @@ TEST(DomObjectAccessTests, IncorrectObjectAccess) {
 TEST(DomObjectAccessTests, ArrayAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
-    QAJ4C_set_array(&value, 0, &builder);
+
+    auto array_builder = QAJ4C_array_builder_create(&value, 0, &builder);
 
     static int called = 0;
     auto lambda = [](){
@@ -1385,14 +1369,12 @@ TEST(DomObjectAccessTests, ArrayAccess) {
     assert(6 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(7 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(8 == called);
 
     // as the array has size 0 this should also fail!
     assert(NULL == QAJ4C_array_get(&value, 0));
+    assert(8 == called);
+    assert(NULL == QAJ4C_array_builder_next(&array_builder));
     assert(9 == called);
-    assert(NULL == QAJ4C_array_get_rw(&value, 0));
-    assert(10 == called);
 }
 
 /**
@@ -1414,7 +1396,7 @@ TEST(DomObjectAccessTests, IncorrectArrayAccess) {
     assert(++expected == called);
     assert(NULL == QAJ4C_array_get(NULL, 0));
     assert(++expected == called);
-    assert(NULL == QAJ4C_array_get_rw(NULL, 0));
+    assert(NULL == QAJ4C_array_builder_next(NULL));
     assert(++expected == called);
 }
 
@@ -1444,10 +1426,8 @@ TEST(DomObjectAccessTests, Uint64Access) {
     assert(6 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(7 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(8 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(9 == called);
+    assert(8 == called);
 }
 
 TEST(DomObjectAccessTests, Uint32Access) {
@@ -1476,10 +1456,8 @@ TEST(DomObjectAccessTests, Uint32Access) {
     assert(4 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(5 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(6 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(7 == called);
+    assert(6 == called);
 }
 
 TEST(DomObjectAccessTests, Int64Access) {
@@ -1508,10 +1486,8 @@ TEST(DomObjectAccessTests, Int64Access) {
     assert(6 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(7 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(8 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(9 == called);
+    assert(8 == called);
 }
 
 
@@ -1541,10 +1517,8 @@ TEST(DomObjectAccessTests, Int64AccessMax) {
     assert(5 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(6 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(7 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(8 == called);
+    assert(7 == called);
 }
 
 TEST(DomObjectAccessTests, Int32Access) {
@@ -1573,10 +1547,8 @@ TEST(DomObjectAccessTests, Int32Access) {
     assert(5 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(6 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(7 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(8 == called);
+    assert(7 == called);
 }
 
 TEST(DomObjectAccessTests, Int32AccessMax) {
@@ -1605,10 +1577,8 @@ TEST(DomObjectAccessTests, Int32AccessMax) {
     assert(3 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(4 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(5 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(6 == called);
+    assert(5 == called);
 }
 
 TEST(DomObjectAccessTests, DoubleAccess) {
@@ -1637,10 +1607,8 @@ TEST(DomObjectAccessTests, DoubleAccess) {
     assert(7 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(8 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(9 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(10 == called);
+    assert(9 == called);
 }
 
 TEST(DomObjectAccessTests, BoolAccess) {
@@ -1669,10 +1637,8 @@ TEST(DomObjectAccessTests, BoolAccess) {
     assert(7 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(8 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(9 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(10 == called);
+    assert(9 == called);
 }
 
 /**
@@ -1709,10 +1675,8 @@ TEST(DomObjectAccessTests, NullAccess) {
     assert(8 == called);
     assert(NULL == QAJ4C_object_get_member(&value, 0));
     assert(9 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(&value, "blubb"));
-    assert(10 == called);
     assert(NULL == QAJ4C_array_get(&value, 0));
-    assert(11 == called);
+    assert(10 == called);
 }
 
 /**
@@ -1746,10 +1710,8 @@ TEST(DomObjectAccessTests, NullPointerAccess) {
     assert(8 == called);
     assert(NULL == QAJ4C_object_get_member(NULL, 0));
     assert(9 == called);
-    assert(NULL == QAJ4C_object_create_member_by_ref(NULL, "blubb"));
-    assert(10 == called);
     assert(NULL == QAJ4C_array_get(NULL, 0));
-    assert(11 == called);
+    assert(10 == called);
 }
 
 /**
@@ -1815,7 +1777,7 @@ TEST(DomObjectAccessTests, AccessUint64OnInt64Valid) {
 TEST(DomObjectAccessTests, StringReference) {
     QAJ4C_Value value;
     const char* str = "Hello World!";
-    QAJ4C_set_string_ref(&value, str);
+    QAJ4C_set_string_ref(&value, QAJ4C_S(str));
     assert(str == QAJ4C_get_string(&value));
     assert(QAJ4C_string_equals(&value, str));
     assert(QAJ4C_string_cmp(&value, str) == 0);
@@ -1824,7 +1786,7 @@ TEST(DomObjectAccessTests, StringReference) {
 TEST(DomObjectAccessTests, ShortString) {
     QAJ4C_Value value;
     const char* str = "a";
-    QAJ4C_set_string_copy(&value, str, NULL);
+    QAJ4C_set_string_copy(&value, QAJ4C_S(str), NULL);
     assert(QAJ4C_string_equals(&value, str));
     assert(QAJ4C_string_cmp(&value, str) == 0);
 }
@@ -1836,7 +1798,7 @@ TEST(DomObjectAccessTests, StringCopy) {
 
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
-    QAJ4C_set_string_copy(&value, str, &builder);
+    QAJ4C_set_string_copy(&value, QAJ4C_S(str), &builder);
     assert(QAJ4C_string_equals(&value, str));
     assert(QAJ4C_string_cmp(&value, str) == 0);
 }
@@ -1845,11 +1807,10 @@ TEST(DomObjectAccessTests, StringCopy) {
 TEST(ErrorHandlingTests, TooSmallDomBuffer) {
     char json[] = "[0.123456,9,12,3,5,7,2,3]";
     // just reduce the buffer size by one single byte
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json) - 1;
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1) - 1;
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
-
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size = 0;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
@@ -2028,7 +1989,7 @@ TEST(PrintTests, PrintErrorObject) {
     auto lambda = []{ count++; }; // set the error method (else the compare will send a signal)
     QAJ4C_register_fatal_error_function(lambda);
 
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(QAJ4C_is_error(value));
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
@@ -2102,7 +2063,7 @@ TEST(PrintTests, PrintCorruptValue) {
 
 TEST(PrintTests, PrintEmtpyObject) {
     char json[] = "{}";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2116,7 +2077,7 @@ TEST(PrintTests, PrintEmtpyObject) {
 
 TEST(PrintTests, PrintNumericArray) {
     const char json[] = R"([1,2.10101,3,4.123456e+100,5.1,-6])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2142,7 +2103,7 @@ TEST(PrintTests, PrintAllTwoDigitDecimalsArray) {
         p += sprintf(p, "%u,", i);
     }
     *(p-1) = ']';
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2160,7 +2121,7 @@ TEST(PrintTests, PrintAllTwoDigitDecimalsArray) {
  */
 TEST(PrintTests, PrintDecimalsArray) {
     const char json[] = R"([1,10,100,1000,10000,100000])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2175,7 +2136,7 @@ TEST(PrintTests, PrintDecimalsArray) {
 
 TEST(PrintTests, PrintStringArray) {
     const char json[] = R"(["1","22","333","4444","55555","666666"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2189,7 +2150,7 @@ TEST(PrintTests, PrintStringArray) {
 
 TEST(PrintTests, PrintMultiLayerObject) {
     const char json[] = R"({"id":1,"data":{"name":"foo","param":12}})";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2204,7 +2165,7 @@ TEST(PrintTests, PrintMultiLayerObject) {
 
 TEST(PrintTests, PrintDoubleArray) {
     const char json[] = R"([0.1])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2218,7 +2179,7 @@ TEST(PrintTests, PrintDoubleArray) {
 
 TEST(PrintTests, PrintUint64Max) {
     const char json[] = R"([18446744073709551615])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2232,7 +2193,7 @@ TEST(PrintTests, PrintUint64Max) {
 
 TEST(PrintTests, PrintUintZero) {
     const char json[] = R"([0])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2247,7 +2208,7 @@ TEST(PrintTests, PrintUintZero) {
 
 TEST(PrintTests, PrintStringWithNewLine) {
     char json[] = R"(["Hello\nWorld"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2264,7 +2225,7 @@ TEST(PrintTests, PrintStringWithNewLine) {
  */
 TEST(PrintTests, PrintControlCharacters) {
     char json[] = R"(["\" \\ \/ \b \f \n \r \t"])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), 0, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
 
     assert(!QAJ4C_is_error(value));
 
@@ -2631,7 +2592,7 @@ TEST(VariousTests, ResetBuilder) {
 
 TEST(StrictParsingTests, ParseValidNumericValues) {
     const char json[] = R"([0, 1.0, 0.015, -0.5, -0.005, -256])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
@@ -2648,7 +2609,7 @@ TEST(StrictParsingTests, ParseValidNumericValues) {
 
 TEST(StrictParsingTests, ParseNumericValueWithLeadingZero) {
     const char json[] = R"([007])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
@@ -2658,7 +2619,7 @@ TEST(StrictParsingTests, ParseNumericValueWithLeadingZero) {
 
 TEST(StrictParsingTests, ParseNumericValueWithLeadingPlus) {
     const char json[] = R"([+7])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
@@ -2668,7 +2629,7 @@ TEST(StrictParsingTests, ParseNumericValueWithLeadingPlus) {
 
 TEST(StrictParsingTests, ParseMessageTrailingComma) {
     const char json[] = R"([7],)";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_UNEXPECTED_JSON_APPENDIX);
@@ -2688,7 +2649,7 @@ TEST(StrictParsingTests, ParseObjectTrailingComma) {
 
 TEST(StrictParsingTests, ParseArrayTrailingComma) {
     const char json[] = R"([7,])";
-    const QAJ4C_Value* value = QAJ4C_parse_opt_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_error(value));
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_TRAILING_COMMA);

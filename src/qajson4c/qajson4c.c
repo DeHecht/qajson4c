@@ -34,7 +34,6 @@
 #include "qajson4c.h"
 #include "qajson4c/internal/qajson_stdwrap.h"
 #include "qajson4c/internal/types.h"
-#include "qajson4c/internal/print.h"
 
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
     if (function == NULL) {
@@ -66,7 +65,7 @@ int QAJ4C_string_cmp_n( const QAJ4C_Value* value_ptr, const char* str, size_t le
 
     QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return strcmp("", str);});
 
-    QAJ4C_set_string_ref_n(&wrapper_value, str, len);
+    QAJ4C_set_string_ref(&wrapper_value, str, len);
     return QAJ4C_strcmp(value_ptr, &wrapper_value);
 }
 
@@ -218,7 +217,7 @@ const QAJ4C_Value* QAJ4C_object_get_n( const QAJ4C_Value* value_ptr, const char*
     QAJ4C_Value wrapper_value;
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
 
-    QAJ4C_set_string_ref_n(&wrapper_value, str, len);
+    QAJ4C_set_string_ref(&wrapper_value, str, len);
     if (QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED) {
         return QAJ4C_object_get_sorted((QAJ4C_Object*) value_ptr, &wrapper_value);
     }
