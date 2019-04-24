@@ -69,11 +69,11 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass
     uint8_t* buffer_ptr = (uint8_t*)builder->elements;
 
     memmove(buffer_ptr + copy_to_index, buffer_ptr, required_tempoary_storage);
-    me.builder->buffer = builder->elements;
-    me.builder->buffer_length = builder->alloc_length;
-    me.builder->object_pos = (QAJ4C_Value*)buffer_ptr;
-    me.builder->str_pos = (char*)(buffer_ptr + required_object_storage);
-    me.builder->stats_pos = (size_type*)(buffer_ptr + copy_to_index);
+    me.builder.buffer = builder->elements;
+    me.builder.buffer_length = builder->alloc_length;
+    me.builder.object_pos = (QAJ4C_Value*)buffer_ptr;
+    me.builder.str_pos = (char*)(buffer_ptr + required_object_storage);
+    me.builder.stats_pos = (size_type*)(buffer_ptr + copy_to_index);
     me.insitu_parsing = parser->insitu_parsing;
     me.optimize_object = parser->optimize_object;
     me.curr_buffer_pos = copy_to_index;
@@ -82,7 +82,7 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass
 }
 
 const QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, size_t* bytes_written ) {
-    QAJ4C_Value* result = me->builder->object_pos;
+    QAJ4C_Value* result = me->builder.object_pos;
 
     QAJ4C_Second_pass_stack stack;
     stack.it = stack.info;
@@ -136,7 +136,7 @@ const QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4
     if (bytes_written != NULL) {
         // str_pos points to the char after the last written string. Thus is perfect to
         // be used to determine the overall buffer usage size.
-        *bytes_written = me->builder->str_pos - (char*)me->builder->buffer;
+        *bytes_written = me->builder.str_pos - (char*)me->builder.buffer;
     }
 
     return result;
@@ -153,10 +153,10 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
     }
 
     new_stack_entry->type = *msg->pos == '{' ? QAJ4C_TYPE_OBJECT : QAJ4C_TYPE_ARRAY;
-    new_stack_entry->value_ptr = me->builder->object_pos;
+    new_stack_entry->value_ptr = me->builder.object_pos;
     new_stack_entry->base_ptr = new_stack_entry->value_ptr;
     new_stack_entry->value_flag = false;
-    me->builder->object_pos += count;
+    me->builder.object_pos += count;
 
     if (new_stack_entry->type == QAJ4C_TYPE_OBJECT) {
         QAJ4C_Object* obj_ptr = (QAJ4C_Object*)stack_entry->value_ptr;
@@ -349,7 +349,7 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
     QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack_entry->value_ptr;
     QAJ4C_String* string_ptr = (QAJ4C_String*)stack_entry->value_ptr;
-    QAJ4C_Second_pass_builder* builder = me->builder;
+    QAJ4C_Second_pass_builder* builder = &me->builder;
 
     if (stack_entry->value_flag) {
         QAJ4C_second_pass_set_missing_seperator_error(me, msg);
@@ -462,7 +462,7 @@ static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg ) {
 }
 
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me ) {
-    if (QAJ4C_UNLIKELY((void*)me->builder->stats_pos <= (void*)me->builder->object_pos)) {
+    if (QAJ4C_UNLIKELY((void*)me->builder.stats_pos <= (void*)me->builder.object_pos)) {
         /*
          * Corner case that the last entry is empty. In some cases this causes that
          * the statistics are already overwritten (see Corner-case tests).
@@ -471,8 +471,8 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
          */
         return 0;
     }
-    size_type data = *me->builder->stats_pos;
-    me->builder->stats_pos += 1;
+    size_type data = *me->builder.stats_pos;
+    me->builder.stats_pos += 1;
     return data;
 }
 
@@ -495,12 +495,12 @@ static const QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_Second_pass_pars
     QAJ4C_Value* document;
     QAJ4C_Error_information* err_info;
     /* not enough space to store error information in buffer... */
-    if (parser->builder->buffer_length < REQUIRED_STORAGE) {
+    if (parser->builder.buffer_length < REQUIRED_STORAGE) {
         return NULL;
     }
 
     //QAJ4C_builder_init(parser->builder, parser->builder->buffer, parser->builder->buffer_size);
-    document = (QAJ4C_Value*)parser->builder->buffer;
+    document = (QAJ4C_Value*)parser->builder.buffer;
     document->type = QAJ4C_ERROR_DESCRIPTION_TYPE_CONSTANT;
 
     err_info = (QAJ4C_Error_information*)(document + 1);

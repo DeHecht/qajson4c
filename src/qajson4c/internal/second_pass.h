@@ -44,7 +44,7 @@ typedef struct QAJ4C_Second_pass_builder {
 } QAJ4C_Second_pass_builder;
 
 typedef struct QAJ4C_Second_pass_parser {
-    QAJ4C_Second_pass_builder* builder;
+    QAJ4C_Second_pass_builder builder;
     bool insitu_parsing;
     bool optimize_object;
     QAJ4C_ERROR_CODE err_code;

@@ -99,22 +99,20 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
     return false;
 }
 
-
 size_t QAJ4C_value_sizeof( const QAJ4C_Value* root_ptr ) {
     size_t size = 0;
     size_type i;
     size_type n = 1;
 
-    for ( i = 0; i < n; ++i )
-    {
+    for (i = 0; i < n; ++i) {
         const QAJ4C_Value* value_ptr = root_ptr + i;
         switch (QAJ4C_get_internal_type(value_ptr)) {
         case QAJ4C_OBJECT_SORTED:
         case QAJ4C_OBJECT:
-            n = QAJ4C_MAX(n, ((QAJ4C_Array*)value_ptr)->top + ((QAJ4C_Array*)value_ptr)->count * 2 - root_ptr );
+            n = QAJ4C_MAX(n, ((QAJ4C_Array* )value_ptr)->top + ((QAJ4C_Array* )value_ptr)->count * 2 - root_ptr);
             break;
         case QAJ4C_ARRAY:
-            n = QAJ4C_MAX(n, ((QAJ4C_Array*)value_ptr)->top + ((QAJ4C_Array*)value_ptr)->count - root_ptr );
+            n = QAJ4C_MAX(n, ((QAJ4C_Array* )value_ptr)->top + ((QAJ4C_Array* )value_ptr)->count - root_ptr);
             break;
         case QAJ4C_STRING:
             size += QAJ4C_get_string_length(value_ptr) + 1;

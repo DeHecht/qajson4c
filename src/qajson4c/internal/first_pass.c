@@ -61,9 +61,9 @@ static int QAJ4C_xdigit( char c ) {
 QAJ4C_First_pass_builder QAJ4C_First_pass_builder_create( void* buffer, size_t length, QAJ4C_realloc_fn realloc_callback ) {
     QAJ4C_First_pass_builder result;
 
-    if (result.elements == NULL && realloc_callback != NULL) {
+    if (buffer == NULL && realloc_callback != NULL) {
         static size_type MIN_SIZE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
-        result.elements = realloc_callback( NULL, MIN_SIZE);
+        result.elements = realloc_callback(NULL, MIN_SIZE);
         result.alloc_length = MIN_SIZE;
     } else {
         result.elements = buffer;
@@ -317,7 +317,7 @@ static bool QAJ4C_first_pass_reserve_buffer( QAJ4C_First_pass_parser* me, QAJ4C_
     size_t required_size = QAJ4C_calculate_max_buffer_parser(me);
     bool success = true;
 
-    if (required_size < builder->alloc_length) {
+    if (builder != NULL && required_size < builder->alloc_length) {
         if (builder->realloc_callback == NULL) {
             QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
             success = false;

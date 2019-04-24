@@ -945,7 +945,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString) {
  */
 TEST(ErrorHandlingTests, BuilderOverflowString2) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 256);
-    builder.cur_obj_pos = builder.cur_str_pos;
+    builder.obj_ptr = (QAJ4C_Value*)builder.str_ptr;
 
     static bool called = false;
     auto lambda = [](){
@@ -1820,7 +1820,7 @@ TEST(ErrorHandlingTests, ReallocFailsBegin) {
     char json[] = "[0.123456,9,12,3,5,7,2,3]";
     auto lambda = []( void *ptr, size_t size ) {return (void*)NULL;};
     // just reduce the buffer size by one single byte
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, lambda);
     assert(QAJ4C_is_not_set(value));
     free((void*)value);
 }
@@ -1836,7 +1836,7 @@ TEST(ErrorHandlingTests, ReallocFailsLater) {
         return (void*)NULL;
     };
     // just reduce the buffer size by one single byte
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, lambda);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, lambda);
     assert(QAJ4C_is_error(value));
 
     assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_ALLOCATION_ERROR);
@@ -1848,11 +1848,10 @@ TEST(ErrorHandlingTests, DoubleSmallPrintBuffer) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
-
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -1871,11 +1870,11 @@ TEST(ErrorHandlingTests, MultipleDoublesSmallPrintBuffer) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
 
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -1894,11 +1893,11 @@ TEST(ErrorHandlingTests, PrintStringPartially) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
 
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -1917,11 +1916,11 @@ TEST(ErrorHandlingTests, PrintCompositionOfObjectsAndArraysPartially) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
 
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -1940,11 +1939,11 @@ TEST(ErrorHandlingTests, PrintConstantsPartially) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
 
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -1963,11 +1962,11 @@ TEST(ErrorHandlingTests, NullSmallPrintBuffer) {
     char out[ARRAY_COUNT(json) + 1];
     memset(out, '\n', ARRAY_COUNT(out));
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     char buff[buff_size];
-    const QAJ4C_Value* value = NULL;
 
-    size_t actual_size = QAJ4C_parse(json, buff, buff_size, &value);
+    size_t actual_size;
+    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff, buff_size, 0, &actual_size);
     assert(!QAJ4C_is_error(value));
 
     assert(actual_size == buff_size);
@@ -2280,7 +2279,7 @@ TEST(PrintTests, PrintWithCallback) {
     const char* msg = "Hello";
     std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
     QAJ4C_Value value;
-    QAJ4C_set_string_ref(&value, msg);
+    QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     bool result = QAJ4C_print_callback(&value, simple_print_callback_impl, &expected_data );
     assert(result);
@@ -2289,7 +2288,7 @@ TEST(PrintTests, PrintWithCallback) {
 TEST(PrintTests, PrintWithCallbackNullsafe) {
     const char* msg = "Hello";
     QAJ4C_Value value;
-    QAJ4C_set_string_ref(&value, msg);
+    QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     assert(!QAJ4C_print_callback(&value, NULL, NULL ));
 }
@@ -2311,7 +2310,7 @@ TEST(PrintTests, PrintBufferWithCallback) {
     const char* msg = "Hello";
     std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
     QAJ4C_Value value;
-    QAJ4C_set_string_ref(&value, msg);
+    QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     bool result = QAJ4C_print_buffer_callback(&value, buffer_print_callback_impl, &expected_data );
     assert(result);
@@ -2320,7 +2319,7 @@ TEST(PrintTests, PrintBufferWithCallback) {
 TEST(PrintTests, PrintBufferWithCallbackNullsafe) {
     const char* msg = "Hello";
     QAJ4C_Value value;
-    QAJ4C_set_string_ref(&value, msg);
+    QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     assert(!QAJ4C_print_buffer_callback(&value, NULL, NULL ));
 }
@@ -2331,14 +2330,17 @@ TEST(PrintTests, PrintBufferWithCallbackNullsafe) {
  */
 TEST(VariousTests, ComparisonTest) {
     const char json[] = R"({"id":1,"data":{"name":"foo","param":12,"data":[1,0.3e10,-99,null,false,"abcdefghijklmnopqrstuvwxyz"]}})";
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     uint8_t buffer[buff_size];
     uint8_t buffer2[buff_size];
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    size_t actual_size1;
+    size_t actual_size2;
 
-    assert(QAJ4C_parse(json, buffer, buff_size, &value_1) == buff_size);
-    assert(QAJ4C_parse(json, buffer2, buff_size, &value_2) == buff_size);
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json, -1, buffer2, buff_size, 0, &actual_size2);
+
+    assert(actual_size1 == buff_size);
+    assert(actual_size2 == buff_size);
 
     assert(QAJ4C_value_sizeof(value_1) == buff_size);
     assert(QAJ4C_value_sizeof(value_2) == buff_size);
@@ -2349,16 +2351,18 @@ TEST(VariousTests, ComparisonTest) {
 TEST(VariousTests, ComparisonTestDifferentBooleanInArray) {
     const char json1[] = R"([1,0.3e10,-99,false,"abcdefghijklmnopqrstuvwxyz"])";
     const char json2[] = R"([1,0.3e10,-99,true,"abcdefghijklmnopqrstuvwxyz"])";
-    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1);
-    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2);
+    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1, -1);
+    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2, -1);
     uint8_t buffer1[buff_size1];
     uint8_t buffer2[buff_size2];
+    size_t actual_size1;
+    size_t actual_size2;
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json1, -1, buffer1, buff_size1, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json2, -1, buffer2, buff_size2, 0, &actual_size2);
 
-    assert(QAJ4C_parse(json1, buffer1, buff_size1, &value_1) == buff_size1);
-    assert(QAJ4C_parse(json2, buffer2, buff_size2, &value_2) == buff_size2);
+    assert(actual_size1 == buff_size1);
+    assert(actual_size2 == buff_size2);
 
     assert(QAJ4C_is_array(value_1));
     assert(QAJ4C_is_array(value_2));
@@ -2372,16 +2376,19 @@ TEST(VariousTests, ComparisonTestDifferentBooleanInArray) {
 TEST(VariousTests, ComparisonTestDifferentArraySize) {
     const char json1[] = R"([1,0.3e10,-99,false,"abcdefghijklmnopqrstuvwxyz"])";
     const char json2[] = R"([])";
-    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1);
-    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2);
+    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1, -1);
+    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2, -1);
     uint8_t buffer1[buff_size1];
     uint8_t buffer2[buff_size2];
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    size_t actual_size1;
+    size_t actual_size2;
 
-    assert(QAJ4C_parse(json1, buffer1, buff_size1, &value_1) == buff_size1);
-    assert(QAJ4C_parse(json2, buffer2, buff_size2, &value_2) == buff_size2);
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json1, -1, buffer1, buff_size1, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json2, -1, buffer2, buff_size2, 0, &actual_size2);
+
+    assert(actual_size1 == buff_size1);
+    assert(actual_size2 == buff_size2);
 
     assert(QAJ4C_is_array(value_1));
     assert(QAJ4C_is_array(value_2));
@@ -2395,16 +2402,19 @@ TEST(VariousTests, ComparisonTestDifferentArraySize) {
 TEST(VariousTests, ComparisonTestDifferentKeysInObject) {
     const char json1[] = R"({"id":1,"name":"Yo"})";
     const char json2[] = R"({"id":1,"description":"Yo"})";
-    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1);
-    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2);
+    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1, -1);
+    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2, -1);
     uint8_t buffer1[buff_size1];
     uint8_t buffer2[buff_size2];
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    size_t actual_size1;
+    size_t actual_size2;
 
-    assert(QAJ4C_parse(json1, buffer1, buff_size1, &value_1) == buff_size1);
-    assert(QAJ4C_parse(json2, buffer2, buff_size2, &value_2) == buff_size2);
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json1, -1, buffer1, buff_size1, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json2, -1, buffer2, buff_size2, 0, &actual_size2);
+
+    assert(actual_size1 == buff_size1);
+    assert(actual_size2 == buff_size2);
 
     assert(QAJ4C_is_object(value_1));
     assert(QAJ4C_is_object(value_2));
@@ -2418,16 +2428,18 @@ TEST(VariousTests, ComparisonTestDifferentKeysInObject) {
 TEST(VariousTests, ComparisonTestDifferentObjectSize) {
     const char json1[] = R"({"id":1,"name":"Yo"})";
     const char json2[] = R"({})";
-    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1);
-    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2);
+    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1, -1);
+    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2, -1);
     uint8_t buffer1[buff_size1];
     uint8_t buffer2[buff_size2];
+    size_t actual_size1;
+    size_t actual_size2;
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json1, -1, buffer1, buff_size1, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json2, -1, buffer2, buff_size2, 0, &actual_size2);
 
-    assert(QAJ4C_parse(json1, buffer1, buff_size1, &value_1) == buff_size1);
-    assert(QAJ4C_parse(json2, buffer2, buff_size2, &value_2) == buff_size2);
+    assert(actual_size1 == buff_size1);
+    assert(actual_size2 == buff_size2);
 
     assert(QAJ4C_is_object(value_1));
     assert(QAJ4C_is_object(value_2));
@@ -2444,16 +2456,18 @@ TEST(VariousTests, ComparisonTestDifferentObjectSize) {
 TEST(VariousTests, ComparisonTestDifferentKeyOrder) {
     const char json1[] = R"({"id":1,"name":"Yo"})";
     const char json2[] = R"({"name":"Yo","id":1})";
-    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1);
-    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2);
+    size_t buff_size1 = QAJ4C_calculate_max_buffer_size(json1, -1);
+    size_t buff_size2 = QAJ4C_calculate_max_buffer_size(json2, -1);
     uint8_t buffer1[buff_size1];
     uint8_t buffer2[buff_size2];
+    size_t actual_size1;
+    size_t actual_size2;
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json1, -1, buffer1, buff_size1, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json2, -1, buffer2, buff_size2, 0, &actual_size2);
 
-    assert(QAJ4C_parse(json1, buffer1, buff_size1, &value_1) == buff_size1);
-    assert(QAJ4C_parse(json2, buffer2, buff_size2, &value_2) == buff_size2);
+    assert(actual_size1 == buff_size1);
+    assert(actual_size2 == buff_size2);
 
     assert(QAJ4C_is_object(value_1));
     assert(QAJ4C_is_object(value_2));
@@ -2470,15 +2484,13 @@ TEST(VariousTests, ComparisonTestDifferentKeyOrder) {
  */
 TEST(VariousTests, ComparisonAndCopyTest) {
     const char json[] = R"({"id":1,"data":{"name":"foo","param":12,"data":[1,0.3e10,-99,false,"abcdefghijklmnopqrstuvwxyz"]}})";
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     uint8_t buffer[buff_size];
     uint8_t buffer2[buff_size];
-    const QAJ4C_Value* value_1;
 
     QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
-    QAJ4C_builder_init(&builder, buffer2, buff_size);
 
-    QAJ4C_parse(json, buffer, buff_size, &value_1);
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, NULL);
     QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
     QAJ4C_copy(value_1, value_2, &builder);
 
@@ -2495,8 +2507,9 @@ TEST(VariousTests, CopyNotFullyFilledObject) {
     QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
 
     QAJ4C_Value* root = QAJ4C_builder_get_document(&builder1);
-    QAJ4C_set_object(root, 3, &builder1);
-    QAJ4C_object_create_member_by_ref(root, "Hossa");
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(root, 3, true, &builder1);
+
+    QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("Hossa"));
 
     QAJ4C_Value* copy = QAJ4C_builder_get_document(&builder2);
 
@@ -2507,15 +2520,17 @@ TEST(VariousTests, CopyNotFullyFilledObject) {
 TEST(VariousTests, ErrorsAreNeverEqual) {
     const char json[] = R"([)";
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     uint8_t buffer1[buff_size];
     uint8_t buffer2[buff_size];
+    size_t actual_size1;
+    size_t actual_size2;
 
-    const QAJ4C_Value* value_1 = nullptr;
-    const QAJ4C_Value* value_2 = nullptr;
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer1, buff_size, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json, -1, buffer2, buff_size, 0, &actual_size2);
 
-    assert(QAJ4C_parse(json, buffer1, buff_size, &value_1) == buff_size);
-    assert(QAJ4C_parse(json, buffer2, buff_size, &value_2) == buff_size);
+    assert(actual_size1 == buff_size);
+    assert(actual_size2 == buff_size);
 
     assert(QAJ4C_value_sizeof(value_1) ==  buff_size);
     assert(QAJ4C_value_sizeof(value_2) ==  buff_size);
@@ -2529,7 +2544,7 @@ TEST(VariousTests, ErrorsAreNeverEqual) {
 TEST(VariousTests, ErrorsCannotBeCopied) {
     const char json[] = R"([)";
 
-    size_t buff_size = QAJ4C_calculate_max_buffer_size(json);
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
     uint8_t buffer1[buff_size];
     uint8_t buffer2[buff_size];
     QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
@@ -2541,7 +2556,10 @@ TEST(VariousTests, ErrorsCannotBeCopied) {
     const QAJ4C_Value* value_1 = nullptr;
     QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
 
-    assert(QAJ4C_parse(json, buffer1, buff_size, &value_1) == buff_size);
+    size_t actual_size;
+    value_1 = QAJ4C_parse(json, -1, buffer1, buff_size, 0, &actual_size);
+
+    assert(actual_size == buff_size);
     QAJ4C_copy(value_1, value_2, &builder);
     assert(1 == count);
 }
@@ -2576,8 +2594,12 @@ TEST(VariousTests, ResetBuilder) {
 
     assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
 
-    // alter the builder
-    QAJ4C_set_array(QAJ4C_builder_get_document(&builder), 10, &builder);
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(value_ptr, 10, &builder);
+
+    for (QAJ4C_Value* it = QAJ4C_array_builder_next(&array_builder); it != nullptr; it = QAJ4C_array_builder_next(&array_builder)) {
+        QAJ4C_set_null(it);
+    }
 
     // compare should not result in the builders are equal
     assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) != 0);
@@ -2640,8 +2662,7 @@ TEST(StrictParsingTests, ParseMessageTrailingComma) {
 TEST(StrictParsingTests, ParseObjectTrailingComma) {
     const char json[] = R"({"id":123, "name": "hossa",})";
     uint8_t buff[256];
-    const QAJ4C_Value* val = nullptr;
-    QAJ4C_parse_opt(json, SIZE_MAX, QAJ4C_PARSE_OPTS_STRICT, buff, ARRAY_COUNT(buff), &val);
+    const QAJ4C_Value* val = QAJ4C_parse(json, SIZE_MAX, buff, ARRAY_COUNT(buff), QAJ4C_PARSE_OPTS_STRICT, NULL);
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_TRAILING_COMMA);
@@ -2667,19 +2688,25 @@ TEST(DomCreation, CreateArray) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(value_ptr, 4, &builder);
 
-    QAJ4C_set_array(value_ptr, 4, &builder);
-    assert(QAJ4C_array_get_rw(value_ptr, 0) != nullptr);
-    assert(QAJ4C_array_get_rw(value_ptr, 1) != nullptr);
-    assert(QAJ4C_array_get_rw(value_ptr, 2) != nullptr);
-    assert(QAJ4C_array_get_rw(value_ptr, 3) != nullptr);
-    assert(QAJ4C_array_get_rw(value_ptr, 4) == nullptr);
+    QAJ4C_Value* array_entry_1 = QAJ4C_array_builder_next(&array_builder);
+    QAJ4C_Value* array_entry_2 = QAJ4C_array_builder_next(&array_builder);
+    QAJ4C_Value* array_entry_3 = QAJ4C_array_builder_next(&array_builder);
+    QAJ4C_Value* array_entry_4 = QAJ4C_array_builder_next(&array_builder);
+    QAJ4C_Value* array_entry_5 = QAJ4C_array_builder_next(&array_builder);
+
+    assert(array_entry_1 != nullptr);
+    assert(array_entry_2 != nullptr);
+    assert(array_entry_3 != nullptr);
+    assert(array_entry_4 != nullptr);
+    assert(array_entry_5 == nullptr);
 
     // create a mixed array
-    QAJ4C_set_uint(QAJ4C_array_get_rw(value_ptr, 0), 1234);
-    QAJ4C_set_bool(QAJ4C_array_get_rw(value_ptr, 1), true);
-    QAJ4C_set_string_ref(QAJ4C_array_get_rw(value_ptr, 2), "foobar");
-    QAJ4C_set_null(QAJ4C_array_get_rw(value_ptr, 3));
+    QAJ4C_set_uint(array_entry_1, 1234);
+    QAJ4C_set_bool(array_entry_2, true);
+    QAJ4C_set_string_ref(array_entry_3, QAJ4C_S("foobar"));
+    QAJ4C_set_null(array_entry_4);
 
     assert(QAJ4C_is_uint(QAJ4C_array_get(value_ptr, 0)));
     assert(1234 == QAJ4C_get_uint(QAJ4C_array_get(value_ptr, 0)));
@@ -2705,15 +2732,15 @@ TEST(DomCreation, CreateObject) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 4, &builder);
-    QAJ4C_Value* member1 = QAJ4C_object_create_member_by_ref(value_ptr, key1);
-    QAJ4C_Value* member1_a = QAJ4C_object_create_member_by_copy(value_ptr, key1, &builder);
-    QAJ4C_Value* member1_b = QAJ4C_object_create_member_by_ref(value_ptr, key1);
-    QAJ4C_Value* member2 = QAJ4C_object_create_member_by_copy(value_ptr, key2, &builder);
-    QAJ4C_Value* member3 = QAJ4C_object_create_member_by_copy(value_ptr, key3, &builder);
-    QAJ4C_Value* member4 = QAJ4C_object_create_member_by_ref(value_ptr, key4);
-    QAJ4C_Value* member5 = QAJ4C_object_create_member_by_ref(value_ptr, key5);
-    QAJ4C_Value* member6 = QAJ4C_object_create_member_by_copy(value_ptr, key5, &builder); // also verify this for copy
+    auto object_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    QAJ4C_Value* member1 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key1));
+    QAJ4C_Value* member1_a = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key1), &builder);
+    QAJ4C_Value* member1_b = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key1));
+    QAJ4C_Value* member2 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key2), &builder);
+    QAJ4C_Value* member3 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key3), &builder);
+    QAJ4C_Value* member4 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key4));
+    QAJ4C_Value* member5 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key5));
+    QAJ4C_Value* member6 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key5), &builder); // also verify this for copy
 
     assert( member1 != nullptr );
     assert( member1_a == nullptr );
@@ -2756,7 +2783,8 @@ TEST(DomCreation, OptimizeEmptyObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 0, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 0, true, &builder);
+
     QAJ4C_object_optimize(value_ptr);
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
@@ -2766,7 +2794,7 @@ TEST(DomCreation, OptimizeUninitializedObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 4, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
     QAJ4C_object_optimize(value_ptr);
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
 }
@@ -2776,8 +2804,8 @@ TEST(DomCreation, OptimizeLowFilledObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 4, &builder);
-    QAJ4C_object_create_member_by_ref(value_ptr, "id");
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id"));
 
     QAJ4C_object_optimize(value_ptr);
     assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
@@ -2793,7 +2821,7 @@ TEST(DomCreation, PrintIncompleteObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(value_ptr, 4, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
 
     char out[5];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2809,10 +2837,10 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegers) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 2, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2828,10 +2856,10 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFields) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2848,11 +2876,11 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplication) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 1);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2869,11 +2897,11 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "value"), 99);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, "id"), 1);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2889,10 +2917,10 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 2, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 2, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2907,10 +2935,10 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2927,11 +2955,11 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplicationKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2947,11 +2975,11 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_init(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
 
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 32);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "value", &builder), 99);
-    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, "id", &builder), 1);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2970,7 +2998,7 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
  */
 TEST(CornerCaseTests, AttachedEmptyArray) {
     const char* json = R"({"a":[1],"b":[]})";
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, realloc);
 
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_array_size(QAJ4C_object_get(value, "a")) == 1);
@@ -2983,7 +3011,7 @@ TEST(CornerCaseTests, AttachedEmptyArray) {
  */
 TEST(CornerCaseTests, AttachedEmptyObject) {
     const char* json = R"({"a":[1],"b":{}})";
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, realloc);
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, realloc);
 
     assert(QAJ4C_is_object(value));
     free((void*)value);
@@ -3008,10 +3036,14 @@ TEST(CornerCaseTests, PrintArrayWithNullValues) {
 
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* root_node = QAJ4C_builder_get_document(&builder);
-    QAJ4C_set_object(root_node, 5, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(root_node, 5, true, &builder);
 
-    QAJ4C_Value* groups_node = QAJ4C_object_create_member_by_ref(root_node, "a");
-    QAJ4C_set_array(groups_node, 2, &builder);
+    QAJ4C_Value* groups_node = QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("a"));
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(groups_node, 2, &builder);
+
+    for (QAJ4C_Value* it = QAJ4C_array_builder_next(&array_builder); it != nullptr; it = QAJ4C_array_builder_next(&array_builder)) {
+        QAJ4C_set_null(it);
+    }
 
     QAJ4C_sprint(root_node, json, ARRAY_COUNT(json));
     assert( strcmp(R"({"a":[null,null]})", json) == 0);
