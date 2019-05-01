@@ -44,7 +44,7 @@ TEST(SecondPassParserTests, SimpleExample) {
 
     auto result = QAJ4C_second_pass_process(&second_parser, &msg, NULL);
     assert(QAJ4C_is_object(result));
-    auto id_ptr = QAJ4C_object_get(result, "id");
+    auto id_ptr = QAJ4C_object_get(result, QAJ4C_S("id"));
     assert(QAJ4C_is_uint(id_ptr));
     assert(QAJ4C_get_uint(id_ptr) == 1);
 }

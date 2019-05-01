@@ -35,7 +35,6 @@
 extern "C" {
 #endif
 
-
 /**
  * This method will compare the value's string value with the handed over string
  * with the given length.
@@ -43,28 +42,13 @@ extern "C" {
  * @note: The length of the string will be compared first ... so the results will
  * most likely differ to the c library strcmp.
  */
-int QAJ4C_string_cmp_n( const QAJ4C_Value* value_ptr, const char* str, size_t len );
-
-/**
- * This method will compare the value's string value with the handed over string
- * using strlen to determine the strings size.
- *
- * @note: The length of the string will be compared first ... so the results will
- * most likely differ to the c library strcmp.
- */
-int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str );
+int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * This method will return true, in case the handed over string with the given size
  * is equal to the value's string.
  */
-bool QAJ4C_string_equals_n( const QAJ4C_Value* value_ptr, const char* str, size_t len );
-
-/**
- * This method will return true, in case the handed over string is equal to the
- * value's string. The string's length is determined using strlen.
- */
-bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str );
+bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * This method checks if two elements are equal to each other.

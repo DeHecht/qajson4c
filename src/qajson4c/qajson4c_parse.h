@@ -71,7 +71,6 @@ typedef enum QAJ4C_ERROR_CODE {
 typedef enum QAJ4C_PARSE_OPTS {
     /* enum value 1 is reserved! */
     QAJ4C_PARSE_OPTS_STRICT = 2, /*!< Enables the strict mode. */
-    QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS = 4 /*!< Disables sorting objects for faster value by key access. */
 } QAJ4C_PARSE_OPTS;
 
 /**

@@ -61,12 +61,8 @@ static const QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder
 // static size_t QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr ) {
     QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(builder, opts);
     QAJ4C_Second_pass_parser second_parser;
-    QAJ4C_Json_message msg;
     const char* json_end = (json_len != SIZE_MAX) ? (json + json_len) : (const char*)INTPTR_MAX;
-
-    msg.begin = json;
-    msg.end = json_end;
-    msg.pos = json;
+    QAJ4C_Json_message msg = {.begin = json, .end = json_end, .pos = json};
 
     QAJ4C_first_pass_parse(&parser, &msg);
     if (parser.err_code != QAJ4C_ERROR_NO_ERROR) {
@@ -78,10 +74,8 @@ static const QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder
 
 static size_t QAJ4C_calculate_max_buffer_generic( const char* json, size_t json_len, int opts ) {
     QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(NULL, opts);
-    QAJ4C_Json_message msg;
-    msg.begin = json;
-    msg.end = json + json_len;
-    msg.pos = json;
+    const char* json_end = (json_len != SIZE_MAX) ? (json + json_len) : (const char*)UINTPTR_MAX;
+    QAJ4C_Json_message msg = {.begin = json, .end = json_end, .pos = json};
 
     QAJ4C_first_pass_parse(&parser, &msg);
 

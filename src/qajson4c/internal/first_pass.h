@@ -49,7 +49,6 @@ typedef struct QAJ4C_First_pass_parser {
 
     bool strict_parsing;
     bool insitu_parsing;
-    bool optimize_object;
 
     size_type amount_nodes;
     size_type complete_string_length;

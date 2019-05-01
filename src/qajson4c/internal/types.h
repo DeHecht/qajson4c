@@ -58,7 +58,6 @@ extern "C" {
 
 #define QAJ4C_NULL_TYPE_CONSTANT   ((QAJ4C_NULL << 8) | QAJ4C_TYPE_NULL)
 #define QAJ4C_OBJECT_TYPE_CONSTANT ((QAJ4C_OBJECT << 8) |  QAJ4C_TYPE_OBJECT)
-#define QAJ4C_OBJECT_SORTED_TYPE_CONSTANT ((QAJ4C_OBJECT_SORTED << 8) | QAJ4C_TYPE_OBJECT)
 #define QAJ4C_ARRAY_TYPE_CONSTANT  ((QAJ4C_ARRAY << 8) | QAJ4C_TYPE_ARRAY)
 #define QAJ4C_STRING_TYPE_CONSTANT ((QAJ4C_STRING << 8) | QAJ4C_TYPE_STRING)
 #define QAJ4C_STRING_REF_TYPE_CONSTANT ((QAJ4C_STRING_REF << 8) | QAJ4C_TYPE_STRING)
@@ -76,7 +75,7 @@ extern "C" {
 #define QAJ4C_INT32_TYPE_CONSTANT ((QAJ4C_PRIMITIVE_INT << 24) | ((QAJ4C_PRIMITIVE_INT | QAJ4C_PRIMITIVE_INT64 | QAJ4C_PRIMITIVE_DOUBLE) << 16) | (QAJ4C_NUMBER_TYPE_CONSTANT))
 #define QAJ4C_DOUBLE_TYPE_CONSTANT (((QAJ4C_PRIMITIVE_DOUBLE << 24) | (QAJ4C_PRIMITIVE_DOUBLE << 16)) | (QAJ4C_NUMBER_TYPE_CONSTANT))
 
-#define QAJ4C_ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]) - 1)
+#define QAJ4C_ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 
 typedef uint32_t size_type;
 typedef uint_fast32_t fast_size_type;
@@ -85,7 +84,6 @@ typedef enum QAJ4C_INTERNAL_TYPE {
     QAJ4C_NULL = 0,
     QAJ4C_UNSPECIFIED,
     QAJ4C_OBJECT,
-    QAJ4C_OBJECT_SORTED,
     QAJ4C_ARRAY,
     QAJ4C_STRING,
     QAJ4C_STRING_REF,
@@ -102,22 +100,6 @@ typedef enum QAJ4C_Primitive_type {
     QAJ4C_PRIMITIVE_UINT64 = (1 << 4),
     QAJ4C_PRIMITIVE_DOUBLE = (1 << 5)
 } QAJ4C_Primitive_type;
-
-typedef enum QAJ4C_Char_type {
-    QAJ4C_CHAR_NULL = 0,
-    QAJ4C_CHAR_WHITESPACE,
-    QAJ4C_CHAR_NUMERIC_START,
-    QAJ4C_CHAR_OBJECT_START,
-    QAJ4C_CHAR_OBJECT_END,
-    QAJ4C_CHAR_ARRAY_START,
-    QAJ4C_CHAR_ARRAY_END,
-    QAJ4C_CHAR_COLON,
-    QAJ4C_CHAR_COMMA,
-    QAJ4C_CHAR_COMMENT_START,
-    QAJ4C_CHAR_STRING_START,
-    QAJ4C_CHAR_LITERAL_START,
-    QAJ4C_CHAR_UNSUPPORTED
-} QAJ4C_Char_type;
 
 typedef struct QAJ4C_Object {
     QAJ4C_Member* top;
@@ -197,11 +179,11 @@ uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr );
 uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr );
 QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );
 
-const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
-const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr );
+void QAJ4C_object_optimize( QAJ4C_Object* value_ptr );
 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
+
 
 #ifdef __cplusplus
 }

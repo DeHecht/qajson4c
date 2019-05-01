@@ -29,97 +29,132 @@
 #include "qajson4c_util.h"
 #include "internal/types.h"
 
+typedef struct QAJ4C_util_stack_entry {
+    const QAJ4C_Value* lhs_value;
+    const QAJ4C_Value* rhs_value;
+    fast_size_type index;
+    fast_size_type length;
+} QAJ4C_util_stack_entry;
+
+typedef struct QAJ4C_util_stack {
+    QAJ4C_util_stack_entry info[QAJ4C_STACK_SIZE];
+    QAJ4C_util_stack_entry* it;
+} QAJ4C_util_stack;
+
+static bool stack_up_equal(QAJ4C_util_stack* stack, const QAJ4C_Value* lhs, const QAJ4C_Value* rhs) {
+    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
+    const QAJ4C_Array* rhs_array = (const QAJ4C_Array*)rhs;
+    bool result = lhs_array->count == rhs_array->count;
+
+    QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1, result = false;);
+
+    if (result) {
+        stack->it += 1;
+        stack->it->index = 0;
+        stack->it->length = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
+        stack->it->lhs_value = lhs_array->top;
+        stack->it->rhs_value = rhs_array->top;
+    }
+
+    return result;
+}
+
+static void stack_up_sizeof(QAJ4C_util_stack* stack, const QAJ4C_Value* lhs) {
+    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
+
+    QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1, return;);
+
+    stack->it += 1;
+    stack->it->index = 0;
+    stack->it->length = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
+    stack->it->lhs_value = lhs_array->top;
+}
+
 bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
-    /* FIXME: Remove recursion */
-    QAJ4C_TYPE lhs_type = QAJ4C_get_type(lhs);
-    QAJ4C_TYPE rhs_type = QAJ4C_get_type(rhs);
-    size_type i;
-    size_type n;
+    bool result = true;
+    QAJ4C_util_stack stack;
+    stack.it = stack.info;
+    stack.it->lhs_value = lhs;
+    stack.it->rhs_value = rhs;
+    stack.it->index = 0;
+    stack.it->length = 1;
 
-    if (lhs_type != rhs_type) {
-        return false;
+    while (result && (stack.it > stack.info || stack.it->index < stack.it->length)) {
+        const QAJ4C_Value* lhs_value = stack.it->lhs_value + stack.it->index;
+        const QAJ4C_Value* rhs_value = stack.it->rhs_value + stack.it->index;
+        QAJ4C_TYPE lhs_type = QAJ4C_get_type(lhs_value);
+        QAJ4C_TYPE rhs_type = QAJ4C_get_type(rhs_value);
+        stack.it->index += 1;
+
+        if (lhs_type != rhs_type) {
+            result = false;
+        } else {
+            switch (lhs_type) {
+            case QAJ4C_TYPE_NULL:
+                break; // type equality is value equality
+            case QAJ4C_TYPE_STRING:
+                result = QAJ4C_strcmp(lhs_value, rhs_value) == 0;
+                break;
+            case QAJ4C_TYPE_BOOL:
+                result =((QAJ4C_Primitive*)lhs_value)->data.b == ((QAJ4C_Primitive*)rhs_value)->data.b;
+                break;
+            case QAJ4C_TYPE_NUMBER:
+                result = ((QAJ4C_Primitive*)lhs_value)->data.i == ((QAJ4C_Primitive*)rhs_value)->data.i;
+                break;
+            case QAJ4C_TYPE_OBJECT:
+            case QAJ4C_TYPE_ARRAY:
+                result = stack_up_equal(&stack, lhs_value, rhs_value);
+                break;
+            default:
+                g_qaj4c_err_function();
+                result = false;
+                break;
+            }
+        }
+        while ( stack.it > stack.info && stack.it->index >= stack.it->length )
+        {
+            stack.it -= 1;
+        }
     }
-    switch (lhs_type) {
-    case QAJ4C_TYPE_NULL:
-        return true;
-    case QAJ4C_TYPE_STRING:
-        return QAJ4C_strcmp(lhs, rhs) == 0;
-    case QAJ4C_TYPE_BOOL:
-        return ((QAJ4C_Primitive*)lhs)->data.b == ((QAJ4C_Primitive*)rhs)->data.b;
-    case QAJ4C_TYPE_NUMBER:
-        return ((QAJ4C_Primitive*)lhs)->data.i == ((QAJ4C_Primitive*)rhs)->data.i;
-    case QAJ4C_TYPE_OBJECT:
-        n = QAJ4C_object_size(lhs);
-        if (n != QAJ4C_object_size(rhs)) {
-            return false;
-        }
-        for (i = 0; i < n; ++i) {
-            const QAJ4C_Member* member_lhs = QAJ4C_object_get_member(lhs, i);
-            const QAJ4C_Value* key_lhs = QAJ4C_member_get_key(member_lhs);
 
-            const QAJ4C_Member* member_rhs = QAJ4C_object_get_member(rhs, i);
-            const QAJ4C_Value* key_rhs = QAJ4C_member_get_key(member_rhs);
-
-            const QAJ4C_Value* lhs_value;
-            const QAJ4C_Value* rhs_value;
-
-            /*
-             * If lhs is not fully filled the objects are only equal in case rhs has
-             * the same fill amount
-             */
-            if (QAJ4C_is_null(key_lhs)) {
-                return QAJ4C_is_null(key_rhs);
-            }
-
-            lhs_value = QAJ4C_member_get_value(member_lhs);
-            rhs_value = QAJ4C_object_get_n(rhs, QAJ4C_get_string(key_lhs),
-                                          QAJ4C_get_string_length(key_lhs));
-            if (!QAJ4C_equals(lhs_value, rhs_value)) {
-                return false;
-            }
-        }
-        return true;
-    case QAJ4C_TYPE_ARRAY:
-        n = QAJ4C_array_size(lhs);
-        if (n != QAJ4C_array_size(rhs)) {
-            return false;
-        }
-        for (i = 0; i < n; ++i) {
-            const QAJ4C_Value* value_lhs = QAJ4C_array_get(lhs, i);
-            const QAJ4C_Value* value_rhs = QAJ4C_array_get(rhs, i);
-            if (!QAJ4C_equals(value_lhs, value_rhs)) {
-                return false;
-            }
-        }
-        return true;
-    default:
-        g_qaj4c_err_function();
-        break;
-    }
-    return false;
+    return result;
 }
 
 size_t QAJ4C_value_sizeof( const QAJ4C_Value* root_ptr ) {
     size_t size = 0;
-    size_type i;
-    size_type n = 1;
 
-    for (i = 0; i < n; ++i) {
-        const QAJ4C_Value* value_ptr = root_ptr + i;
-        switch (QAJ4C_get_internal_type(value_ptr)) {
-        case QAJ4C_OBJECT_SORTED:
+    QAJ4C_util_stack stack;
+    stack.it = stack.info;
+
+    stack.it->lhs_value = root_ptr;
+    stack.it->index = 0;
+    stack.it->length = 1;
+
+    while (stack.it > stack.info || stack.it->index < stack.it->length) {
+        const QAJ4C_Value* lhs_value = stack.it->lhs_value + stack.it->index;
+        stack.it->index += 1;
+
+        size += sizeof(QAJ4C_Value);
+
+        switch (QAJ4C_get_internal_type(lhs_value)) {
         case QAJ4C_OBJECT:
-            n = QAJ4C_MAX(n, ((QAJ4C_Array* )value_ptr)->top + ((QAJ4C_Array* )value_ptr)->count * 2 - root_ptr);
-            break;
         case QAJ4C_ARRAY:
-            n = QAJ4C_MAX(n, ((QAJ4C_Array* )value_ptr)->top + ((QAJ4C_Array* )value_ptr)->count - root_ptr);
+            stack_up_sizeof(&stack, lhs_value);
             break;
         case QAJ4C_STRING:
-            size += QAJ4C_get_string_length(value_ptr) + 1;
+            size += QAJ4C_get_string_length(lhs_value) + 1;
+            break;
+        case QAJ4C_ERROR_DESCRIPTION:
+            size += sizeof(QAJ4C_Error_information);
             break;
         default:
             break;
         }
+
+        while ( stack.it > stack.info && stack.it->index >= stack.it->length )
+        {
+            stack.it -= 1;
+        }
     }
-    return n * sizeof(QAJ4C_Value) + size;
+    return size;
 }

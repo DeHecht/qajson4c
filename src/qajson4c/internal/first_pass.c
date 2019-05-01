@@ -64,7 +64,7 @@ QAJ4C_First_pass_builder QAJ4C_First_pass_builder_create( void* buffer, size_t l
     if (buffer == NULL && realloc_callback != NULL) {
         static size_type MIN_SIZE = sizeof(QAJ4C_Value) + sizeof(QAJ4C_Error_information);
         result.elements = realloc_callback(NULL, MIN_SIZE);
-        result.alloc_length = MIN_SIZE;
+        result.alloc_length = result.elements == NULL ? 0 : MIN_SIZE;
     } else {
         result.elements = buffer;
         result.alloc_length = length;
@@ -81,7 +81,6 @@ QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_First_pass_builder
     parser.builder = builder;
 
     parser.strict_parsing = (opts & QAJ4C_PARSE_OPTS_STRICT) != 0;
-    parser.optimize_object = (opts & QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS) == 0;
     parser.insitu_parsing = (opts & 1) != 0;
 
     parser.amount_nodes = 0;
@@ -187,6 +186,8 @@ static void QAJ4C_first_pass_string_start( QAJ4C_First_pass_parser* me, QAJ4C_Fi
     }
     if (*msg->pos == '\"') {
         msg->pos += 1;
+    } else {
+        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);
     }
 }
 
@@ -273,6 +274,9 @@ static void QAJ4C_first_pass_comment( QAJ4C_First_pass_parser* me, QAJ4C_Json_me
         msg->pos -= 1;
         QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
     }
+    if (msg->pos < msg->end && *msg->pos != '\0') {
+        msg->pos += 1;
+    }
 }
 
 static void QAJ4C_first_pass_stack_down( QAJ4C_First_pass_parser* me, QAJ4C_First_pass_stack* stack, QAJ4C_Json_message* msg ) {
@@ -317,7 +321,7 @@ static bool QAJ4C_first_pass_reserve_buffer( QAJ4C_First_pass_parser* me, QAJ4C_
     size_t required_size = QAJ4C_calculate_max_buffer_parser(me);
     bool success = true;
 
-    if (builder != NULL && required_size < builder->alloc_length) {
+    if (builder != NULL && required_size > builder->alloc_length) {
         if (builder->realloc_callback == NULL) {
             QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_STORAGE_BUFFER_TO_SMALL);
             success = false;
@@ -340,7 +344,7 @@ static bool QAJ4C_first_pass_reserve_buffer( QAJ4C_First_pass_parser* me, QAJ4C_
 static size_type* QAJ4C_first_pass_fetch_stats_buffer( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg, size_type storage_pos ) {
     QAJ4C_First_pass_builder* builder = me->builder;
     //size_t in_buffer_pos = storage_pos * sizeof(size_type);
-    if (storage_pos > builder->length && !QAJ4C_first_pass_reserve_buffer(me, msg)) {
+    if (storage_pos >= builder->length && !QAJ4C_first_pass_reserve_buffer(me, msg)) {
         return NULL;
     }
     return builder->elements + storage_pos;

@@ -29,10 +29,22 @@
 #include "qajson4c_builder.h"
 #include "internal/types.h"
 
-static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder );
+typedef struct QAJ4C_builder_stack_entry {
+    const QAJ4C_Value* src_value;
+    QAJ4C_Value* dst_value;
+    fast_size_type index;
+    fast_size_type length;
+} QAJ4C_builder_stack_entry;
+
+typedef struct QAJ4C_builder_stack {
+    QAJ4C_builder_stack_entry info[QAJ4C_STACK_SIZE];
+    QAJ4C_builder_stack_entry* it;
+} QAJ4C_builder_stack;
+
 static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
 static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
 static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
+static bool stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder);
 
 QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size ) {
     QAJ4C_Builder result;
@@ -45,9 +57,9 @@ QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size ) {
 
 void QAJ4C_builder_reset( QAJ4C_Builder* me ) {
     /* objects grow from front to end (and always contains a document) */
-    me->obj_ptr = (QAJ4C_Value*)me->buffer;
+    me->obj_ptr = me->buffer == NULL ? NULL : (((QAJ4C_Value*)me->buffer) + 1);
     /* strings from end to front */
-    me->str_ptr = ((char*)me->buffer) + me->buffer_size;
+    me->str_ptr = me->buffer == NULL ? NULL : (((char*)me->buffer) + me->buffer_size);
 }
 
 QAJ4C_Value* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {
@@ -131,129 +143,112 @@ void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, size_t len,
     }
 }
 
-QAJ4C_Array_builder QAJ4C_array_builder_create( QAJ4C_Value* value_ptr, size_t capacity, QAJ4C_Builder* builder ) {
-    QAJ4C_Array_builder array_builder;
-    QAJ4C_Array* array_ptr = (QAJ4C_Array*)value_ptr;
-    value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
-    array_ptr->count = 0; /* The size management is performed by the builder */
-    array_builder.array = value_ptr;
-    array_builder.capacity = capacity;
-    array_ptr->top = QAJ4C_builder_pop_values( builder, capacity );
+QAJ4C_Array_builder QAJ4C_array_builder_create( size_t capacity, QAJ4C_Builder* builder ) {
+    QAJ4C_Array_builder array_builder = {
+            .top = QAJ4C_builder_pop_values( builder, capacity ),
+            .index = 0,
+            .capacity = capacity
+    };
+
+    if (QAJ4C_UNLIKELY(array_builder.top == NULL)) {
+        array_builder.capacity = 0;
+    }
+
     return array_builder;
 }
 
-QAJ4C_Value* QAJ4C_array_builder_next( QAJ4C_Array_builder* builder ) {
-    QAJ4C_Array* array_ptr = (QAJ4C_Array*)builder->array;
-    QAJ4C_ASSERT(array_ptr != NULL && array_ptr->count < builder->capacity, {return NULL;});
-    QAJ4C_Value* result = array_ptr->top + array_ptr->count;
-    array_ptr->count += 1;
+QAJ4C_Value* QAJ4C_array_builder_next( QAJ4C_Array_builder* array_builder ) {
+    QAJ4C_Value* result;
+    QAJ4C_ASSERT(array_builder != NULL && array_builder->index < array_builder->capacity, {return NULL;});
+    result = array_builder->top + array_builder->index;
+    array_builder->index += 1;
     return result;
 }
 
-QAJ4C_Object_builder QAJ4C_object_builder_create( QAJ4C_Value* value_ptr, size_t member_capacity, bool deduplicate, QAJ4C_Builder* builder )
-{
-    QAJ4C_Object_builder object_builder;
-    QAJ4C_Object* object_ptr = (QAJ4C_Object*)value_ptr;
-    value_ptr->type = QAJ4C_OBJECT_SORTED_TYPE_CONSTANT;
-    object_ptr->count = 0; /* The size management is performed by the builder */
+void QAJ4C_set_array( QAJ4C_Value* value_ptr, QAJ4C_Array_builder* array_builder ) {
+    QAJ4C_Array* array_ptr = (QAJ4C_Array*)value_ptr;
+    value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
+    array_ptr->top = array_builder->top;
+    array_ptr->count = array_builder->index;
+}
 
-    object_builder.strict = deduplicate;
-    object_builder.object = value_ptr;
-    object_builder.capacity = member_capacity;
-    object_ptr->top = QAJ4C_builder_pop_members( builder, member_capacity );
+QAJ4C_Object_builder QAJ4C_object_builder_create( size_t member_capacity, QAJ4C_Builder* builder ) {
+    QAJ4C_Object_builder object_builder = {
+        .top = QAJ4C_builder_pop_members( builder, member_capacity ),
+        .index = 0,
+        .capacity = member_capacity
+    };
+
+    if (QAJ4C_UNLIKELY(object_builder.top == NULL)) {
+        object_builder.capacity = 0;
+    }
+
     return object_builder;
 }
 
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* object_builder, const char* str, size_t len )
-{
-    QAJ4C_Value* return_value = NULL;
-    QAJ4C_Object* object_ptr = ((QAJ4C_Object*)object_builder->object);
-
-    QAJ4C_ASSERT(object_ptr != NULL && object_ptr->count < object_builder->capacity, {return return_value;});
-
-    if (object_builder->strict) {
-        return_value = (QAJ4C_Value*)QAJ4C_object_get_n(object_builder->object, str, len);
-    }
-
-    if (return_value == NULL) {
-        QAJ4C_Member* member = &object_ptr->top[object_ptr->count];
-        QAJ4C_set_string_ref(&member->key, str, len);
-        return_value = &member->value;
-        object_ptr->count += 1;
-    }
-
-    if (object_builder->strict && object_ptr->count > 1) {
-        // FIXME: sort if the last appended value does not match the sorting!
-    }
-
-    return return_value;
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* object_builder, const char* str, size_t len ) {
+    QAJ4C_Member* member;
+    QAJ4C_ASSERT(object_builder != NULL && object_builder->index < object_builder->capacity, {return NULL;});
+    member = object_builder->top + object_builder->index;
+    QAJ4C_set_string_ref(&member->key, str, len);
+    object_builder->index += 1;
+    return &member->value;
 }
 
-QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* object_builder, const char* str, size_t len, QAJ4C_Builder* builder )
-{
-    QAJ4C_Value* return_value = NULL;
-    QAJ4C_Object* object_ptr = ((QAJ4C_Object*)object_builder->object);
-
-    QAJ4C_ASSERT(object_ptr != NULL && object_ptr->count < object_builder->capacity, {return return_value;});
-
-    if (object_builder->strict) {
-        return_value = (QAJ4C_Value*)QAJ4C_object_get_n(object_builder->object, str, len);
-    }
-
-    if (return_value == NULL) {
-        QAJ4C_Member* member = &object_ptr->top[object_ptr->count];
-        QAJ4C_set_string_copy(&member->key, str, len, builder);
-        return_value = &member->value;
-        object_ptr->count += 1;
-    }
-
-    if (object_builder->strict) {
-        // FIXME: sort if the last appended value does not match the sorting!
-    }
-
-    return return_value;
+QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* object_builder, const char* str, size_t len, QAJ4C_Builder* builder ) {
+    QAJ4C_Member* member;
+    QAJ4C_ASSERT(object_builder != NULL && object_builder->index < object_builder->capacity, {return NULL;});
+    member = object_builder->top + object_builder->index;
+    QAJ4C_set_string_copy(&member->key, str, len, builder);
+    object_builder->index += 1;
+    return &member->value;
 }
 
-void QAJ4C_object_optimize( QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return;});
-
-    if (QAJ4C_get_internal_type(value_ptr) != QAJ4C_OBJECT_SORTED) {
-        QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
-        QAJ4C_QSORT(obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
-        value_ptr->type = QAJ4C_OBJECT_SORTED_TYPE_CONSTANT;
-    }
+void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder ) {
+    QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
+    value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
+    obj_ptr->top = object_builder->top;
+    obj_ptr->count = object_builder->index;
+    QAJ4C_object_optimize(obj_ptr);
 }
 
 void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {
-    /* FIXME: Remove recursion */
-    QAJ4C_INTERNAL_TYPE lhs_type = QAJ4C_get_internal_type(src);
+    QAJ4C_builder_stack stack;
+    stack.it = stack.info;
+    stack.it->index = 0;
+    stack.it->length = 1;
+    stack.it->src_value = src;
+    stack.it->dst_value = dest;
 
-    switch (lhs_type) {
-    case QAJ4C_NULL:
-    case QAJ4C_STRING_REF:
-    case QAJ4C_INLINE_STRING:
-    case QAJ4C_PRIMITIVE:
-        *dest = *src;
-        break;
-    case QAJ4C_STRING:
-        QAJ4C_set_string_copy(dest, QAJ4C_get_string(src), QAJ4C_get_string_length(src), builder);
-        break;
-    case QAJ4C_OBJECT:
-    case QAJ4C_OBJECT_SORTED:
-        // FIXME: Implement copying the object
-        break;
-    case QAJ4C_ARRAY:
-        // FIXME: Implement copying the array
-        break;
-    default:
-        g_qaj4c_err_function();
-        break;
+    while (stack.it > stack.info || stack.it->index < stack.it->length) {
+        const QAJ4C_Value* src_value = stack.it->src_value + stack.it->index;
+        QAJ4C_Value* dst_value = stack.it->dst_value + stack.it->index;
+        QAJ4C_INTERNAL_TYPE src_type = QAJ4C_get_internal_type(src_value);
+        stack.it->index += 1;
+
+        switch (src_type) {
+        case QAJ4C_NULL:
+        case QAJ4C_STRING_REF:
+        case QAJ4C_INLINE_STRING:
+        case QAJ4C_PRIMITIVE:
+            *dst_value = *src_value;
+            break;
+        case QAJ4C_STRING:
+            QAJ4C_set_string_copy(dst_value, QAJ4C_get_string(src_value), QAJ4C_get_string_length(src_value), builder);
+            break;
+        case QAJ4C_OBJECT:
+        case QAJ4C_ARRAY:
+            stack_up_copy(&stack, src_value, dst_value, builder);
+            break;
+        default:
+            g_qaj4c_err_function();
+            return;
+        }
+        while ( stack.it > stack.info && stack.it->index >= stack.it->length )
+        {
+            stack.it -= 1;
+        }
     }
-}
-
-static bool QAJ4C_builder_validate_buffer( QAJ4C_Builder* builder ) {
-    // FIXME: Altered implementation
-    return (void*)builder->obj_ptr <= (void*)(builder->str_ptr + 1);
 }
 
 static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count ) {
@@ -261,19 +256,42 @@ static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type 
     if (count == 0) {
         return NULL;
     }
+    // FIXME: Test if the boundary check is correctly implemented
+    QAJ4C_ASSERT(builder != NULL && (void*)(builder->obj_ptr + count) < (void*)(builder->str_ptr + 1), {return NULL;});
     new_pointer = builder->obj_ptr;
     builder->obj_ptr += count;
-    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
     return new_pointer;
 }
 
 static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length ) {
+    size_t count = builder->str_ptr - (char*)(builder->obj_ptr);
+    // FIXME: Test if the boundary check is correctly implemented
+    QAJ4C_ASSERT(builder != NULL && count >= length, {return NULL;});
     builder->str_ptr -= length;
-    QAJ4C_ASSERT(QAJ4C_builder_validate_buffer(builder), {return NULL;});
     return builder->str_ptr;
 }
 
 static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count ) {
     return (QAJ4C_Member*)QAJ4C_builder_pop_values(builder, count * 2);
+}
+
+static bool stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder) {
+    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
+    QAJ4C_Array* rhs_array = (QAJ4C_Array*)rhs;
+    size_type value_count = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
+
+    rhs->type = lhs->type;
+    rhs_array->count = lhs_array->count;
+    rhs_array->top = QAJ4C_builder_pop_values(builder, value_count);
+
+    QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1 && rhs_array->top != NULL, {rhs_array->count = 0; return false;});
+
+    stack->it += 1;
+    stack->it->index = 0;
+    stack->it->src_value = lhs_array->top;
+    stack->it->length = value_count;
+    stack->it->dst_value = rhs_array->top;
+
+    return true;
 }
 

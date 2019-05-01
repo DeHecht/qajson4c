@@ -88,7 +88,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMember) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "id");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("id"));
     assert(object_entry != NULL);
     assert(QAJ4C_is_uint(object_entry));
     assert(QAJ4C_get_uint(object_entry) == 1);
@@ -102,7 +102,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberNoOptions) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "id");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("id"));
     assert(object_entry != NULL);
     assert(QAJ4C_is_uint(object_entry));
     assert(QAJ4C_get_uint(object_entry) == 1);
@@ -116,7 +116,7 @@ TEST(SimpleParsingTests, ParseObjectWithOneNumericMemberWhitespaces) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "id");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("id"));
     assert(object_entry != NULL);
     assert(QAJ4C_is_uint(object_entry));
     assert(QAJ4C_get_uint(object_entry) == 1);
@@ -194,9 +194,9 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringMember) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "name");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("name"));
     assert(QAJ4C_is_string(object_entry));
-    assert(QAJ4C_string_equals(object_entry, "blah"));
+    assert(QAJ4C_string_equals(object_entry, QAJ4C_S("blah")));
     free((void*)value);
 }
 
@@ -206,9 +206,9 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMember) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "name");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("name"));
     assert(QAJ4C_is_string(object_entry));
-    assert(QAJ4C_string_equals(object_entry, "blahblubbhubbeldipup"));
+    assert(QAJ4C_string_equals(object_entry, QAJ4C_S("blahblubbhubbeldipup")));
     free((void*)value);
 }
 
@@ -224,9 +224,9 @@ TEST(SimpleParsingTests, ParseObjectWithOneStringVeryLongMemberInsitu) {
     assert(QAJ4C_object_size(value) == 1);
     assert(required == sizeof(QAJ4C_Value) + sizeof(QAJ4C_Member));
 
-    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, "name");
+    const QAJ4C_Value* object_entry = QAJ4C_object_get(value, QAJ4C_S("name"));
     assert(QAJ4C_is_string(object_entry));
-    assert(QAJ4C_string_equals(object_entry, "blahblubbhubbeldipup"));
+    assert(QAJ4C_string_equals(object_entry, QAJ4C_S("blahblubbhubbeldipup")));
 }
 
 TEST(SimpleParsingTests, ParseStringWithNewLine) {
@@ -238,7 +238,7 @@ TEST(SimpleParsingTests, ParseStringWithNewLine) {
     assert(QAJ4C_is_string(array_entry));
 
     // Now compare with the non-raw string (as the \n should be interpeted)
-    assert(QAJ4C_string_equals(array_entry, "Hello\nWorld"));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S("Hello\nWorld")));
     free((void*)value);
 }
 
@@ -253,7 +253,7 @@ TEST(SimpleParsingTests, ParseStringWithNewLineUnicode) {
 
     // Now compare with the non-raw string (as the \n should be interpeted)
     assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
-    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S(expected)));
 
     free((void*)value);
 }
@@ -273,7 +273,7 @@ TEST(SimpleParsingTests, ParseStringWithEndOfStringUnicode) {
     const char expected[] = "Hello\0World";
     size_t expected_len = ARRAY_COUNT(expected) - 1; // strlen will not work
     assert(expected_len == QAJ4C_get_string_length(array_entry));
-    assert(QAJ4C_string_equals_n(array_entry, expected, expected_len));
+    assert(QAJ4C_string_equals(array_entry, expected, expected_len));
 
     free((void*)value);
 }
@@ -287,7 +287,7 @@ TEST(SimpleParsingTests, ParseDollarSign) {
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
     assert(QAJ4C_is_string(array_entry));
 
-    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S(expected)));
     assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
 
     free((void*)value);
@@ -303,7 +303,7 @@ TEST(SimpleParsingTests, ParseJapaneseTeaSign) {
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
     assert(QAJ4C_is_string(array_entry));
 
-    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S(expected)));
     assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
 
     free((void*)value);
@@ -319,7 +319,7 @@ TEST(SimpleParsingTests, ParseYenSign) {
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
     assert(QAJ4C_is_string(array_entry));
 
-    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S(expected)));
     assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
 
     free((void*)value);
@@ -334,7 +334,7 @@ TEST(SimpleParsingTests, ParseBigUtf16) {
     const QAJ4C_Value* array_entry = QAJ4C_array_get(value, 0);
     assert(QAJ4C_is_string(array_entry));
 
-    assert(QAJ4C_string_equals(array_entry, expected));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S(expected)));
     assert(QAJ4C_get_string_length(array_entry) == strlen(expected));
 
     free((void*)value);
@@ -349,7 +349,7 @@ TEST(SimpleParsingTests, ParseStringWithEscapedQuotes) {
     assert(QAJ4C_is_string(array_entry));
 
     // Now compare with the non-raw string (as the \n should be interpeted)
-    assert(QAJ4C_string_equals(array_entry, "Hello\"World"));
+    assert(QAJ4C_string_equals(array_entry, QAJ4C_S("Hello\"World")));
     free((void*)value);
 }
 
@@ -387,7 +387,7 @@ TEST(SimpleParsingTests, ParseEmptyArrayWhitespaces) {
 
 
 TEST(SimpleParsingTests, ParseNumberArray) {
-    const char json[] = R"([1,2,3,-4,5,+6])";
+    const char json[] = R"([1,2,3,-4,5,6])";
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
     assert(QAJ4C_is_array(value));
     assert(QAJ4C_array_size(value) == 6);
@@ -466,19 +466,19 @@ TEST(SimpleParsingTests, ParseMultilayeredObject) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 2);
 
-    const QAJ4C_Value* id_node = QAJ4C_object_get(value, "id");
+    const QAJ4C_Value* id_node = QAJ4C_object_get(value, QAJ4C_S("id"));
     assert(QAJ4C_is_uint(id_node));
     assert(QAJ4C_get_uint(id_node) == 1);
 
-    const QAJ4C_Value* data_node = QAJ4C_object_get(value, "data");
+    const QAJ4C_Value* data_node = QAJ4C_object_get(value, QAJ4C_S("data"));
     assert(QAJ4C_is_object(data_node));
     assert(QAJ4C_object_size(data_node) == 2);
 
-    const QAJ4C_Value* data_name_node = QAJ4C_object_get(data_node, "name");
+    const QAJ4C_Value* data_name_node = QAJ4C_object_get(data_node, QAJ4C_S("name"));
     assert(QAJ4C_is_string(data_name_node));
     assert(strcmp(QAJ4C_get_string(data_name_node), "foo") == 0);
 
-    const QAJ4C_Value* data_param_node = QAJ4C_object_get(data_node, "param");
+    const QAJ4C_Value* data_param_node = QAJ4C_object_get(data_node, QAJ4C_S("param"));
     assert(QAJ4C_is_uint(data_param_node));
     assert(QAJ4C_get_uint(data_param_node) == 12);
 
@@ -515,7 +515,7 @@ TEST(SimpleParsingTests, ParseObjectArrayObjectCombination) {
     assert(QAJ4C_is_object(value));
     assert(QAJ4C_object_size(value) == 1);
 
-    const QAJ4C_Value* services_node = QAJ4C_object_get(value, "services");
+    const QAJ4C_Value* services_node = QAJ4C_object_get(value, QAJ4C_S("services"));
     assert(QAJ4C_is_array(services_node));
     assert(QAJ4C_array_size(services_node) == 3);
 
@@ -530,77 +530,6 @@ TEST(SimpleParsingTests, ParseObjectTrailingComma) {
 
     free((void*)value);
 }
-
-TEST(SimpleParsingTests, ParseObjectCheckOptimized) {
-    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), 0, realloc);
-    assert(QAJ4C_is_object(value));
-    assert(QAJ4C_object_size(value) == 5);
-    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
-
-    free((void*)value);
-}
-
-/**
- * This test verifies that the optimize on an already optimized object will not
- * alter the binary.
- */
-TEST(SimpleParsingTests, ParseObjectCheckOptimizedNoChangeLater) {
-    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-
-    static const size_t SIZE = 256;
-    uint8_t buff1[SIZE];
-    uint8_t buff2[SIZE];
-
-    size_t size = 0;
-    const QAJ4C_Value* value = QAJ4C_parse(json, -1, buff1, SIZE, 0, &size);
-
-    // backup the content of the old buffer
-    memcpy(buff2, buff1, size * sizeof(uint8_t));
-
-    for( size_t i = 0; i < size; ++i )
-    {
-        assert(buff1[i] == buff2[i]);
-    }
-
-    assert(QAJ4C_is_object(value));
-    assert(QAJ4C_object_size(value) == 5);
-    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
-
-    QAJ4C_object_optimize((QAJ4C_Value*) value);
-
-    // compare the content with the previously backuped content.
-    for( size_t i = 0; i < size; ++i )
-    {
-        assert(buff1[i] == buff2[i]);
-    }
-
-}
-
-
-TEST(SimpleParsingTests, ParseObjectCheckNonOptimized) {
-    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
-    assert(QAJ4C_is_object(value));
-    assert(QAJ4C_object_size(value) == 5);
-    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
-
-    free((void*)value);
-}
-
-TEST(SimpleParsingTests, ParseObjectCheckNonOptimizedAndOptimizeLater) {
-    const char json[] = R"({"id":1,"name":"foo","age":39,"job":null,"role":"admin"})";
-    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_DONT_SORT_OBJECT_MEMBERS, realloc);
-    assert(QAJ4C_is_object(value));
-    assert(QAJ4C_object_size(value) == 5);
-    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT);
-
-    QAJ4C_object_optimize((QAJ4C_Value*) value);
-    assert(QAJ4C_get_internal_type(value) == QAJ4C_OBJECT_SORTED);
-
-    free((void*)value);
-}
-
 
 /**
  * In this test case a scenario where the memory was corrupted internally is
@@ -737,7 +666,7 @@ TEST(SimpleParsingTests, ParseStringUnicodeOverlapsInlineStringLimit) {
     int index = 0;
     json[index++] = '[';
     json[index++] = '"';
-    for(int i = 0;i < QAJ4C_INLINE_STRING_SIZE; i++) {
+    for (int i = 0; i < QAJ4C_INLINE_STRING_SIZE; i++) {
         json[index++] = 'x';
     }
     json[index++] = '\\';
@@ -892,8 +821,11 @@ TEST(ErrorHandlingTests, BuilderOverflowArray) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    auto array_builder = QAJ4C_array_builder_create(&value, 5, &builder);
+    auto array_builder = QAJ4C_array_builder_create(5, &builder);
     assert(called == true);
+    assert(array_builder.capacity == 0);
+
+    QAJ4C_set_array(&value, &array_builder);
     assert(QAJ4C_is_array(&value));
     assert(0 == QAJ4C_array_size(&value));
 }
@@ -912,8 +844,10 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value value;
-    auto object_builder = QAJ4C_object_builder_create(&value, 5, false, &builder);
+    auto object_builder = QAJ4C_object_builder_create(5, &builder);
     assert(called == true);
+    assert(object_builder.capacity == 0);
+    QAJ4C_set_object(&value, &object_builder);
     assert(QAJ4C_is_object(&value));
     assert(0 == QAJ4C_object_size(&value));
 }
@@ -998,7 +932,16 @@ TEST(ErrorHandlingTests, ParseTruncatedString) {
 }
 
 TEST(ErrorHandlingTests, TabInJsonString) {
-    const char json[] = R"({"id":123, "name": ")" "\t" "\"";
+    const char json[] = R"({"id":123, "name": ")" "\t" "\"}";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
+}
+
+TEST(ErrorHandlingTests, TabInLongJsonString) {
+    const char json[] = R"({"id":123, "name": ")" "Lorem ipsum \t" "\"}";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1007,7 +950,16 @@ TEST(ErrorHandlingTests, TabInJsonString) {
 }
 
 TEST(ErrorHandlingTests, InvalidEscapeCharacterInString) {
-    const char json[] = R"({"id":123, "name": "\x")";
+    const char json[] = R"({"id":123, "name": "\x"})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE);
+}
+
+TEST(ErrorHandlingTests, InvalidEscapeCharacterInLongString) {
+    const char json[] = R"({"id":123, "name": "Lorem ipsum \x"})";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1055,7 +1007,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceIncompleteAppendingSurrogate2
  * The same as the other but now only three digits are present.
  */
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooLowValue) {
-    const char json[] = R"({"id":123, "name": "\uD800\udbff")";
+    const char json[] = R"({"id":123, "name": "\uD800\udbff"})";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1067,7 +1019,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooLowValu
  * The same as the other but now only three digits are present.
  */
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooHighValue) {
-    const char json[] = R"({"id":123, "name": "\uD800\ue000")";
+    const char json[] = R"({"id":123, "name": "\uD800\ue000"})";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1079,7 +1031,7 @@ TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceInvalidLowSurrogateTooHighVal
  * This test verifies that a unicode character is not accepted in case it is incomplete.
  */
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoHighSurrogate) {
-    const char json[] = R"({"id":123, "name": "\uDc00")";
+    const char json[] = R"({"id":123, "name": "\uDc00"})";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1116,6 +1068,15 @@ TEST(ErrorHandlingTests, ParseObjectMissingColon) {
 
     assert(QAJ4C_is_error(val));
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COLON);
+}
+
+TEST(ErrorHandlingTests, ParseObjectMissingValue) {
+    const char json[] = R"({"id":123, "name":})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_UNEXPECTED_CHAR);
 }
 
 TEST(ErrorHandlingTests, ParseArrayMissingComma) {
@@ -1209,9 +1170,10 @@ TEST(ErrorHandlingTests, LookupMemberUninitializedObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    auto object_builder = QAJ4C_object_builder_create(4, &builder);
+    QAJ4C_set_object( value_ptr, &object_builder );
 
-    assert(NULL == QAJ4C_object_get(value_ptr, "id"));
+    assert(NULL == QAJ4C_object_get(value_ptr, QAJ4C_S("id")));
 }
 
 TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
@@ -1252,16 +1214,15 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(TEST_JSON_1, -1, 0, realloc);
     assert(QAJ4C_is_object(value));
 
-    const QAJ4C_Value* startup_array = QAJ4C_object_get(value, "startup");
+    const QAJ4C_Value* startup_array = QAJ4C_object_get(value, QAJ4C_S("startup"));
     assert(QAJ4C_is_array(startup_array));
 
     for (size_t i = 0; i < QAJ4C_array_size(startup_array); ++i) {
         const QAJ4C_Value* val = QAJ4C_array_get(startup_array, i);
         assert(QAJ4C_is_object(val));
 
-        const QAJ4C_Value* path_val = QAJ4C_object_get(val, "exec_start");
+        const QAJ4C_Value* path_val = QAJ4C_object_get(val, QAJ4C_S("exec_start"));
         assert(QAJ4C_is_string(path_val));
-
         assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
     }
     free((void*)value);
@@ -1274,7 +1235,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
 TEST(DomObjectAccessTests, ObjectAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
-    auto object_builder = QAJ4C_object_builder_create(&value, 0, true, &builder);
+    auto object_builder = QAJ4C_object_builder_create(0, &builder);
 
     static int called = 0;
     auto lambda = [](){
@@ -1323,15 +1284,13 @@ TEST(DomObjectAccessTests, IncorrectObjectAccess) {
     assert(++expected == called);
     assert(NULL == QAJ4C_object_get_member(NULL, 0));
     assert(++expected == called);
-    assert(NULL == QAJ4C_object_get(NULL, "id"));
+    assert(NULL == QAJ4C_object_get(NULL, QAJ4C_S("id")));
     assert(++expected == called);
     assert(NULL == QAJ4C_object_builder_create_member_by_copy(NULL, QAJ4C_S("id"), NULL));
     assert(++expected == called);
     assert(NULL == QAJ4C_object_builder_create_member_by_ref(NULL, QAJ4C_S("id")));
     assert(++expected == called);
     assert(NULL == QAJ4C_array_builder_next(NULL));
-    assert(++expected == called);
-    QAJ4C_object_optimize(NULL);
     assert(++expected == called);
     assert(NULL == QAJ4C_member_get_key(NULL));
     assert(++expected == called);
@@ -1347,7 +1306,7 @@ TEST(DomObjectAccessTests, ArrayAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
     QAJ4C_Value value;
 
-    auto array_builder = QAJ4C_array_builder_create(&value, 0, &builder);
+    auto array_builder = QAJ4C_array_builder_create(0, &builder);
 
     static int called = 0;
     auto lambda = [](){
@@ -1601,7 +1560,7 @@ TEST(DomObjectAccessTests, DoubleAccess) {
     assert(4 == called);
     assert(false == QAJ4C_get_bool(&value));
     assert(5 == called);
-    assert(QAJ4C_string_equals(&value, ""));
+    assert(QAJ4C_string_equals(&value, QAJ4C_S("")));
     assert(6 == called);
     assert(0 == QAJ4C_object_size (&value));
     assert(7 == called);
@@ -1733,9 +1692,9 @@ TEST(DomObjectAccessTests, IncorrectStringAccess) {
     assert(++expected == called);
     assert(strcmp(QAJ4C_get_string(NULL), "") == 0);
     assert(++expected == called);
-    assert(QAJ4C_string_cmp(NULL, "") == 0);
+    assert(QAJ4C_string_cmp(NULL, QAJ4C_S("")) == 0);
     assert(++expected == called);
-    assert(QAJ4C_string_equals(NULL, ""));
+    assert(QAJ4C_string_equals(NULL, QAJ4C_S("")));
     assert(++expected == called);
 }
 
@@ -1779,16 +1738,16 @@ TEST(DomObjectAccessTests, StringReference) {
     const char* str = "Hello World!";
     QAJ4C_set_string_ref(&value, QAJ4C_S(str));
     assert(str == QAJ4C_get_string(&value));
-    assert(QAJ4C_string_equals(&value, str));
-    assert(QAJ4C_string_cmp(&value, str) == 0);
+    assert(QAJ4C_string_equals(&value, QAJ4C_S(str)));
+    assert(QAJ4C_string_cmp(&value, QAJ4C_S(str)) == 0);
 }
 
 TEST(DomObjectAccessTests, ShortString) {
     QAJ4C_Value value;
     const char* str = "a";
     QAJ4C_set_string_copy(&value, QAJ4C_S(str), NULL);
-    assert(QAJ4C_string_equals(&value, str));
-    assert(QAJ4C_string_cmp(&value, str) == 0);
+    assert(QAJ4C_string_equals(&value, QAJ4C_S(str)));
+    assert(QAJ4C_string_cmp(&value, QAJ4C_S(str)) == 0);
 }
 
 TEST(DomObjectAccessTests, StringCopy) {
@@ -1799,8 +1758,8 @@ TEST(DomObjectAccessTests, StringCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_set_string_copy(&value, QAJ4C_S(str), &builder);
-    assert(QAJ4C_string_equals(&value, str));
-    assert(QAJ4C_string_cmp(&value, str) == 0);
+    assert(QAJ4C_string_equals(&value, QAJ4C_S(str)));
+    assert(QAJ4C_string_cmp(&value, QAJ4C_S(str)) == 0);
 }
 
 
@@ -2054,7 +2013,7 @@ TEST(PrintTests, PrintCorruptValue) {
     auto lambda = []{ count++; }; // set the error method (else the compare will send a signal)
     QAJ4C_register_fatal_error_function(lambda);
 
-    value.type = QAJ4C_UNSPECIFIED << 8;
+    value.type = QAJ4C_TYPE_INVALID + 2;
     size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
     assert(1 == count); // expect an error
 }
@@ -2141,6 +2100,7 @@ TEST(PrintTests, PrintStringArray) {
 
     char output[ARRAY_COUNT(json)];
     size_t out = QAJ4C_sprint(value, output, ARRAY_COUNT(output));
+
     assert(ARRAY_COUNT(output) == out);
     assert(strcmp(json, output) == 0);
 
@@ -2494,8 +2454,11 @@ TEST(VariousTests, ComparisonAndCopyTest) {
     QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
     QAJ4C_copy(value_1, value_2, &builder);
 
-    assert(QAJ4C_value_sizeof(value_1) ==  buff_size);
-    assert(QAJ4C_value_sizeof(value_2) ==  buff_size);
+    assert(!QAJ4C_is_error(value_1));
+    assert(!QAJ4C_is_error(value_2));
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
 
     assert(QAJ4C_equals(value_1, value_2));
 }
@@ -2507,10 +2470,10 @@ TEST(VariousTests, CopyNotFullyFilledObject) {
     QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
 
     QAJ4C_Value* root = QAJ4C_builder_get_document(&builder1);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(root, 3, true, &builder1);
-
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(3, &builder1);
     QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("Hossa"));
 
+    QAJ4C_set_object(root, &obj_builder);
     QAJ4C_Value* copy = QAJ4C_builder_get_document(&builder2);
 
     QAJ4C_copy(root, copy, &builder2);
@@ -2532,8 +2495,8 @@ TEST(VariousTests, ErrorsAreNeverEqual) {
     assert(actual_size1 == buff_size);
     assert(actual_size2 == buff_size);
 
-    assert(QAJ4C_value_sizeof(value_1) ==  buff_size);
-    assert(QAJ4C_value_sizeof(value_2) ==  buff_size);
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
 
     auto lambda = []{}; // set the error method (else the compare will send a signal)
     QAJ4C_register_fatal_error_function(lambda);
@@ -2595,10 +2558,11 @@ TEST(VariousTests, ResetBuilder) {
     assert(QAJ4C_MEMCMP(&builder, &builder2, sizeof(builder)) == 0);
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(value_ptr, 10, &builder);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(10, &builder);
+    QAJ4C_set_array(value_ptr, &array_builder);
 
-    for (QAJ4C_Value* it = QAJ4C_array_builder_next(&array_builder); it != nullptr; it = QAJ4C_array_builder_next(&array_builder)) {
-        QAJ4C_set_null(it);
+    for (int i = 0; i < 10; i++) {
+        QAJ4C_set_uint(QAJ4C_array_builder_next(&array_builder), 0xFFFF);
     }
 
     // compare should not result in the builders are equal
@@ -2678,6 +2642,32 @@ TEST(StrictParsingTests, ParseArrayTrailingComma) {
     free((void*)value);
 }
 
+/**
+ * In this test it is verified that the trailing comma test does not
+ * have a false positive when the object is emtpy.
+ */
+TEST(StrictParsingTests, ParseEmptyObject) {
+    const char json[] = R"({})";
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+
+    assert(QAJ4C_is_object(value));
+
+    free((void*)value);
+}
+
+/**
+ * In this test it is verified that the trailing comma test does not
+ * have a false positive when the array is emtpy.
+ */
+TEST(StrictParsingTests, ParseEmptyArray) {
+    const char json[] = R"([])";
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+
+    assert(QAJ4C_is_array(value));
+
+    free((void*)value);
+}
+
 
 TEST(DomCreation, CreateArray) {
     uint8_t buff[256];
@@ -2688,13 +2678,15 @@ TEST(DomCreation, CreateArray) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(value_ptr, 4, &builder);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(4, &builder);
 
     QAJ4C_Value* array_entry_1 = QAJ4C_array_builder_next(&array_builder);
     QAJ4C_Value* array_entry_2 = QAJ4C_array_builder_next(&array_builder);
     QAJ4C_Value* array_entry_3 = QAJ4C_array_builder_next(&array_builder);
     QAJ4C_Value* array_entry_4 = QAJ4C_array_builder_next(&array_builder);
     QAJ4C_Value* array_entry_5 = QAJ4C_array_builder_next(&array_builder);
+
+    QAJ4C_set_array(value_ptr, &array_builder);
 
     assert(array_entry_1 != nullptr);
     assert(array_entry_2 != nullptr);
@@ -2713,7 +2705,7 @@ TEST(DomCreation, CreateArray) {
     assert(QAJ4C_is_bool(QAJ4C_array_get(value_ptr, 1)));
     assert(true == QAJ4C_get_bool(QAJ4C_array_get(value_ptr, 1)));
     assert(QAJ4C_is_string(QAJ4C_array_get(value_ptr, 2)));
-    assert(QAJ4C_string_equals(QAJ4C_array_get(value_ptr, 2), "foobar"));
+    assert(QAJ4C_string_equals(QAJ4C_array_get(value_ptr, 2), QAJ4C_S("foobar")));
     assert(QAJ4C_is_null(QAJ4C_array_get(value_ptr, 3)));
 }
 
@@ -2732,19 +2724,20 @@ TEST(DomCreation, CreateObject) {
     QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    auto object_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
-    QAJ4C_Value* member1 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key1));
-    QAJ4C_Value* member1_a = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key1), &builder);
-    QAJ4C_Value* member1_b = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key1));
+    auto object_builder = QAJ4C_object_builder_create(5, &builder);
+    QAJ4C_Value* member1_a = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key1));
+    QAJ4C_Value* member1_b = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key1), &builder);
     QAJ4C_Value* member2 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key2), &builder);
     QAJ4C_Value* member3 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key3), &builder);
     QAJ4C_Value* member4 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key4));
     QAJ4C_Value* member5 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key5));
     QAJ4C_Value* member6 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key5), &builder); // also verify this for copy
 
-    assert( member1 != nullptr );
-    assert( member1_a == nullptr );
-    assert( member1_b == nullptr );
+    QAJ4C_set_object(value_ptr, &object_builder);
+
+    assert( member1_a != nullptr );
+    assert( member1_b != nullptr );
+    assert( member1_a != member1_b ); /* library does not prevent adding duplicate keys! => TODO: Is this a requirement? */
     assert( member2 != nullptr );
     assert( member3 != nullptr );
     assert( member4 != nullptr);
@@ -2752,63 +2745,37 @@ TEST(DomCreation, CreateObject) {
     assert( member6 == nullptr );  // also no room left for members
 
     // Check that we still reach all elements!
-    assert(QAJ4C_object_get(value_ptr, key1) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key2) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key3) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key4) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key5) == nullptr);
-
-    QAJ4C_object_optimize(value_ptr);
-
-    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key1)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key2)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key3)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key4)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key5)) == nullptr);
 
     for (int i = 1; i < QAJ4C_object_size(value_ptr); i++) {
         const QAJ4C_Member* lower_member = QAJ4C_object_get_member(value_ptr, i - 1);
         const QAJ4C_Member* current_member = QAJ4C_object_get_member(value_ptr, i);
-        assert(QAJ4C_compare_members(lower_member, current_member) < 0);
+        assert(QAJ4C_compare_members(lower_member, current_member) <= 0);
         assert(QAJ4C_strcmp(QAJ4C_member_get_key(lower_member),
-                            QAJ4C_member_get_key(current_member)) < 0);
+                            QAJ4C_member_get_key(current_member)) <= 0);
     }
 
     // Check that we still can reach all elements!
-    assert(QAJ4C_object_get(value_ptr, key1) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key2) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key3) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key4) != nullptr);
-    assert(QAJ4C_object_get(value_ptr, key5) == nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key1)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key2)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key3)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key4)) != nullptr);
+    assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key5)) == nullptr);
 }
 
-TEST(DomCreation, OptimizeEmptyObject) {
+TEST(DomCreation, CreateEmptyObject) {
     uint8_t buff[256];
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 0, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(0, &builder);
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
-    QAJ4C_object_optimize(value_ptr);
-    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
-}
-
-TEST(DomCreation, OptimizeUninitializedObject) {
-    uint8_t buff[256];
-    QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
-
-    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
-    QAJ4C_object_optimize(value_ptr);
-    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
-}
-
-TEST(DomCreation, OptimizeLowFilledObject) {
-    uint8_t buff[256];
-    QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
-
-    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
-    QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id"));
-
-    QAJ4C_object_optimize(value_ptr);
-    assert(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED);
+    assert(QAJ4C_is_object(value_ptr));
 }
 
 /**
@@ -2821,12 +2788,13 @@ TEST(DomCreation, PrintIncompleteObject) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[5];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
     assert(strcmp("{}", out) == 0);
-
 }
 
 /**
@@ -2837,10 +2805,12 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegers) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 2, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(2, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2856,10 +2826,12 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFields) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2876,11 +2848,13 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplication) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2897,16 +2871,18 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
 
+    QAJ4C_set_object(value_ptr, &obj_builder);
+
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
     assert(QAJ4C_object_size(value_ptr) == 3);
-    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+    assert(strcmp(R"({"id":32,"id":1,"value":99})", out) == 0);
 }
 
 /**
@@ -2917,10 +2893,12 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 2, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(2, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2935,10 +2913,12 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2955,11 +2935,13 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplicationKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
+
+    QAJ4C_set_object(value_ptr, &obj_builder);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2975,16 +2957,18 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(value_ptr, 4, false, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
 
+    QAJ4C_set_object(value_ptr, &obj_builder);
+
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
     assert(QAJ4C_object_size(value_ptr) == 3);
-    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+    assert(strcmp(R"({"id":32,"id":1,"value":99})", out) == 0);
 }
 
 
@@ -3001,8 +2985,8 @@ TEST(CornerCaseTests, AttachedEmptyArray) {
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, -1, 0, realloc);
 
     assert(QAJ4C_is_object(value));
-    assert(QAJ4C_array_size(QAJ4C_object_get(value, "a")) == 1);
-    assert(QAJ4C_array_size(QAJ4C_object_get(value, "b")) == 0);
+    assert(QAJ4C_array_size(QAJ4C_object_get(value, QAJ4C_S("a"))) == 1);
+    assert(QAJ4C_array_size(QAJ4C_object_get(value, QAJ4C_S("b"))) == 0);
     free((void*)value);
 }
 
@@ -3036,15 +3020,36 @@ TEST(CornerCaseTests, PrintArrayWithNullValues) {
 
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* root_node = QAJ4C_builder_get_document(&builder);
-    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(root_node, 5, true, &builder);
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(5, &builder);
 
     QAJ4C_Value* groups_node = QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("a"));
-    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(groups_node, 2, &builder);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(2, &builder);
 
-    for (QAJ4C_Value* it = QAJ4C_array_builder_next(&array_builder); it != nullptr; it = QAJ4C_array_builder_next(&array_builder)) {
-        QAJ4C_set_null(it);
+    for (int i = 0; i < 2; ++i) {
+        QAJ4C_set_null(QAJ4C_array_builder_next(&array_builder));
     }
+    QAJ4C_set_array(groups_node, &array_builder);
+    QAJ4C_set_object(root_node, &obj_builder);
 
     QAJ4C_sprint(root_node, json, ARRAY_COUNT(json));
-    assert( strcmp(R"({"a":[null,null]})", json) == 0);
+
+    assert(strcmp(R"({"a":[null,null]})", json) == 0);
 }
+
+TEST(CornerCaseTests, ValueSizeOfWithMultipleBuilders) {
+    uint8_t buff1[256];
+    uint8_t buff2[256];
+    auto builder1 = QAJ4C_builder_create(buff1, ARRAY_COUNT(buff1));
+    auto builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
+
+    auto root_ptr = QAJ4C_builder_get_document(&builder1);
+
+    auto array1_builder = QAJ4C_array_builder_create(1, &builder1);
+    auto array2_builder = QAJ4C_array_builder_create(1, &builder2);
+    QAJ4C_set_uint(QAJ4C_array_builder_next(&array2_builder), 12);
+    QAJ4C_set_array(QAJ4C_array_builder_next(&array1_builder), &array2_builder);
+    QAJ4C_set_array(root_ptr, &array1_builder);
+
+    assert(QAJ4C_value_sizeof(root_ptr) == 3 * sizeof(QAJ4C_Value));
+}
+

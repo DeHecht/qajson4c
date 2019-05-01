@@ -53,29 +53,9 @@ uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr ) {
     return (value_ptr->type >> 24) & 0xFF;
 }
 
-const QAJ4C_Value* QAJ4C_object_get_unsorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr ) {
-    QAJ4C_Member* entry;
-    size_type i;
-    for (i = 0; i < obj_ptr->count; ++i) {
-        entry = obj_ptr->top + i;
-        if (!QAJ4C_is_null(&entry->key) && QAJ4C_strcmp(str_ptr, &entry->key) == 0) {
-            return &entry->value;
-        }
-    }
-    return NULL;
+void QAJ4C_object_optimize( QAJ4C_Object* value_ptr ) {
+    QAJ4C_QSORT(value_ptr->top, value_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
 }
-
-const QAJ4C_Value* QAJ4C_object_get_sorted( QAJ4C_Object* obj_ptr, QAJ4C_Value* str_ptr ) {
-    QAJ4C_Member* result;
-    QAJ4C_Member member;
-    member.key = *str_ptr;
-    result = QAJ4C_BSEARCH(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
-    if (result != NULL) {
-        return &result->value;
-    }
-    return NULL;
-}
-
 
 /*
  * The comparison will first check on the string size and then on the content as we

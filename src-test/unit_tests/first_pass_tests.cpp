@@ -263,8 +263,6 @@ TEST(FirstPassParserTests, String_escape_multiple_escapes) {
 
     QAJ4C_first_pass_parse(&parser, &msg);
 
-    printf("%u\n", parser.complete_string_length);
-
     assert(QAJ4C_ERROR_NO_ERROR == parser.err_code);
     assert(1 == parser.amount_nodes);
     assert(13 == parser.complete_string_length);

@@ -60,7 +60,7 @@ size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr ){
     return ((QAJ4C_String*) value_ptr)->count;
 }
 
-int QAJ4C_string_cmp_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_Value wrapper_value;
 
     QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return strcmp("", str);});
@@ -69,17 +69,8 @@ int QAJ4C_string_cmp_n( const QAJ4C_Value* value_ptr, const char* str, size_t le
     return QAJ4C_strcmp(value_ptr, &wrapper_value);
 }
 
-int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_string_cmp_n(value_ptr, str, QAJ4C_STRLEN(str));
-}
-
-bool QAJ4C_string_equals_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    return QAJ4C_string_cmp_n(value_ptr, str, len) == 0;
-}
-
-bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str )
-{
-    return QAJ4C_string_equals_n(value_ptr, str, QAJ4C_STRLEN(str));
+bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+    return QAJ4C_string_cmp(value_ptr, str, len) == 0;
 }
 
 bool QAJ4C_is_object( const QAJ4C_Value* value_ptr ) {
@@ -213,19 +204,18 @@ const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
     return &member->value;
 }
 
-const QAJ4C_Value* QAJ4C_object_get_n( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    QAJ4C_Value wrapper_value;
+const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
+    QAJ4C_Member member;
+    QAJ4C_Member* result;
+    QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
 
-    QAJ4C_set_string_ref(&wrapper_value, str, len);
-    if (QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT_SORTED) {
-        return QAJ4C_object_get_sorted((QAJ4C_Object*) value_ptr, &wrapper_value);
+    QAJ4C_set_string_ref(&member.key, str, len);
+    result = QAJ4C_BSEARCH(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
+    if (result != NULL) {
+        return &result->value;
     }
-    return QAJ4C_object_get_unsorted((QAJ4C_Object*) value_ptr, &wrapper_value);
-}
-
-const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str ) {
-    return QAJ4C_object_get_n( value_ptr, str, QAJ4C_STRLEN(str));
+    return NULL;
 }
 
 size_t QAJ4C_array_size( const QAJ4C_Value* value_ptr ) {

@@ -257,13 +257,7 @@ const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member );
  * In case the value is an object this method will retrieve a member by name with the
  * given size and return the value of the member.
  */
-const QAJ4C_Value* QAJ4C_object_get_n( const QAJ4C_Value* value_ptr, const char* str, size_t len );
-
-/**
- * In case the value is an object this method will retrieve a member by name (using strlen
- * to determine the size) and return the value of the member.
- */
-const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str );
+const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str, size_t len );
 
 /**
  * In case the value is an array, this method will return the array size.

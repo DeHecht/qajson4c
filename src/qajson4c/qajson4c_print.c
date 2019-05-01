@@ -113,6 +113,7 @@ bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buff
                 result = callback(ptr, QAJ4C_S(":"));
             }
         }
+        stack.it->index += 1;
 
         if (result) {
             switch (QAJ4C_get_type(pos_ptr)) {
@@ -139,8 +140,10 @@ bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buff
             case QAJ4C_TYPE_INVALID:
                 result = QAJ4C_print_callback_error((const QAJ4C_Error*)pos_ptr, callback, ptr);
                 break;
+            default:
+                g_qaj4c_err_function();
             }
-            while (stack.it > stack.info && stack.it->index >= stack.it->size) {
+            while (stack.it >= stack.info && stack.it->index >= stack.it->size) {
                 if ( stack.it->type == QAJ4C_TYPE_OBJECT ) {
                     result = result && callback( ptr, QAJ4C_S("}"));
                 } else if ( stack.it->type == QAJ4C_TYPE_ARRAY ) {
@@ -203,13 +206,13 @@ static bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_
     bool result = callback(ptr, "\"", 1);
 
     while( result && p[size] != '\0' ) {
-        char c = p[size];
+        uint8_t c = p[size];
         if (QAJ4C_UNLIKELY(c < 32 || c == '"' || c == '/' || c == '\\')) {
             if ( c >= 32 ) {
                 /* set the char in the 2x range so we can use the replacement buffer to replace the string. */
                 c = (c & 0xF) | 0x20;
             }
-            const char* replacement_string = replacement_buf[(uint8_t)c];
+            const char* replacement_string = replacement_buf[c];
             result = result && callback(ptr, p, size); /* flush the string until now */
             result = result && callback(ptr, replacement_string, strlen(replacement_string));
             p = p + size + 1;
@@ -226,13 +229,16 @@ static bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_
     return result && callback(ptr, "\"", 1);
 }
 
-static bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr )
-{
-    (void) value_ptr;
-    (void) callback;
-    (void) ptr;
-    // FIXME: Implement
-    return false;
+static bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr ) {
+    static const char ERR_MSG[] = "{\"error\":\"Unable to parse json message. Error (";
+    static const char ERR_MSG_2[] = ") at position ";
+    static const char ERR_MSG_3[] = "\"}";
+
+    return callback(ptr, QAJ4C_S(ERR_MSG))
+            && QAJ4C_print_callback_uint64(value_ptr->info->err_no, callback, ptr)
+            && callback(ptr, QAJ4C_S(ERR_MSG_2))
+            && QAJ4C_print_callback_uint64(value_ptr->info->json_pos, callback, ptr)
+            && callback(ptr, QAJ4C_S(ERR_MSG_3));
 }
 
 static bool QAJ4C_print_callback_number( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr )
