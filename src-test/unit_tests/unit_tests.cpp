@@ -2898,7 +2898,23 @@ TEST(ObjectBuilderTests, SimpleObjectWithDuplicationsSkipPostProcessing) {
 }
 
 TEST(ObjectBuilderTests, SimpleObjectWithSkipPostProcessingGetValueDisabled) {
-    assert(false); // FIXME: Implement
+    uint8_t buff[256];
+    QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
+    QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
+    QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(2, &builder);
+
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
+    QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
+    QAJ4C_set_object(value_ptr, &obj_builder, true);
+
+    assert(nullptr == QAJ4C_object_get(value_ptr, QAJ4C_S("id")));
+    assert(called);
 }
 
 /**

@@ -115,7 +115,6 @@ QAJ4C_TEST_DEF* create_test( const char* subject, const char* test, void (*test_
 }
 
 int fork_and_run( QAJ4C_TEST_DEF* test ) {
-    std::cerr << test->subject_name << "." << test->test_name << std::endl;
     char buff[256];
     buff[0] = '\0';
 

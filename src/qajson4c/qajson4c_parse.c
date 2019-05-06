@@ -57,6 +57,21 @@ const QAJ4C_Value* QAJ4C_parse_insitu( char* json, size_t json_len, void* buffer
     return QAJ4C_parse_generic(&builder, json, json_len, opts | QAJ4C_PARSE_OPTS_RESERVED_1, bytes_written);
 }
 
+const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr ) {
+    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return "";});
+    return ((QAJ4C_Error*) value_ptr)->info->json;
+}
+
+QAJ4C_ERROR_CODE QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr ) {
+    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
+    return ((QAJ4C_Error*) value_ptr)->info->err_no;
+}
+
+size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr ) {
+    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
+    return ((QAJ4C_Error*) value_ptr)->info->json_pos;
+}
+
 static const QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder, const char* json, size_t json_len, int opts, size_t* bytes_written ) {
 // static size_t QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder, const char* json, size_t json_len, int opts, const QAJ4C_Value** result_ptr ) {
     QAJ4C_First_pass_parser parser = QAJ4C_first_pass_parser_create(builder, opts);

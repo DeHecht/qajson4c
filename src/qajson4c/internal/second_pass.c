@@ -520,7 +520,7 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
 
 static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
-    if ( stack_entry->type == QAJ4C_TYPE_OBJECT && (((QAJ4C_Object*)stack_entry->value_ptr)->count & 0x1) == 1) {
+    if ( stack_entry->type == QAJ4C_TYPE_OBJECT && (((QAJ4C_Object*)stack_entry->value_ptr)->count & 0x1) == 0) {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_MISSING_COLON);
     } else {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_MISSING_COMMA);

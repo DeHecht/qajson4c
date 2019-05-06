@@ -31,9 +31,9 @@
  */
 
 
-#include "qajson4c.h"
-#include "qajson4c/internal/qajson_stdwrap.h"
-#include "qajson4c/internal/types.h"
+#include "qajson4c_types.h"
+#include "internal/qajson_stdwrap.h"
+#include "internal/types.h"
 
 void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
     if (function == NULL) {
@@ -52,12 +52,11 @@ size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr ){
 }
 
 int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    QAJ4C_Value wrapper_value;
+    QAJ4C_String wrapper_value = {.s = str, .count = len};
 
     QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return strcmp("", str);});
 
-    QAJ4C_set_string_ref(&wrapper_value, str, len);
-    return QAJ4C_strcmp(value_ptr, &wrapper_value);
+    return QAJ4C_strcmp(value_ptr, (QAJ4C_Value*)&wrapper_value);
 }
 
 bool QAJ4C_string_equals( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
@@ -160,21 +159,6 @@ bool QAJ4C_is_error( const QAJ4C_Value* value_ptr ) {
     return QAJ4C_get_internal_type(value_ptr) == QAJ4C_ERROR_DESCRIPTION;
 }
 
-const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return "";});
-    return ((QAJ4C_Error*) value_ptr)->info->json;
-}
-
-QAJ4C_ERROR_CODE QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
-    return ((QAJ4C_Error*) value_ptr)->info->err_no;
-}
-
-size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
-    return ((QAJ4C_Error*) value_ptr)->info->json_pos;
-}
-
 size_t QAJ4C_object_size( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return 0;});
     return ((QAJ4C_Object*) value_ptr)->count;
@@ -200,8 +184,10 @@ const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* s
     QAJ4C_Member* result;
     QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
     QAJ4C_ASSERT(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT, {return NULL;});
+    QAJ4C_String* key = (QAJ4C_String*)&member.key;
+    key->s = str;
+    key->count = len;
 
-    QAJ4C_set_string_ref(&member.key, str, len);
     result = QAJ4C_BSEARCH(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
     if (result != NULL) {
         return &result->value;
