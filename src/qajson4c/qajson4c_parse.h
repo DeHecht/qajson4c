@@ -61,16 +61,22 @@ typedef enum QAJ4C_ERROR_CODE {
     QAJ4C_ERROR_ALLOCATION_ERROR = 12,        /*!<  Realloc failed (parse_dynamic only). */
     QAJ4C_ERROR_TRAILING_COMMA = 13,          /*!<  Trailing comma is detected in an object/array detected (strict parsing only)*/
     QAJ4C_ERROR_INVALID_ESCAPE_SEQUENCE = 14, /*!<  String escaped character is invalid. (e.g. \x) */
-    QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE = 15 /*!<  The unicode sequence cannot be translated to a valid UTF-8 character */
-
+    QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE = 15, /*!<  The unicode sequence cannot be translated to a valid UTF-8 character */
+    QAJ4C_ERROR_DUPLICATE_KEY = 16            /*!<  Multiple keys have been detected for an object */
 } QAJ4C_ERROR_CODE;
 
 /**
  * Enumeration that holds all parsing options.
  */
 typedef enum QAJ4C_PARSE_OPTS {
-    /* enum value 1 is reserved! */
-    QAJ4C_PARSE_OPTS_STRICT = 2, /*!< Enables the strict mode. */
+    QAJ4C_PARSE_OPTS_RESERVED_1 = 1, /*!< Reserved for internal use. */
+    QAJ4C_PARSE_OPTS_STRICT = (1 << 2), /*!< Enables the strict mode (enables all reject options). */
+    QAJ4C_PARSE_OPTS_RESERVED_3 = (1 << 3), /*!< Reserved for removed option. */
+    QAJ4C_PARSE_OPTS_REJECT_COMMENTS = (1 << 4),
+    QAJ4C_PARSE_OPTS_REJECT_TAILING_COMMA = (1 << 5),
+    QAJ4C_PARSE_OPTS_REJECT_DUPLICATE_KEY = (1 << 6),
+    QAJ4C_PARSE_OPTS_REJECT_NON_COMPLIANT_NUMBERS = (1 << 7), /*!< Rejects numbers with leading + or zeros for integrals. */
+    QAJ4C_PARSE_OPTS_REJECT_DATA_AFTER_JSON = (1 << 8),
 } QAJ4C_PARSE_OPTS;
 
 /**

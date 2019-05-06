@@ -57,11 +57,12 @@ extern "C" {
 #define QAJ4C_INLINE_STRING_SIZE (sizeof(uintptr_t) + sizeof(size_type) - sizeof(uint8_t) * 2)
 
 #define QAJ4C_NULL_TYPE_CONSTANT   ((QAJ4C_NULL << 8) | QAJ4C_TYPE_NULL)
-#define QAJ4C_OBJECT_TYPE_CONSTANT ((QAJ4C_OBJECT << 8) |  QAJ4C_TYPE_OBJECT)
+#define QAJ4C_OBJECT_TYPE_CONSTANT ((QAJ4C_OBJECT << 8) | QAJ4C_TYPE_OBJECT)
+#define QAJ4C_OBJECT_RAW_TYPE_CONSTANT ((QAJ4C_OBJECT_RAW << 8) | QAJ4C_TYPE_OBJECT)
 #define QAJ4C_ARRAY_TYPE_CONSTANT  ((QAJ4C_ARRAY << 8) | QAJ4C_TYPE_ARRAY)
 #define QAJ4C_STRING_TYPE_CONSTANT ((QAJ4C_STRING << 8) | QAJ4C_TYPE_STRING)
 #define QAJ4C_STRING_REF_TYPE_CONSTANT ((QAJ4C_STRING_REF << 8) | QAJ4C_TYPE_STRING)
-#define QAJ4C_INLINE_STRING_TYPE_CONSTANT ((QAJ4C_INLINE_STRING << 8) | QAJ4C_TYPE_STRING)
+#define QAJ4C_STRING_INLINE_TYPE_CONSTANT ((QAJ4C_STRING_INLINE << 8) | QAJ4C_TYPE_STRING)
 #define QAJ4C_ERROR_DESCRIPTION_TYPE_CONSTANT ((QAJ4C_ERROR_DESCRIPTION << 8) | QAJ4C_TYPE_INVALID)
 
 #define QAJ4C_NUMBER_TYPE_CONSTANT ((QAJ4C_PRIMITIVE << 8) | QAJ4C_TYPE_NUMBER)
@@ -84,10 +85,11 @@ typedef enum QAJ4C_INTERNAL_TYPE {
     QAJ4C_NULL = 0,
     QAJ4C_UNSPECIFIED,
     QAJ4C_OBJECT,
+    QAJ4C_OBJECT_RAW,
     QAJ4C_ARRAY,
     QAJ4C_STRING,
     QAJ4C_STRING_REF,
-    QAJ4C_INLINE_STRING,
+    QAJ4C_STRING_INLINE,
     QAJ4C_PRIMITIVE,
     QAJ4C_ERROR_DESCRIPTION
 } QAJ4C_INTERNAL_TYPE;
@@ -171,6 +173,11 @@ typedef struct QAJ4C_Json_message {
     const char* pos;
 } QAJ4C_Json_message;
 
+typedef struct QAJ4C_String_payload {
+    const char* str;
+    fast_size_type size;
+} QAJ4C_String_payload;
+
 extern QAJ4C_fatal_error_fn g_qaj4c_err_function;
 
 void QAJ4C_std_err_function( void );
@@ -179,10 +186,14 @@ uint8_t QAJ4C_get_storage_type( const QAJ4C_Value* value_ptr );
 uint8_t QAJ4C_get_compatibility_types( const QAJ4C_Value* value_ptr );
 QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );
 
+QAJ4C_String_payload QAJ4C_get_string_payload( const QAJ4C_Value* value_ptr );
+
 void QAJ4C_object_optimize( QAJ4C_Object* value_ptr );
+bool QAJ4C_object_has_duplicate( QAJ4C_Object* value_ptr );
 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );
+int QAJ4C_compare_members_stable( const void* lhs, const void * rhs );
 
 
 #ifdef __cplusplus

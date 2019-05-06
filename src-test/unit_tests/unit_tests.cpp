@@ -847,7 +847,7 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
     auto object_builder = QAJ4C_object_builder_create(5, &builder);
     assert(called == true);
     assert(object_builder.capacity == 0);
-    QAJ4C_set_object(&value, &object_builder);
+    QAJ4C_set_object(&value, &object_builder, true);
     assert(QAJ4C_is_object(&value));
     assert(0 == QAJ4C_object_size(&value));
 }
@@ -1171,7 +1171,7 @@ TEST(ErrorHandlingTests, LookupMemberUninitializedObject) {
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
     auto object_builder = QAJ4C_object_builder_create(4, &builder);
-    QAJ4C_set_object( value_ptr, &object_builder );
+    QAJ4C_set_object(value_ptr, &object_builder, false);
 
     assert(NULL == QAJ4C_object_get(value_ptr, QAJ4C_S("id")));
 }
@@ -2473,7 +2473,7 @@ TEST(VariousTests, CopyNotFullyFilledObject) {
     QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(3, &builder1);
     QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("Hossa"));
 
-    QAJ4C_set_object(root, &obj_builder);
+    QAJ4C_set_object(root, &obj_builder, false);
     QAJ4C_Value* copy = QAJ4C_builder_get_document(&builder2);
 
     QAJ4C_copy(root, copy, &builder2);
@@ -2668,6 +2668,16 @@ TEST(StrictParsingTests, ParseEmptyArray) {
     free((void*)value);
 }
 
+TEST(StrictParsingTests, ParseObjectWithDuplicateKeys) {
+    const char json[] = R"([{"id":1, "name": "dude", "id": 5}])";
+    const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
+
+    assert(QAJ4C_is_error(value));
+    assert(QAJ4C_error_get_errno(value) == QAJ4C_ERROR_DUPLICATE_KEY);
+
+    free((void*)value);
+}
+
 
 TEST(DomCreation, CreateArray) {
     uint8_t buff[256];
@@ -2733,8 +2743,6 @@ TEST(DomCreation, CreateObject) {
     QAJ4C_Value* member5 = QAJ4C_object_builder_create_member_by_ref(&object_builder, QAJ4C_S(key5));
     QAJ4C_Value* member6 = QAJ4C_object_builder_create_member_by_copy(&object_builder, QAJ4C_S(key5), &builder); // also verify this for copy
 
-    QAJ4C_set_object(value_ptr, &object_builder);
-
     assert( member1_a != nullptr );
     assert( member1_b != nullptr );
     assert( member1_a != member1_b ); /* library does not prevent adding duplicate keys! => TODO: Is this a requirement? */
@@ -2743,6 +2751,8 @@ TEST(DomCreation, CreateObject) {
     assert( member4 != nullptr);
     assert( member5 == nullptr );  // there is no room left for more members
     assert( member6 == nullptr );  // also no room left for members
+
+    QAJ4C_set_object(value_ptr, &object_builder, false);
 
     // Check that we still reach all elements!
     assert(QAJ4C_object_get(value_ptr, QAJ4C_S(key1)) != nullptr);
@@ -2773,7 +2783,7 @@ TEST(DomCreation, CreateEmptyObject) {
 
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
     QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(0, &builder);
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     assert(QAJ4C_is_object(value_ptr));
 }
@@ -2790,7 +2800,7 @@ TEST(DomCreation, PrintIncompleteObject) {
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
     QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     char out[5];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2810,7 +2820,7 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegers) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2831,7 +2841,7 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFields) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2840,13 +2850,19 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFields) {
 }
 
 /**
- * In this test the behavior is verified using deduplication. In this case the object
- * will be ensured to not contain duplicate keys.
+ * In this test the dom will be created containing duplications. The set_object method
+ * will then be called with post processing enabled and it is expected that the error
+ * function is called.
  */
-TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplication) {
+TEST(ObjectBuilderTests, SimpleObjectWithDuplications) {
     uint8_t buff[256];
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
 
     QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
@@ -2854,19 +2870,15 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplication) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
-
-    char out[64];
-    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
-    assert(QAJ4C_object_size(value_ptr) == 2);
-    assert(strcmp(R"({"id":1,"value":99})", out) == 0);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
+    assert(called);
 }
 
 /**
- * In this test the behavior is verified that switching deduplication off will result
+ * In this test the behavior is verified that skipping post processing off will result
  * in duplicate keys of the printed message.
  */
-TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
+TEST(ObjectBuilderTests, SimpleObjectWithDuplicationsSkipPostProcessing) {
     uint8_t buff[256];
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
@@ -2877,12 +2889,16 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplication) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("value")), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("id")), 1);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, true);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
     assert(QAJ4C_object_size(value_ptr) == 3);
-    assert(strcmp(R"({"id":32,"id":1,"value":99})", out) == 0);
+    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
+}
+
+TEST(ObjectBuilderTests, SimpleObjectWithSkipPostProcessingGetValueDisabled) {
+    assert(false); // FIXME: Implement
 }
 
 /**
@@ -2898,7 +2914,7 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersKeysAsCopy) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2918,7 +2934,7 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
@@ -2926,33 +2942,34 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersAndUnusedFieldsKeysAsCopy) {
     assert(strcmp(R"({"id":32,"value":99})", out) == 0);
 }
 
-
 /**
- * Same test as SimpleObjectWithIntegersDeduplication ... but now by creating members by copy.
+ * Same test as SimpleObjectWithDuplications ... but now by creating members by copy.
  */
-TEST(ObjectBuilderTests, SimpleObjectWithIntegersDeduplicationKeysAsCopy) {
+TEST(ObjectBuilderTests, SimpleObjectWithDuplicationsKeysAsCopy) {
     uint8_t buff[256];
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
 
     QAJ4C_Object_builder obj_builder = QAJ4C_object_builder_create(4, &builder);
 
+    static bool called = false;
+    auto lambda = [](){
+        called = true;
+    };
+    QAJ4C_register_fatal_error_function(lambda);
+
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 32);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
-
-    char out[64];
-    QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
-    assert(QAJ4C_object_size(value_ptr) == 2);
-    assert(strcmp(R"({"id":1,"value":99})", out) == 0);
+    QAJ4C_set_object(value_ptr, &obj_builder, false);
+    assert(called);
 }
 
 /**
- * Same test as SimpleObjectWithIntegersNoDeduplication ... but now by creating members by copy.
+ * Same test as SimpleObjectWithDuplicationsSkipPostProcessing ... but now by creating members by copy.
  */
-TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
+TEST(ObjectBuilderTests, SimpleObjectWithDuplicationsSkipPostProcessingKeysAsCopy) {
     uint8_t buff[256];
     QAJ4C_Builder builder = QAJ4C_builder_create(buff, ARRAY_COUNT(buff));
     QAJ4C_Value* value_ptr = QAJ4C_builder_get_document(&builder);
@@ -2963,12 +2980,12 @@ TEST(ObjectBuilderTests, SimpleObjectWithIntegersNoDeduplicationKeysAsCopy) {
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("value"), &builder), 99);
     QAJ4C_set_uint(QAJ4C_object_builder_create_member_by_copy(&obj_builder, QAJ4C_S("id"), &builder), 1);
 
-    QAJ4C_set_object(value_ptr, &obj_builder);
+    QAJ4C_set_object(value_ptr, &obj_builder, true);
 
     char out[64];
     QAJ4C_sprint(value_ptr, out, ARRAY_COUNT(out));
     assert(QAJ4C_object_size(value_ptr) == 3);
-    assert(strcmp(R"({"id":32,"id":1,"value":99})", out) == 0);
+    assert(strcmp(R"({"id":32,"value":99,"id":1})", out) == 0);
 }
 
 
@@ -3029,7 +3046,7 @@ TEST(CornerCaseTests, PrintArrayWithNullValues) {
         QAJ4C_set_null(QAJ4C_array_builder_next(&array_builder));
     }
     QAJ4C_set_array(groups_node, &array_builder);
-    QAJ4C_set_object(root_node, &obj_builder);
+    QAJ4C_set_object(root_node, &obj_builder, false);
 
     QAJ4C_sprint(root_node, json, ARRAY_COUNT(json));
 

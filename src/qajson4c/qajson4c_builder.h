@@ -172,11 +172,15 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* ob
 QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* object_builder, const char* str, size_t len, QAJ4C_Builder* builder );
 
 /**
- * Assigns the value_ptr refering to the object_builders content.
- * @attention Calling this method can reorder the members. Behavior of value pointers retrieved by the create_member method is
- *            undefined after calling this method.
+ * Assigns the value_ptr referring to the object_builders content.
+ * @param skip_post_processing For printing reasons it is possible to skip post processing.
+ *                             Not skipping will sort the members by hash and fail in case
+ *                             duplicate keys are available.
+ * @attention When skipping post processing QAJ4C_object_get and QAJ4C_equals cannot be
+ *            called with this object.
+ * @attention With skipping post processing set to false value pointers might not point
  */
-void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder );
+void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder, bool skip_post_processing );
 
 /**
  * This method creates a deep copy of the source value to the destination value using the

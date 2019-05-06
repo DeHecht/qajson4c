@@ -80,8 +80,12 @@ QAJ4C_First_pass_parser QAJ4C_first_pass_parser_create( QAJ4C_First_pass_builder
     QAJ4C_First_pass_parser parser;
     parser.builder = builder;
 
-    parser.strict_parsing = (opts & QAJ4C_PARSE_OPTS_STRICT) != 0;
-    parser.insitu_parsing = (opts & 1) != 0;
+    parser.insitu_parsing = (opts & QAJ4C_PARSE_OPTS_RESERVED_1) != 0;
+    parser.deny_comments = (opts & (QAJ4C_PARSE_OPTS_STRICT | QAJ4C_PARSE_OPTS_REJECT_COMMENTS)) != 0;
+    parser.deny_trailing_commas  = (opts & (QAJ4C_PARSE_OPTS_STRICT | QAJ4C_PARSE_OPTS_REJECT_TAILING_COMMA)) != 0;
+    parser.deny_duplicate_keys = (opts & (QAJ4C_PARSE_OPTS_STRICT | QAJ4C_PARSE_OPTS_REJECT_DUPLICATE_KEY)) != 0;
+    parser.deny_uncompliant_numbers = (opts & (QAJ4C_PARSE_OPTS_STRICT | QAJ4C_PARSE_OPTS_REJECT_NON_COMPLIANT_NUMBERS)) != 0;
+    parser.deny_json_appendix = (opts & (QAJ4C_PARSE_OPTS_STRICT | QAJ4C_PARSE_OPTS_REJECT_DATA_AFTER_JSON)) != 0;
 
     parser.amount_nodes = 0;
     parser.complete_string_length = 0;
@@ -248,8 +252,11 @@ static size_t QAJ4C_first_pass_string_escape( QAJ4C_First_pass_parser* me, QAJ4C
 }
 
 static void QAJ4C_first_pass_comment( QAJ4C_First_pass_parser* me, QAJ4C_Json_message* msg ) {
+    if ( me->deny_comments ) {
+        QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
+        return;
+    }
     msg->pos += 1;
-    // FIXME: Check strict parsing!
     if (*msg->pos == '/') {
         /* line comment */
         while (msg->pos < msg->end) {
@@ -380,7 +387,7 @@ static void QAJ4C_first_pass_evaluate( QAJ4C_First_pass_parser* me, QAJ4C_First_
 
     QAJ4C_first_pass_reserve_buffer(me, msg);
 
-    if (me->strict_parsing && *msg->pos != '\0') {
+    if (me->deny_json_appendix && *msg->pos != '\0') {
         const char* pos = msg->pos;
         /* skip whitespaces and comments after the json (we are graceful) */
         while (msg->pos < msg->end && QAJ4C_parse_char(*msg->pos) == QAJ4C_CHAR_WHITESPACE) {

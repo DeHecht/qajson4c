@@ -44,20 +44,11 @@ void QAJ4C_register_fatal_error_function( QAJ4C_fatal_error_fn function ) {
 }
 
 const char* QAJ4C_get_string( const QAJ4C_Value* value_ptr ) {
-    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return "";});
-
-    if (QAJ4C_get_internal_type(value_ptr) == QAJ4C_INLINE_STRING) {
-        return ((QAJ4C_Short_string*) value_ptr)->s;
-    }
-    return ((QAJ4C_String*) value_ptr)->s;
+    return QAJ4C_get_string_payload(value_ptr).str;
 }
 
 size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr ){
-    QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return 0;});
-    if (QAJ4C_get_internal_type(value_ptr) == QAJ4C_INLINE_STRING) {
-        return ((QAJ4C_Short_string*) value_ptr)->count;
-    }
-    return ((QAJ4C_String*) value_ptr)->count;
+    return QAJ4C_get_string_payload(value_ptr).size;
 }
 
 int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
@@ -208,7 +199,7 @@ const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* s
     QAJ4C_Member member;
     QAJ4C_Member* result;
     QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
-    QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return NULL;});
+    QAJ4C_ASSERT(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT, {return NULL;});
 
     QAJ4C_set_string_ref(&member.key, str, len);
     result = QAJ4C_BSEARCH(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);

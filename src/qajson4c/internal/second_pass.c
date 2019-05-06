@@ -78,8 +78,12 @@ QAJ4C_Second_pass_parser QAJ4C_second_pass_parser_create( const QAJ4C_First_pass
     me.builder.object_pos = (QAJ4C_Value*)buffer_ptr;
     me.builder.str_pos = (char*)(buffer_ptr + required_object_storage);
     me.builder.stats_pos = (size_type*)(buffer_ptr + copy_to_index);
+    /** Copy the options that are processed within the second pass */
     me.insitu_parsing = parser->insitu_parsing;
-    me.strict_parsing = parser->strict_parsing;
+    me.deny_trailing_commas = parser->deny_trailing_commas;
+    me.deny_duplicate_keys = parser->deny_duplicate_keys;
+    me.deny_uncompliant_numbers = parser->deny_uncompliant_numbers;
+
     me.curr_buffer_pos = copy_to_index;
     me.err_code = QAJ4C_ERROR_NO_ERROR;
     return me;
@@ -186,10 +190,14 @@ static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Se
     msg->pos += 1;
 
     if (stack_entry->type == QAJ4C_TYPE_OBJECT) {
-        QAJ4C_object_optimize((QAJ4C_Object*)(stack->it->value_ptr - 1));
+        QAJ4C_Object* object_ptr = (QAJ4C_Object*)(stack->it->value_ptr - 1);
+        QAJ4C_object_optimize( object_ptr );
+        if (me->deny_duplicate_keys && QAJ4C_object_has_duplicate(object_ptr)) {
+            QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_DUPLICATE_KEY);
+        }
     }
 
-    if (me->strict_parsing && !stack_entry->value_flag && stack_entry->value_ptr - stack_entry->base_ptr > 0) {
+    if (me->deny_trailing_commas && !stack_entry->value_flag && stack_entry->value_ptr - stack_entry->base_ptr > 0) {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_TRAILING_COMMA);
     }
 }
@@ -301,7 +309,7 @@ static bool QAJ4C_second_pass_unicode_sequence( QAJ4C_Second_pass_parser* me, QA
 }
 
 static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Short_string* short_string ) {
-    ((QAJ4C_Value*)short_string)->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
+    ((QAJ4C_Value*)short_string)->type = QAJ4C_STRING_INLINE_TYPE_CONSTANT;
     short_string->count = 0;
     while (*msg->pos != '"' && me->err_code == QAJ4C_ERROR_NO_ERROR) {
         if (short_string->count >= QAJ4C_INLINE_STRING_SIZE) {
@@ -408,7 +416,7 @@ static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Second
         QAJ4C_second_pass_set_missing_seperator_error(me, stack, msg);
         return;
     }
-    if (me->strict_parsing && (*msg->pos == '+' || (*msg->pos == '0' && QAJ4C_is_digit(*(msg->pos+1))))) {
+    if (me->deny_uncompliant_numbers && (*msg->pos == '+' || (*msg->pos == '0' && QAJ4C_is_digit(*(msg->pos + 1))))) {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_NUMBER_FORMAT);
         return;
     }

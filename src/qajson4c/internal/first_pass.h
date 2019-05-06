@@ -47,8 +47,12 @@ typedef struct QAJ4C_First_pass_builder {
 typedef struct QAJ4C_First_pass_parser {
     QAJ4C_First_pass_builder* builder; /* Storage about object sizes */
 
-    bool strict_parsing;
     bool insitu_parsing;
+    bool deny_comments;
+    bool deny_trailing_commas;
+    bool deny_duplicate_keys;
+    bool deny_uncompliant_numbers;
+    bool deny_json_appendix;
 
     size_type amount_nodes;
     size_type complete_string_length;

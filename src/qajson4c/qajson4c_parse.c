@@ -39,22 +39,22 @@ size_t QAJ4C_calculate_max_buffer_size( const char* json, size_t json_len ) {
 }
 
 size_t QAJ4C_calculate_max_buffer_size_insitu( const char* json, size_t json_len ) {
-    return QAJ4C_calculate_max_buffer_generic(json, json_len, 1);
+    return QAJ4C_calculate_max_buffer_generic(json, json_len, QAJ4C_PARSE_OPTS_RESERVED_1);
 }
 
 const QAJ4C_Value* QAJ4C_parse( const char* json, size_t json_len, void* buffer, size_t buffer_size, int opts, size_t* bytes_written ) {
     QAJ4C_First_pass_builder builder = QAJ4C_First_pass_builder_create(buffer, buffer_size, NULL);
-    return QAJ4C_parse_generic(&builder, json, json_len, opts, bytes_written);
+    return QAJ4C_parse_generic(&builder, json, json_len, opts & ~QAJ4C_PARSE_OPTS_RESERVED_1, bytes_written);
 }
 
 const QAJ4C_Value* QAJ4C_parse_dynamic( const char* json, size_t json_len, int opts, QAJ4C_realloc_fn realloc_callback ) {
     QAJ4C_First_pass_builder builder = QAJ4C_First_pass_builder_create(NULL, 0, realloc_callback);
-    return QAJ4C_parse_generic(&builder, json, json_len, opts, NULL);
+    return QAJ4C_parse_generic(&builder, json, json_len, opts & ~QAJ4C_PARSE_OPTS_RESERVED_1, NULL);
 }
 
 const QAJ4C_Value* QAJ4C_parse_insitu( char* json, size_t json_len, void* buffer, size_t buffer_size, int opts, size_t* bytes_written ) {
     QAJ4C_First_pass_builder builder = QAJ4C_First_pass_builder_create(buffer, buffer_size, NULL);
-    return QAJ4C_parse_generic(&builder, json, json_len, opts | 1, bytes_written);
+    return QAJ4C_parse_generic(&builder, json, json_len, opts | QAJ4C_PARSE_OPTS_RESERVED_1, bytes_written);
 }
 
 static const QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder, const char* json, size_t json_len, int opts, size_t* bytes_written ) {

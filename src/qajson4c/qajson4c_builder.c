@@ -126,7 +126,7 @@ void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str, size_t len )
 
 void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder ) {
     if (len <= QAJ4C_INLINE_STRING_SIZE) {
-        value_ptr->type = QAJ4C_INLINE_STRING_TYPE_CONSTANT;
+        value_ptr->type = QAJ4C_STRING_INLINE_TYPE_CONSTANT;
         ((QAJ4C_Short_string*)value_ptr)->count = (uint8_t)len;
         QAJ4C_MEMCPY(&((QAJ4C_Short_string*)value_ptr)->s, str, len);
         ((QAJ4C_Short_string*)value_ptr)->s[len] = '\0';
@@ -204,12 +204,18 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* o
     return &member->value;
 }
 
-void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder ) {
+void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder, bool skip_post_processing ) {
     QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
-    value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
     obj_ptr->top = object_builder->top;
     obj_ptr->count = object_builder->index;
-    QAJ4C_object_optimize(obj_ptr);
+    if (!skip_post_processing) {
+        value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
+        QAJ4C_object_optimize(obj_ptr);
+        QAJ4C_ASSERT(!QAJ4C_object_has_duplicate(obj_ptr), {return;});
+    } else {
+        value_ptr->type = QAJ4C_OBJECT_RAW_TYPE_CONSTANT;
+    }
+
 }
 
 void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* builder ) {
@@ -229,7 +235,7 @@ void QAJ4C_copy( const QAJ4C_Value* src, QAJ4C_Value* dest, QAJ4C_Builder* build
         switch (src_type) {
         case QAJ4C_NULL:
         case QAJ4C_STRING_REF:
-        case QAJ4C_INLINE_STRING:
+        case QAJ4C_STRING_INLINE:
         case QAJ4C_PRIMITIVE:
             *dst_value = *src_value;
             break;
