@@ -42,32 +42,29 @@ typedef struct QAJ4C_util_stack {
 } QAJ4C_util_stack;
 
 static bool stack_up_equal(QAJ4C_util_stack* stack, const QAJ4C_Value* lhs, const QAJ4C_Value* rhs) {
-    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
-    const QAJ4C_Array* rhs_array = (const QAJ4C_Array*)rhs;
-    bool result = lhs_array->count == rhs_array->count;
+    size_type lhs_count = QAJ4C_ARRAY_GET_COUNT(lhs);
+    bool result = lhs_count == QAJ4C_ARRAY_GET_COUNT(rhs);
 
     QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1, result = false;);
 
     if (result) {
         stack->it += 1;
         stack->it->index = 0;
-        stack->it->length = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
-        stack->it->lhs_value = lhs_array->top;
-        stack->it->rhs_value = rhs_array->top;
+        stack->it->length = lhs_count * (QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? 2 : 1);
+        stack->it->lhs_value = QAJ4C_ARRAY_GET_PTR(lhs);
+        stack->it->rhs_value = QAJ4C_ARRAY_GET_PTR(rhs);
     }
 
     return result;
 }
 
 static void stack_up_sizeof(QAJ4C_util_stack* stack, const QAJ4C_Value* lhs) {
-    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
-
     QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1, return;);
 
     stack->it += 1;
     stack->it->index = 0;
-    stack->it->length = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
-    stack->it->lhs_value = lhs_array->top;
+    stack->it->length = QAJ4C_ARRAY_GET_COUNT(lhs) * (QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? 2 : 1);
+    stack->it->lhs_value = QAJ4C_ARRAY_GET_PTR(lhs);
 }
 
 bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
@@ -96,10 +93,11 @@ bool QAJ4C_equals( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs ) {
                 result = QAJ4C_strcmp(lhs_value, rhs_value) == 0;
                 break;
             case QAJ4C_TYPE_BOOL:
-                result =((QAJ4C_Primitive*)lhs_value)->data.b == ((QAJ4C_Primitive*)rhs_value)->data.b;
+                result = QAJ4C_GET_VALUE(lhs_value, bool) == QAJ4C_GET_VALUE(rhs_value, bool);
                 break;
             case QAJ4C_TYPE_NUMBER:
-                result = ((QAJ4C_Primitive*)lhs_value)->data.i == ((QAJ4C_Primitive*)rhs_value)->data.i;
+                // FIXME: This is not correctly for doubles!!
+                result = QAJ4C_GET_VALUE(lhs_value, int64_t) == QAJ4C_GET_VALUE(rhs_value, int64_t);
                 break;
             case QAJ4C_TYPE_OBJECT:
             case QAJ4C_TYPE_ARRAY:

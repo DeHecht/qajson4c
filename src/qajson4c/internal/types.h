@@ -49,6 +49,22 @@ extern "C" {
 #define QAJ4C_STACK_SIZE (32)
 #endif
 
+#define QAJ4C_STRUCT_SIZE (sizeof(size_type) + sizeof(uintptr_t))
+
+#define QAJ4C_GET_VALUE(value_ptr, type) QAJ4C_GET_VALUE_OFFSET(value_ptr, type, 0)
+#define QAJ4C_SET_VALUE(value_ptr, type, value) QAJ4C_GET_VALUE(value_ptr, type) = value
+#define QAJ4C_GET_VALUE_OFFSET(value_ptr, type, offset) (*((type*)((value_ptr)->data+offset)))
+
+#define QAJ4C_ARRAY_GET_PTR(value_ptr) QAJ4C_GET_VALUE(value_ptr, QAJ4C_Value*)
+#define QAJ4C_ARRAY_GET_COUNT(value_ptr) QAJ4C_GET_VALUE_OFFSET(value_ptr, size_type, sizeof(QAJ4C_Value*))
+#define QAJ4C_OBJECT_GET_PTR(value_ptr) QAJ4C_GET_VALUE(value_ptr, QAJ4C_Member*)
+#define QAJ4C_OBJECT_GET_COUNT(value_ptr) QAJ4C_GET_VALUE_OFFSET(value_ptr, size_type, sizeof(QAJ4C_Member*))
+#define QAJ4C_STRING_GET_PTR(value_ptr) QAJ4C_GET_VALUE(value_ptr, const char*)
+#define QAJ4C_STRING_GET_COUNT(value_ptr) QAJ4C_GET_VALUE_OFFSET(value_ptr, size_type, sizeof(char*))
+#define QAJ4C_ISTRING_GET_PTR(value_ptr) &QAJ4C_GET_VALUE_OFFSET(value_ptr, char, sizeof(uint8_t))
+#define QAJ4C_ISTRING_GET_COUNT(value_ptr) QAJ4C_GET_VALUE(value_ptr, uint8_t)
+#define QAJ4C_ERROR_GET_PTR(value_ptr) QAJ4C_GET_VALUE(value_ptr, QAJ4C_Error_information*)
+
 #define QAJ4C_ASSERT(arg, alt) if (QAJ4C_UNLIKELY(!(arg))) do { g_qaj4c_err_function(); alt } while(0)
 
 #define QAJ4C_MIN(lhs, rhs) ((lhs<=rhs)?(lhs):(rhs))
@@ -103,64 +119,16 @@ typedef enum QAJ4C_Primitive_type {
     QAJ4C_PRIMITIVE_DOUBLE = (1 << 5)
 } QAJ4C_Primitive_type;
 
-typedef struct QAJ4C_Object {
-    QAJ4C_Member* top;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Object;
-
-typedef struct QAJ4C_Array {
-    QAJ4C_Value* top;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Array;
-
-typedef struct QAJ4C_String {
-    const char* s;
-    size_type count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_String;
+struct QAJ4C_Value {
+    size_type type;
+    uint8_t data[QAJ4C_STRUCT_SIZE];
+};
 
 typedef struct QAJ4C_Error_information {
     const char* json;
     size_type json_pos;
     size_type err_no;
 } QAJ4C_Error_information;
-
-typedef struct QAJ4C_Error {
-    QAJ4C_Error_information* info;
-    char padding[sizeof(size_type) * 2];
-} QAJ4C_ALIGN QAJ4C_Error;
-
-/**
- * Instead of storing a pointer to a char* like in QAJ4C_String we can QAJ4C_INLINE the
- * char in the struct. This saves a) the dereferencing, b) additional memory.
- * As the string has to be small the count value can also be smaller, to additionally
- * store some more chars.
- * On 32-Bit => 6 chars + \0, on 64-Bit => 10 chars + \0.
- */
-typedef struct QAJ4C_Short_string {
-    char s[QAJ4C_INLINE_STRING_SIZE + 1];
-    uint8_t count;
-    char padding[sizeof(size_type)];
-} QAJ4C_ALIGN QAJ4C_Short_string;
-
-typedef struct QAJ4C_Primitive {
-    union primitive {
-        double d;
-        uint64_t u;
-        int64_t i;
-        bool b;
-    } data;
-    /* Padding on 64 Bit => 8, 32 Bit => 4 */
-    char padding[sizeof(uintptr_t) + sizeof(size_type) * 2 - sizeof(uint64_t)];
-
-} QAJ4C_ALIGN QAJ4C_Primitive;
-
-struct QAJ4C_Value {
-    char padding[QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type)];
-    size_type type;
-} QAJ4C_ALIGN; /* minimal 3 * 4 Byte = 12, at 64 Bit 16 Byte */
 
 struct QAJ4C_Member {
     QAJ4C_Value key;
@@ -188,8 +156,8 @@ QAJ4C_INTERNAL_TYPE QAJ4C_get_internal_type( const QAJ4C_Value* value_ptr );
 
 QAJ4C_String_payload QAJ4C_get_string_payload( const QAJ4C_Value* value_ptr );
 
-void QAJ4C_object_optimize( QAJ4C_Object* value_ptr );
-bool QAJ4C_object_has_duplicate( QAJ4C_Object* value_ptr );
+void QAJ4C_object_optimize( QAJ4C_Value* value_ptr );
+bool QAJ4C_object_has_duplicate( QAJ4C_Value* value_ptr );
 
 int QAJ4C_strcmp( const QAJ4C_Value* lhs, const QAJ4C_Value* rhs );
 int QAJ4C_compare_members( const void* lhs, const void * rhs );

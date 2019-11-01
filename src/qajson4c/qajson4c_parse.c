@@ -59,17 +59,17 @@ const QAJ4C_Value* QAJ4C_parse_insitu( char* json, size_t json_len, void* buffer
 
 const char* QAJ4C_error_get_json( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return "";});
-    return ((QAJ4C_Error*) value_ptr)->info->json;
+    return QAJ4C_ERROR_GET_PTR(value_ptr)->json;
 }
 
 QAJ4C_ERROR_CODE QAJ4C_error_get_errno( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
-    return ((QAJ4C_Error*) value_ptr)->info->err_no;
+    return QAJ4C_ERROR_GET_PTR(value_ptr)->err_no;
 }
 
 size_t QAJ4C_error_get_json_pos( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_error(value_ptr), {return 0;});
-    return ((QAJ4C_Error*) value_ptr)->info->json_pos;
+    return QAJ4C_ERROR_GET_PTR(value_ptr)->json_pos;
 }
 
 static const QAJ4C_Value* QAJ4C_parse_generic( QAJ4C_First_pass_builder* builder, const char* json, size_t json_len, int opts, size_t* bytes_written ) {
@@ -114,7 +114,7 @@ static const QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_First_pass_parse
     err_info->err_no = parser->err_code;
     err_info->json = msg->begin;
     err_info->json_pos = msg->pos - msg->begin;
-    ((QAJ4C_Error*)document)->info = err_info;
+    QAJ4C_ERROR_GET_PTR(document) = err_info;
 
     if (bytes_written != NULL) {
        *bytes_written = REQUIRED_STORAGE;

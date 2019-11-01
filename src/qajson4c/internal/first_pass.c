@@ -188,7 +188,7 @@ static void QAJ4C_first_pass_string_start( QAJ4C_First_pass_parser* me, QAJ4C_Fi
     if (!me->insitu_parsing && size > QAJ4C_INLINE_STRING_SIZE) {
         me->complete_string_length += size + 1;
     }
-    if (*msg->pos == '\"') {
+    if (msg->pos < msg->end && *msg->pos == '\"') {
         msg->pos += 1;
     } else {
         QAJ4C_first_pass_set_error(me, msg, QAJ4C_ERROR_JSON_MESSAGE_TRUNCATED);

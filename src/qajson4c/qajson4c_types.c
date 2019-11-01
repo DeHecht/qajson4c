@@ -52,7 +52,9 @@ size_t QAJ4C_get_string_length( const QAJ4C_Value* value_ptr ){
 }
 
 int QAJ4C_string_cmp( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
-    QAJ4C_String wrapper_value = {.s = str, .count = len};
+    QAJ4C_Value wrapper_value = {.type = QAJ4C_STRING_REF_TYPE_CONSTANT};
+    QAJ4C_STRING_GET_PTR(&wrapper_value) = str;
+    QAJ4C_STRING_GET_COUNT(&wrapper_value) = len;
 
     QAJ4C_ASSERT(QAJ4C_is_string(value_ptr), {return strcmp("", str);});
 
@@ -81,7 +83,7 @@ bool QAJ4C_is_int( const QAJ4C_Value* value_ptr ) {
 
 int32_t QAJ4C_get_int( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_int(value_ptr), {return 0;});
-    return (int32_t) ((QAJ4C_Primitive*) value_ptr)->data.i;
+    return QAJ4C_GET_VALUE(value_ptr, int64_t);
 }
 
 bool QAJ4C_is_int64( const QAJ4C_Value* value_ptr ) {
@@ -90,7 +92,7 @@ bool QAJ4C_is_int64( const QAJ4C_Value* value_ptr ) {
 
 int64_t QAJ4C_get_int64( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_int64(value_ptr), {return 0;});
-    return ((QAJ4C_Primitive*) value_ptr)->data.i;
+    return QAJ4C_GET_VALUE(value_ptr, int64_t);
 }
 
 bool QAJ4C_is_uint( const QAJ4C_Value* value_ptr ) {
@@ -99,7 +101,7 @@ bool QAJ4C_is_uint( const QAJ4C_Value* value_ptr ) {
 
 uint32_t QAJ4C_get_uint( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_uint(value_ptr), {return 0;});
-    return (uint32_t) ((QAJ4C_Primitive*) value_ptr)->data.u;
+    return QAJ4C_GET_VALUE(value_ptr, uint64_t);
 }
 
 bool QAJ4C_is_uint64( const QAJ4C_Value* value_ptr ) {
@@ -108,7 +110,7 @@ bool QAJ4C_is_uint64( const QAJ4C_Value* value_ptr ) {
 
 uint64_t QAJ4C_get_uint64( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_uint64(value_ptr), {return 0;});
-    return ((QAJ4C_Primitive*) value_ptr)->data.u;
+    return QAJ4C_GET_VALUE(value_ptr, uint64_t);
 }
 
 bool QAJ4C_is_double( const QAJ4C_Value* value_ptr ) {
@@ -122,12 +124,12 @@ double QAJ4C_get_double( const QAJ4C_Value* value_ptr ) {
     switch (QAJ4C_get_storage_type(value_ptr)) {
     case QAJ4C_PRIMITIVE_INT:
     case QAJ4C_PRIMITIVE_INT64:
-        return (double) ((QAJ4C_Primitive*) value_ptr)->data.i;
+        return QAJ4C_GET_VALUE(value_ptr, int64_t);
     case QAJ4C_PRIMITIVE_UINT:
     case QAJ4C_PRIMITIVE_UINT64:
-        return (double) ((QAJ4C_Primitive*) value_ptr)->data.u;
+        return QAJ4C_GET_VALUE(value_ptr, int64_t);
     default:
-        return ((QAJ4C_Primitive*) value_ptr)->data.d;
+        return QAJ4C_GET_VALUE(value_ptr, double);
     }
 }
 
@@ -137,7 +139,7 @@ bool QAJ4C_is_bool( const QAJ4C_Value* value_ptr ) {
 
 bool QAJ4C_get_bool( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_bool(value_ptr), {return false;});
-    return ((QAJ4C_Primitive*) value_ptr)->data.b;
+    return QAJ4C_GET_VALUE(value_ptr, bool);
 }
 
 bool QAJ4C_is_not_set( const QAJ4C_Value* value_ptr ) {
@@ -161,12 +163,12 @@ bool QAJ4C_is_error( const QAJ4C_Value* value_ptr ) {
 
 size_t QAJ4C_object_size( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr), {return 0;});
-    return ((QAJ4C_Object*) value_ptr)->count;
+    return QAJ4C_OBJECT_GET_COUNT(value_ptr);
 }
 
 const QAJ4C_Member* QAJ4C_object_get_member( const QAJ4C_Value* value_ptr, size_t index ) {
     QAJ4C_ASSERT(QAJ4C_is_object(value_ptr) && QAJ4C_object_size(value_ptr) > index, {return NULL;});
-    return &((QAJ4C_Object*) value_ptr)->top[index];
+    return QAJ4C_OBJECT_GET_PTR(value_ptr);
 }
 
 const QAJ4C_Value* QAJ4C_member_get_key( const QAJ4C_Member* member ) {
@@ -182,13 +184,13 @@ const QAJ4C_Value* QAJ4C_member_get_value( const QAJ4C_Member* member ) {
 const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     QAJ4C_Member member;
     QAJ4C_Member* result;
-    QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
-    QAJ4C_ASSERT(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT, {return NULL;});
-    QAJ4C_String* key = (QAJ4C_String*)&member.key;
-    key->s = str;
-    key->count = len;
 
-    result = QAJ4C_BSEARCH(&member, obj_ptr->top, obj_ptr->count, sizeof(QAJ4C_Member), QAJ4C_compare_members);
+    QAJ4C_ASSERT(QAJ4C_get_internal_type(value_ptr) == QAJ4C_OBJECT, {return NULL;});
+    member.key.type = QAJ4C_STRING_REF_TYPE_CONSTANT;
+    QAJ4C_STRING_GET_PTR(&member.key) = str;
+    QAJ4C_STRING_GET_COUNT(&member.key) = len;
+
+    result = QAJ4C_BSEARCH(&member, QAJ4C_OBJECT_GET_PTR(value_ptr), QAJ4C_OBJECT_GET_COUNT(value_ptr), sizeof(QAJ4C_Member), QAJ4C_compare_members);
     if (result != NULL) {
         return &result->value;
     }
@@ -197,10 +199,10 @@ const QAJ4C_Value* QAJ4C_object_get( const QAJ4C_Value* value_ptr, const char* s
 
 size_t QAJ4C_array_size( const QAJ4C_Value* value_ptr ) {
     QAJ4C_ASSERT(QAJ4C_is_array(value_ptr), {return 0;});
-    return ((QAJ4C_Array*) value_ptr)->count;
+    return QAJ4C_ARRAY_GET_COUNT(value_ptr);
 }
 
 const QAJ4C_Value* QAJ4C_array_get( const QAJ4C_Value* value_ptr, size_t index ) {
     QAJ4C_ASSERT(QAJ4C_is_array(value_ptr) && QAJ4C_array_size(value_ptr) > index, {return NULL;});
-    return ((QAJ4C_Array*) value_ptr)->top + index;
+    return QAJ4C_ARRAY_GET_PTR(value_ptr) + index;
 }

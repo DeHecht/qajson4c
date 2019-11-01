@@ -42,6 +42,11 @@ typedef struct QAJ4C_Second_pass_stack {
     QAJ4C_Second_pass_stack_entry* it;
 } QAJ4C_Second_pass_stack;
 
+typedef struct QAJ4C_Temp_string{
+    char s[8];
+    size_type count;
+} QAJ4C_Temp_string;
+
 static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_object_colon( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
@@ -50,7 +55,7 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
 static void QAJ4C_second_pass_number( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_literal_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_comment_start( QAJ4C_Json_message* msg );
-static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Short_string* short_string );
+static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Value* short_string );
 static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* me );
 static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg );
 static void QAJ4C_second_pass_set_error( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_ERROR_CODE error );
@@ -152,6 +157,7 @@ const QAJ4C_Value* QAJ4C_second_pass_process( QAJ4C_Second_pass_parser* me, QAJ4
     return result;
 }
 
+
 static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
     size_type count = QAJ4C_second_pass_fetch_stats_data(me);
@@ -169,16 +175,15 @@ static void QAJ4C_second_pass_stack_up( QAJ4C_Second_pass_parser* me, QAJ4C_Seco
     me->builder.object_pos += count;
 
     if (new_stack_entry->type == QAJ4C_TYPE_OBJECT) {
-        QAJ4C_Object* obj_ptr = (QAJ4C_Object*)stack_entry->value_ptr;
         stack_entry->value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
-        obj_ptr->count = count >> 1;
-        obj_ptr->top = (QAJ4C_Member*)new_stack_entry->value_ptr;
+        count = count >> 1; /* division by 2 */
     } else {
-        QAJ4C_Array* a_ptr = (QAJ4C_Array*)stack_entry->value_ptr;
         stack_entry->value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
-        a_ptr->count = count;
-        a_ptr->top = new_stack_entry->value_ptr;
     }
+
+    QAJ4C_ARRAY_GET_PTR(stack_entry->value_ptr) = count == 0 ? NULL : new_stack_entry->value_ptr;
+    QAJ4C_ARRAY_GET_COUNT(stack_entry->value_ptr) = count;
+
     msg->pos += 1;
     stack_entry->value_flag = true;
     stack_entry->value_ptr += 1;
@@ -190,7 +195,7 @@ static void QAJ4C_second_pass_stack_down( QAJ4C_Second_pass_parser* me, QAJ4C_Se
     msg->pos += 1;
 
     if (stack_entry->type == QAJ4C_TYPE_OBJECT) {
-        QAJ4C_Object* object_ptr = (QAJ4C_Object*)(stack->it->value_ptr - 1);
+        QAJ4C_Value* object_ptr = stack->it->value_ptr - 1;
         QAJ4C_object_optimize( object_ptr );
         if (me->deny_duplicate_keys && QAJ4C_object_has_duplicate(object_ptr)) {
             QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_DUPLICATE_KEY);
@@ -274,7 +279,7 @@ static uint32_t QAJ4C_second_pass_utf16( QAJ4C_Second_pass_parser* me, QAJ4C_Jso
     return value;
 }
 
-static bool QAJ4C_second_pass_unicode_sequence( QAJ4C_Second_pass_parser* me, QAJ4C_Short_string* string, QAJ4C_Json_message* msg ) {
+static bool QAJ4C_second_pass_unicode_sequence( QAJ4C_Second_pass_parser* me, QAJ4C_Temp_string* string, QAJ4C_Json_message* msg ) {
     static const uint8_t FIRST_BYTE_TWO_BYTE_MARK_MASK = 0xC0;
     static const uint8_t FIRST_BYTE_TWO_BYTE_PAYLOAD_MASK = 0x1F;
     static const uint8_t FIRST_BYTE_THREE_BYTE_MARK_MASK = 0xE0;
@@ -308,52 +313,15 @@ static bool QAJ4C_second_pass_unicode_sequence( QAJ4C_Second_pass_parser* me, QA
     return true;
 }
 
-static bool QAJ4C_second_pass_short_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Short_string* short_string ) {
-    ((QAJ4C_Value*)short_string)->type = QAJ4C_STRING_INLINE_TYPE_CONSTANT;
-    short_string->count = 0;
-    while (*msg->pos != '"' && me->err_code == QAJ4C_ERROR_NO_ERROR) {
-        if (short_string->count >= QAJ4C_INLINE_STRING_SIZE) {
-            return false;
-        }
-        if ( QAJ4C_UNLIKELY(*msg->pos == '\\' ) ) {
-            msg->pos += 1;
-            if ( QAJ4C_UNLIKELY(*msg->pos == 'u' ) ) {
-                /* Handle utf-16 escape sequence */
-                QAJ4C_Short_string tmp;
-                tmp.count = 0;
-                msg->pos += 1;
-                if (!QAJ4C_second_pass_unicode_sequence(me, &tmp, msg)) {
-                    QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
-                } else if ( short_string->count + tmp.count > QAJ4C_INLINE_STRING_SIZE) {
-                    return false;
-                }
-                QAJ4C_MEMCPY(short_string->s + short_string->count, tmp.s, tmp.count);
-                short_string->count += tmp.count - 1;
-            } else {
-                /* Handle simple escape char */
-                short_string->s[short_string->count] = QAJ4C_second_pass_escape_char( me, msg, *msg->pos );
-            }
-        } else if (QAJ4C_UNLIKELY((uint8_t )(*msg->pos) < 0x20)) {
-            QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
-        } else {
-            short_string->s[short_string->count] = *msg->pos;
-        }
-        short_string->count += 1;
-        msg->pos += 1;
-    }
-    short_string->s[short_string->count] = '\0';
-    return true;
-}
-
 static size_type QAJ4C_second_pass_string_append( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, char* append_ptr ) {
     char* base_string_ptr = append_ptr;
+    QAJ4C_Temp_string tmp;
+
     while (*msg->pos != '"'  && me->err_code == QAJ4C_ERROR_NO_ERROR) {
         if ( QAJ4C_UNLIKELY(*msg->pos == '\\' ) ) {
             msg->pos += 1;
             if ( QAJ4C_UNLIKELY(*msg->pos == 'u' ) ) {
                 /* Handle utf-16 escape sequence */
-                QAJ4C_Short_string tmp;
-                tmp.count = 0;
                 msg->pos += 1;
                 if (!QAJ4C_second_pass_unicode_sequence(me, &tmp, msg)) {
                     QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
@@ -376,11 +344,66 @@ static size_type QAJ4C_second_pass_string_append( QAJ4C_Second_pass_parser* me, 
     return append_ptr - base_string_ptr;
 }
 
+static void QAJ4C_second_pass_string( QAJ4C_Second_pass_parser* me, QAJ4C_Json_message* msg, QAJ4C_Value* value_ptr ) {
+    value_ptr->type = QAJ4C_STRING_INLINE_TYPE_CONSTANT;
+    char* s = QAJ4C_ISTRING_GET_PTR(value_ptr);
+    unsigned count = 0;
+    QAJ4C_Temp_string tmp;
+    bool overflow = false;
+
+    while (*msg->pos != '"' && me->err_code == QAJ4C_ERROR_NO_ERROR) {
+        if (count >= QAJ4C_INLINE_STRING_SIZE) {
+            overflow = true;
+            break;
+        }
+        if ( QAJ4C_UNLIKELY(*msg->pos == '\\' ) ) {
+            msg->pos += 1;
+            if ( QAJ4C_UNLIKELY(*msg->pos == 'u' ) ) {
+                /* Handle utf-16 escape sequence */
+                msg->pos += 1;
+                if (!QAJ4C_second_pass_unicode_sequence(me, &tmp, msg)) {
+                    QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_INVALID_UNICODE_SEQUENCE);
+                } else if (count + tmp.count > QAJ4C_INLINE_STRING_SIZE) {
+                    overflow = true;
+                    break;
+                }
+                QAJ4C_MEMCPY(s + count, tmp.s, tmp.count);
+                count += tmp.count - 1;
+            } else {
+                /* Handle simple escape char */
+                s[count] = QAJ4C_second_pass_escape_char( me, msg, *msg->pos );
+            }
+        } else if (QAJ4C_UNLIKELY((uint8_t )(*msg->pos) < 0x20)) {
+            QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_UNEXPECTED_CHAR);
+        } else {
+            s[count] = *msg->pos;
+        }
+        count += 1;
+        msg->pos += 1;
+    }
+
+    if ( !overflow )
+    {
+        s[count] = '\0';
+        QAJ4C_ISTRING_GET_COUNT(value_ptr) = count;
+    }
+    else
+    {
+        QAJ4C_Second_pass_builder* builder = &me->builder;
+        char* base_put_str = builder->str_pos;
+        size_type chars = count; /* do not include the \0 char */
+
+        QAJ4C_MEMCPY(base_put_str, s, chars * sizeof(char));
+        value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
+        QAJ4C_STRING_GET_PTR(value_ptr) = base_put_str;
+        QAJ4C_STRING_GET_COUNT(value_ptr) = chars + QAJ4C_second_pass_string_append(me, msg, base_put_str + chars);
+        builder->str_pos += QAJ4C_STRING_GET_COUNT(value_ptr) + 1;
+    }
+}
+
 static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
-    QAJ4C_Short_string* short_string_ptr = (QAJ4C_Short_string*)stack_entry->value_ptr;
-    QAJ4C_String* string_ptr = (QAJ4C_String*)stack_entry->value_ptr;
-    QAJ4C_Second_pass_builder* builder = &me->builder;
+    QAJ4C_Value* value_ptr = stack_entry->value_ptr;
 
     if (stack_entry->value_flag) {
         QAJ4C_second_pass_set_missing_seperator_error(me, stack, msg);
@@ -389,18 +412,12 @@ static void QAJ4C_second_pass_string_start( QAJ4C_Second_pass_parser* me, QAJ4C_
 
     msg->pos += 1;
     if ( me->insitu_parsing ) {
-        stack_entry->value_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
-        string_ptr->s = msg->pos;
-        string_ptr->count = QAJ4C_second_pass_string_append(me, msg, (char*)msg->pos);
-    } else if (!QAJ4C_second_pass_short_string(me, msg, short_string_ptr)) {
-        char* base_put_str = builder->str_pos;
-        size_type chars = short_string_ptr->count; /* do not include the \0 char */
-
-        QAJ4C_MEMCPY(base_put_str, short_string_ptr->s, chars * sizeof(char));
-        stack_entry->value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
-        string_ptr->s = base_put_str;
-        string_ptr->count = chars + QAJ4C_second_pass_string_append(me, msg, base_put_str + chars);
-        builder->str_pos += string_ptr->count + 1;
+        char* mutable_pos = (char*)msg->pos;
+        value_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
+        QAJ4C_STRING_GET_PTR(value_ptr) = mutable_pos;
+        QAJ4C_STRING_GET_COUNT(value_ptr) = QAJ4C_second_pass_string_append(me, msg, mutable_pos);
+    } else {
+        QAJ4C_second_pass_string(me, msg, value_ptr);
     }
 
     stack_entry->value_flag = true;
@@ -520,7 +537,8 @@ static size_type QAJ4C_second_pass_fetch_stats_data( QAJ4C_Second_pass_parser* m
 
 static void QAJ4C_second_pass_set_missing_seperator_error( QAJ4C_Second_pass_parser* me, QAJ4C_Second_pass_stack* stack, QAJ4C_Json_message* msg ) {
     QAJ4C_Second_pass_stack_entry* stack_entry = stack->it;
-    if ( stack_entry->type == QAJ4C_TYPE_OBJECT && (((QAJ4C_Object*)stack_entry->value_ptr)->count & 0x1) == 0) {
+    size_type count = stack->it->value_ptr - stack->it->base_ptr;
+    if (stack_entry->type == QAJ4C_TYPE_OBJECT && (count & 0x1) != 0) {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_MISSING_COLON);
     } else {
         QAJ4C_second_pass_set_error(me, msg, QAJ4C_ERROR_MISSING_COMMA);
@@ -551,7 +569,7 @@ static const QAJ4C_Value* QAJ4C_create_error_description( QAJ4C_Second_pass_pars
     err_info->err_no = parser->err_code;
     err_info->json = msg->begin;
     err_info->json_pos = msg->pos - msg->begin;
-    ((QAJ4C_Error*)document)->info = err_info;
+    QAJ4C_ERROR_GET_PTR(document) = err_info;
 
     if (bytes_written != NULL) {
        *bytes_written = REQUIRED_STORAGE;

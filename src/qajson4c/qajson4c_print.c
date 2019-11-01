@@ -59,7 +59,7 @@ static bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, si
 
 static bool QAJ4C_print_callback_stack_up( QAJ4C_Print_stack* stack, const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 static bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_callback_fn callback, void *ptr );
-static bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
+static bool QAJ4C_print_callback_error( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 static bool QAJ4C_print_callback_number( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 static bool QAJ4C_print_callback_double( double d, QAJ4C_print_buffer_callback_fn callback, void *ptr );
 static bool QAJ4C_print_callback_uint64( uint64_t value, QAJ4C_print_buffer_callback_fn callback, void *ptr );
@@ -131,14 +131,14 @@ bool QAJ4C_print_buffer_callback( const QAJ4C_Value* value_ptr, QAJ4C_print_buff
                 result = QAJ4C_print_callback_number(pos_ptr, callback, ptr);
                 break;
             case QAJ4C_TYPE_BOOL:
-                if (((const QAJ4C_Primitive*)pos_ptr)->data.b) {
+                if (QAJ4C_GET_VALUE(pos_ptr, bool)) {
                     result = callback(ptr, QAJ4C_S("true"));
                 } else {
                     result = callback(ptr, QAJ4C_S("false"));
                 }
                 break;
             case QAJ4C_TYPE_INVALID:
-                result = QAJ4C_print_callback_error((const QAJ4C_Error*)pos_ptr, callback, ptr);
+                result = QAJ4C_print_callback_error(pos_ptr, callback, ptr);
                 break;
             default:
                 g_qaj4c_err_function();
@@ -178,7 +178,6 @@ static bool QAJ4C_std_print_callback_function( void *ptr, const char* buffer, si
 }
 
 static bool QAJ4C_print_callback_stack_up( QAJ4C_Print_stack* stack, const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr ) {
-    const QAJ4C_Array* array_ptr = (const QAJ4C_Array*) value_ptr;
     QAJ4C_TYPE value_type = QAJ4C_get_type(value_ptr);
     bool success = false;
     bool is_object = value_type == QAJ4C_TYPE_OBJECT;
@@ -188,8 +187,8 @@ static bool QAJ4C_print_callback_stack_up( QAJ4C_Print_stack* stack, const QAJ4C
         stack->it += 1;
         stack->it->index = 0;
         stack->it->type = value_type;
-        stack->it->top = array_ptr->top;
-        stack->it->size = is_object ? array_ptr->count * 2 : array_ptr->count;
+        stack->it->top = QAJ4C_ARRAY_GET_PTR(value_ptr);
+        stack->it->size = QAJ4C_ARRAY_GET_COUNT(value_ptr) * (is_object ? 2 : 1);
         success = callback(ptr, &append_char, 1);
     }
     return success;
@@ -229,15 +228,17 @@ static bool QAJ4C_print_callback_string( const char *string, QAJ4C_print_buffer_
     return result && callback(ptr, "\"", 1);
 }
 
-static bool QAJ4C_print_callback_error( const QAJ4C_Error* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr ) {
+static bool QAJ4C_print_callback_error( const QAJ4C_Value* value_ptr, QAJ4C_print_buffer_callback_fn callback, void *ptr ) {
     static const char ERR_MSG[] = "{\"error\":\"Unable to parse json message. Error (";
     static const char ERR_MSG_2[] = ") at position ";
     static const char ERR_MSG_3[] = "\"}";
 
+    QAJ4C_Error_information* info = QAJ4C_ERROR_GET_PTR(value_ptr);
+
     return callback(ptr, QAJ4C_S(ERR_MSG))
-            && QAJ4C_print_callback_uint64(value_ptr->info->err_no, callback, ptr)
+            && QAJ4C_print_callback_uint64(info->err_no, callback, ptr)
             && callback(ptr, QAJ4C_S(ERR_MSG_2))
-            && QAJ4C_print_callback_uint64(value_ptr->info->json_pos, callback, ptr)
+            && QAJ4C_print_callback_uint64(info->json_pos, callback, ptr)
             && callback(ptr, QAJ4C_S(ERR_MSG_3));
 }
 
@@ -247,14 +248,14 @@ static bool QAJ4C_print_callback_number( const QAJ4C_Value* value_ptr, QAJ4C_pri
     switch (QAJ4C_get_storage_type(value_ptr)) {
     case QAJ4C_PRIMITIVE_INT:
     case QAJ4C_PRIMITIVE_INT64:
-        result = QAJ4C_print_callback_int64(((QAJ4C_Primitive*)value_ptr)->data.i, callback, ptr);
+        result = QAJ4C_print_callback_int64(QAJ4C_GET_VALUE(value_ptr, int64_t), callback, ptr);
         break;
     case QAJ4C_PRIMITIVE_UINT:
     case QAJ4C_PRIMITIVE_UINT64:
-        result = QAJ4C_print_callback_uint64(((QAJ4C_Primitive*)value_ptr)->data.u, callback, ptr);
+        result = QAJ4C_print_callback_uint64(QAJ4C_GET_VALUE(value_ptr, uint64_t), callback, ptr);
         break;
     default: /* it has to be double */
-        result = QAJ4C_print_callback_double(((QAJ4C_Primitive*)value_ptr)->data.d, callback, ptr);
+        result = QAJ4C_print_callback_double(QAJ4C_GET_VALUE(value_ptr, double), callback, ptr);
         break;
     }
     return result;

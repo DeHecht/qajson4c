@@ -42,9 +42,15 @@ typedef struct QAJ4C_builder_stack {
 } QAJ4C_builder_stack;
 
 static QAJ4C_Value* QAJ4C_builder_pop_values( QAJ4C_Builder* builder, size_type count );
+
+/**
+ * This method will pop a string from the builder. In case it fails (due to builder being null
+ * or builder is out of memory) the error function will be called. In case this method is not
+ * an exit point the pop string method will return an empty string.
+ */
 static char* QAJ4C_builder_pop_string( QAJ4C_Builder* builder, size_type length );
 static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_type count );
-static bool stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder);
+static void stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder);
 
 QAJ4C_Builder QAJ4C_builder_create( void* buff, size_t buff_size ) {
     QAJ4C_Builder result;
@@ -68,7 +74,7 @@ QAJ4C_Value* QAJ4C_builder_get_document( QAJ4C_Builder* builder ) {
 
 void QAJ4C_set_bool( QAJ4C_Value* value_ptr, bool value ) {
     value_ptr->type = QAJ4C_BOOL_TYPE_CONSTANT;
-    ((QAJ4C_Primitive*) value_ptr)->data.b = value;
+    QAJ4C_SET_VALUE( value_ptr, bool, value);
 }
 
 void QAJ4C_set_int( QAJ4C_Value* value_ptr, int32_t value ) {
@@ -85,7 +91,7 @@ void QAJ4C_set_int64( QAJ4C_Value* value_ptr, int64_t value ) {
     } else {
         value_ptr->type = QAJ4C_INT32_TYPE_CONSTANT;
     }
-    ((QAJ4C_Primitive*) value_ptr)->data.i = value;
+    QAJ4C_SET_VALUE( value_ptr, int64_t, value);
 }
 
 void QAJ4C_set_uint( QAJ4C_Value* value_ptr, uint32_t value ) {
@@ -106,12 +112,12 @@ void QAJ4C_set_uint64( QAJ4C_Value* value_ptr, uint64_t value ) {
             value_ptr->type = QAJ4C_UINT64_TYPE_CONSTANT;
         }
     }
-    ((QAJ4C_Primitive*) value_ptr)->data.u = value;
+    QAJ4C_SET_VALUE( value_ptr, uint64_t, value);
 }
 
 void QAJ4C_set_double( QAJ4C_Value* value_ptr, double value ) {
     value_ptr->type = QAJ4C_DOUBLE_TYPE_CONSTANT;
-    ((QAJ4C_Primitive*) value_ptr)->data.d = value;
+    QAJ4C_SET_VALUE( value_ptr, double, value);
 }
 
 void QAJ4C_set_null( QAJ4C_Value* value_ptr ) {
@@ -120,26 +126,29 @@ void QAJ4C_set_null( QAJ4C_Value* value_ptr ) {
 
 void QAJ4C_set_string_ref( QAJ4C_Value* value_ptr, const char* str, size_t len ) {
     value_ptr->type = QAJ4C_STRING_REF_TYPE_CONSTANT;
-    ((QAJ4C_String*)value_ptr)->s = str;
-    ((QAJ4C_String*)value_ptr)->count = len;
+    QAJ4C_STRING_GET_PTR(value_ptr) = str;
+    QAJ4C_STRING_GET_COUNT(value_ptr) = len;
 }
 
 void QAJ4C_set_string_copy( QAJ4C_Value* value_ptr, const char* str, size_t len, QAJ4C_Builder* builder ) {
     if (len <= QAJ4C_INLINE_STRING_SIZE) {
+        char* str_data = QAJ4C_ISTRING_GET_PTR(value_ptr);
         value_ptr->type = QAJ4C_STRING_INLINE_TYPE_CONSTANT;
-        ((QAJ4C_Short_string*)value_ptr)->count = (uint8_t)len;
-        QAJ4C_MEMCPY(&((QAJ4C_Short_string*)value_ptr)->s, str, len);
-        ((QAJ4C_Short_string*)value_ptr)->s[len] = '\0';
+        QAJ4C_ISTRING_GET_COUNT(value_ptr) = len;
+        QAJ4C_MEMCPY(str_data, str, len);
+        str_data[len] = '\0';
     } else {
-        char* new_string;
+        char* new_string = QAJ4C_builder_pop_string(builder, len + 1);
         value_ptr->type = QAJ4C_STRING_TYPE_CONSTANT;
-        QAJ4C_ASSERT(builder != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
-        new_string = QAJ4C_builder_pop_string(builder, len + 1);
-        QAJ4C_ASSERT(new_string != NULL, {((QAJ4C_String*)value_ptr)->count = 0; ((QAJ4C_String*)value_ptr)->s = ""; return;});
-        ((QAJ4C_String*)value_ptr)->count = len;
-        QAJ4C_MEMCPY(new_string, str, len);
-        ((QAJ4C_String*)value_ptr)->s = new_string;
-        new_string[len] = '\0';
+        if (new_string == NULL) {
+            QAJ4C_STRING_GET_PTR(value_ptr) = "";
+            QAJ4C_STRING_GET_COUNT(value_ptr) = 0;
+        } else {
+            QAJ4C_MEMCPY(new_string, str, len);
+            new_string[len] = '\0';
+            QAJ4C_STRING_GET_PTR(value_ptr) = new_string;
+            QAJ4C_STRING_GET_COUNT(value_ptr) = len;
+        }
     }
 }
 
@@ -162,14 +171,14 @@ QAJ4C_Value* QAJ4C_array_builder_next( QAJ4C_Array_builder* array_builder ) {
     QAJ4C_ASSERT(array_builder != NULL && array_builder->index < array_builder->capacity, {return NULL;});
     result = array_builder->top + array_builder->index;
     array_builder->index += 1;
+    QAJ4C_set_null(result);
     return result;
 }
 
 void QAJ4C_set_array( QAJ4C_Value* value_ptr, QAJ4C_Array_builder* array_builder ) {
-    QAJ4C_Array* array_ptr = (QAJ4C_Array*)value_ptr;
     value_ptr->type = QAJ4C_ARRAY_TYPE_CONSTANT;
-    array_ptr->top = array_builder->top;
-    array_ptr->count = array_builder->index;
+    QAJ4C_ARRAY_GET_PTR(value_ptr) = array_builder->top;
+    QAJ4C_ARRAY_GET_COUNT(value_ptr) = array_builder->index;
 }
 
 QAJ4C_Object_builder QAJ4C_object_builder_create( size_t member_capacity, QAJ4C_Builder* builder ) {
@@ -191,6 +200,7 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_ref( QAJ4C_Object_builder* ob
     QAJ4C_ASSERT(object_builder != NULL && object_builder->index < object_builder->capacity, {return NULL;});
     member = object_builder->top + object_builder->index;
     QAJ4C_set_string_ref(&member->key, str, len);
+    QAJ4C_set_null(&member->value);
     object_builder->index += 1;
     return &member->value;
 }
@@ -200,18 +210,19 @@ QAJ4C_Value* QAJ4C_object_builder_create_member_by_copy( QAJ4C_Object_builder* o
     QAJ4C_ASSERT(object_builder != NULL && object_builder->index < object_builder->capacity, {return NULL;});
     member = object_builder->top + object_builder->index;
     QAJ4C_set_string_copy(&member->key, str, len, builder);
+    QAJ4C_set_null(&member->value);
     object_builder->index += 1;
     return &member->value;
 }
 
 void QAJ4C_set_object( QAJ4C_Value* value_ptr, QAJ4C_Object_builder* object_builder, bool skip_post_processing ) {
-    QAJ4C_Object* obj_ptr = (QAJ4C_Object*)value_ptr;
-    obj_ptr->top = object_builder->top;
-    obj_ptr->count = object_builder->index;
+    QAJ4C_OBJECT_GET_PTR(value_ptr) = object_builder->top;
+    QAJ4C_OBJECT_GET_COUNT(value_ptr) = object_builder->index;
+
     if (!skip_post_processing) {
         value_ptr->type = QAJ4C_OBJECT_TYPE_CONSTANT;
-        QAJ4C_object_optimize(obj_ptr);
-        QAJ4C_ASSERT(!QAJ4C_object_has_duplicate(obj_ptr), {return;});
+        QAJ4C_object_optimize(value_ptr);
+        QAJ4C_ASSERT(!QAJ4C_object_has_duplicate(value_ptr), {return;});
     } else {
         value_ptr->type = QAJ4C_OBJECT_RAW_TYPE_CONSTANT;
     }
@@ -281,23 +292,26 @@ static QAJ4C_Member* QAJ4C_builder_pop_members( QAJ4C_Builder* builder, size_typ
     return (QAJ4C_Member*)QAJ4C_builder_pop_values(builder, count * 2);
 }
 
-static bool stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder) {
-    const QAJ4C_Array* lhs_array = (const QAJ4C_Array*)lhs;
-    QAJ4C_Array* rhs_array = (QAJ4C_Array*)rhs;
-    size_type value_count = QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? lhs_array->count * 2 : lhs_array->count;
+static void stack_up_copy(QAJ4C_builder_stack* stack, const QAJ4C_Value* lhs, QAJ4C_Value* rhs, QAJ4C_Builder* builder) {
+    size_type real_count = QAJ4C_ARRAY_GET_COUNT(lhs);
+    size_type alloc_count = real_count * (QAJ4C_get_type(lhs) == QAJ4C_TYPE_OBJECT ? 2 : 1);
+    QAJ4C_Value* top_pointer = QAJ4C_builder_pop_values(builder, alloc_count);
+    size_type new_value_count = top_pointer == NULL ? 0 : real_count;
 
     rhs->type = lhs->type;
-    rhs_array->count = lhs_array->count;
-    rhs_array->top = QAJ4C_builder_pop_values(builder, value_count);
 
-    QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1 && rhs_array->top != NULL, {rhs_array->count = 0; return false;});
+    QAJ4C_ARRAY_GET_PTR(rhs) = top_pointer;
+    QAJ4C_ARRAY_GET_COUNT(rhs) = new_value_count;
 
-    stack->it += 1;
-    stack->it->index = 0;
-    stack->it->src_value = lhs_array->top;
-    stack->it->length = value_count;
-    stack->it->dst_value = rhs_array->top;
+    if ( top_pointer != NULL )
+    {
+        QAJ4C_ASSERT(stack->it < stack->info + QAJ4C_ARRAY_COUNT(stack->info) - 1, { return; });
 
-    return true;
+        stack->it += 1;
+        stack->it->index = 0;
+        stack->it->src_value = QAJ4C_ARRAY_GET_PTR(lhs);
+        stack->it->length = alloc_count;
+        stack->it->dst_value = QAJ4C_ARRAY_GET_PTR(rhs);
+    }
 }
 

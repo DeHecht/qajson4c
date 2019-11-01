@@ -81,9 +81,9 @@
 #endif
 
 #if defined(_WIN64) || (defined(__WORDSIZE) && __WORDSIZE == 64)
-#define QAJ4C_ALIGN __attribute__((packed, aligned(8)))
+#define QAJ4C_WORDSIZE 64
 #elif defined(_WIN32) || (defined(__WORDSIZE) && __WORDSIZE == 32)
-#define QAJ4C_ALIGN __attribute__((packed, aligned(4)))
+#define QAJ4C_WORDSIZE 32
 #else
 #error "Invalid word size detected!"
 #endif

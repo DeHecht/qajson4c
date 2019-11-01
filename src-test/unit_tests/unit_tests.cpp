@@ -31,6 +31,9 @@
 #include "qajson4c/qajson4c.h"
 #include "qajson4c/internal/types.h"
 
+// FIXME: Add test copying a structure with subelements to be empty arrays or empty objects!
+// FIXME: Add test for equals with different representations of the same double value or NAN
+
 TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
     const char json[] = R"({"id":1})";
 
@@ -820,7 +823,7 @@ TEST(ErrorHandlingTests, BuilderOverflowArray) {
     };
     QAJ4C_register_fatal_error_function(lambda);
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     auto array_builder = QAJ4C_array_builder_create(5, &builder);
     assert(called == true);
     assert(array_builder.capacity == 0);
@@ -843,7 +846,7 @@ TEST(ErrorHandlingTests, BuilderOverflowObject) {
     };
     QAJ4C_register_fatal_error_function(lambda);
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     auto object_builder = QAJ4C_object_builder_create(5, &builder);
     assert(called == true);
     assert(object_builder.capacity == 0);
@@ -865,7 +868,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString) {
     };
     QAJ4C_register_fatal_error_function(lambda);
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_copy(&value, QAJ4C_S("abcdefghijklmnopqrstuvwxyz"), &builder);
     assert(called == true);
     assert(QAJ4C_is_string(&value));
@@ -887,7 +890,7 @@ TEST(ErrorHandlingTests, BuilderOverflowString2) {
     };
     QAJ4C_register_fatal_error_function(lambda);
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_copy(&value, QAJ4C_S("abcdefghijklmnopqrstuvwxyz"), &builder);
     assert(called == true);
     assert(QAJ4C_is_string(&value));
@@ -973,6 +976,7 @@ TEST(ErrorHandlingTests, InvalidEscapeCharacterInLongString) {
 TEST(ErrorHandlingTests, InvalidLongUnicodeSequenceNoAppendingSurrogate) {
     const char json[] = R"({"id":123, "name": "\uD800")";
     uint8_t buff[256];
+
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
     assert(QAJ4C_is_error(val));
@@ -1234,7 +1238,7 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
  */
 TEST(DomObjectAccessTests, ObjectAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     auto object_builder = QAJ4C_object_builder_create(0, &builder);
 
     static int called = 0;
@@ -1304,7 +1308,7 @@ TEST(DomObjectAccessTests, IncorrectObjectAccess) {
  */
 TEST(DomObjectAccessTests, ArrayAccess) {
     QAJ4C_Builder builder = QAJ4C_builder_create(NULL, 0);
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
 
     auto array_builder = QAJ4C_array_builder_create(0, &builder);
 
@@ -1360,7 +1364,7 @@ TEST(DomObjectAccessTests, IncorrectArrayAccess) {
 }
 
 TEST(DomObjectAccessTests, Uint64Access) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_uint64(&value, UINT64_MAX);
     static int called = 0;
     auto lambda = [](){
@@ -1390,7 +1394,7 @@ TEST(DomObjectAccessTests, Uint64Access) {
 }
 
 TEST(DomObjectAccessTests, Uint32Access) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_uint(&value, UINT32_MAX);
     static int called = 0;
     auto lambda = [](){
@@ -1420,7 +1424,7 @@ TEST(DomObjectAccessTests, Uint32Access) {
 }
 
 TEST(DomObjectAccessTests, Int64Access) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_int64(&value, INT64_MIN);
     static int called = 0;
     auto lambda = [](){
@@ -1451,7 +1455,7 @@ TEST(DomObjectAccessTests, Int64Access) {
 
 
 TEST(DomObjectAccessTests, Int64AccessMax) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_int64(&value, INT64_MAX);
     static int called = 0;
     auto lambda = [](){
@@ -1481,7 +1485,7 @@ TEST(DomObjectAccessTests, Int64AccessMax) {
 }
 
 TEST(DomObjectAccessTests, Int32Access) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_int(&value, INT32_MIN);
     static int called = 0;
     auto lambda = [](){
@@ -1511,7 +1515,7 @@ TEST(DomObjectAccessTests, Int32Access) {
 }
 
 TEST(DomObjectAccessTests, Int32AccessMax) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_int(&value, INT32_MAX);
     static int called = 0;
     auto lambda = [](){
@@ -1541,7 +1545,7 @@ TEST(DomObjectAccessTests, Int32AccessMax) {
 }
 
 TEST(DomObjectAccessTests, DoubleAccess) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_double(&value, 1.2345);
     static int called = 0;
     auto lambda = [](){
@@ -1571,7 +1575,7 @@ TEST(DomObjectAccessTests, DoubleAccess) {
 }
 
 TEST(DomObjectAccessTests, BoolAccess) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_bool(&value, true);
     static int called = 0;
     auto lambda = [](){
@@ -1605,7 +1609,7 @@ TEST(DomObjectAccessTests, BoolAccess) {
  * will not cause any trouble.
  */
 TEST(DomObjectAccessTests, NullAccess) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_null(&value);
 
     assert(!QAJ4C_is_not_set(&value));
@@ -1726,7 +1730,7 @@ TEST(DomObjectAccessTests, IncorrectErrorAccess) {
  * it will still be uint compatible!
  */
 TEST(DomObjectAccessTests, AccessUint64OnInt64Valid) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_int64(&value, 99);
 
     assert(QAJ4C_is_uint(&value));
@@ -1734,7 +1738,7 @@ TEST(DomObjectAccessTests, AccessUint64OnInt64Valid) {
 
 
 TEST(DomObjectAccessTests, StringReference) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     const char* str = "Hello World!";
     QAJ4C_set_string_ref(&value, QAJ4C_S(str));
     assert(str == QAJ4C_get_string(&value));
@@ -1743,7 +1747,7 @@ TEST(DomObjectAccessTests, StringReference) {
 }
 
 TEST(DomObjectAccessTests, ShortString) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     const char* str = "a";
     QAJ4C_set_string_copy(&value, QAJ4C_S(str), NULL);
     assert(QAJ4C_string_equals(&value, QAJ4C_S(str)));
@@ -1751,7 +1755,7 @@ TEST(DomObjectAccessTests, ShortString) {
 }
 
 TEST(DomObjectAccessTests, StringCopy) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     const char* str = "abcdefghijklmnopqrstuvwxy";
     uint8_t buff[strlen(str) * 2];
 
@@ -1961,7 +1965,7 @@ TEST(PrintTests, PrintErrorObject) {
  * Therefore a special rule for printing was added.
  */
 TEST(PrintTests, PrintDoubleCornercase) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     double d = -63.999999999999943;
     char buffer[64] = {'\0'};
 
@@ -1976,7 +1980,7 @@ TEST(PrintTests, PrintDoubleCornercase) {
  * verifies that this number is printed scientificly.
  */
 TEST(PrintTests, PrintDoubleCornercase2) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     double d = -1.0e-10;
     char buffer[64] = {'\0'};
 
@@ -1986,27 +1990,27 @@ TEST(PrintTests, PrintDoubleCornercase2) {
 }
 
 TEST(PrintTests, PrintSecondCharIsE) {
-   QAJ4C_Value value;
-   double d = 2.0e-308;
-   char buffer[64] = {'\0'};
+    QAJ4C_Value value = {};
+    double d = 2.0e-308;
+    char buffer[64] = {'\0'};
 
-   QAJ4C_set_double(&value, d);
-   size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
-   assert( strchr( buffer, 'e') != nullptr );
+    QAJ4C_set_double(&value, d);
+    size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+    assert(strchr(buffer, 'e') != nullptr);
 }
 
 TEST(PrintTests, PrintDoubleZero) {
-   QAJ4C_Value value;
-   double d = 0;
-   char buffer[64] = {'\0'};
+    QAJ4C_Value value = {};
+    double d = 0;
+    char buffer[64] = {'\0'};
 
-   QAJ4C_set_double(&value, d);
-   size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
-   assert( strcmp("0", buffer) == 0 );
+    QAJ4C_set_double(&value, d);
+    size_t out = QAJ4C_sprint(&value, buffer, ARRAY_COUNT(buffer));
+    assert( strcmp("0", buffer) == 0 );
 }
 
 TEST(PrintTests, PrintCorruptValue) {
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     char buffer[64] = {'\0'};
 
     static int count = 0;
@@ -2204,7 +2208,7 @@ TEST(PrintTests, PrintDoubleDomNaN) {
     char output[64];
     double nan_value = 0.0/0.0;
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_double(&value, nan_value);
     QAJ4C_sprint(&value, output, ARRAY_COUNT(output));
     assert(strcmp("null", output) == 0);
@@ -2218,7 +2222,7 @@ TEST(PrintTests, PrintDoubleDomInfinity) {
     char output[64];
     double infinity_value = 1.0/0.0;
 
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_double(&value, infinity_value);
     QAJ4C_sprint(&value, output, ARRAY_COUNT(output));
     assert(strcmp("null", output) == 0);
@@ -2238,7 +2242,7 @@ static bool simple_print_callback_impl( void *ptr, char c ) {
 TEST(PrintTests, PrintWithCallback) {
     const char* msg = "Hello";
     std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     bool result = QAJ4C_print_callback(&value, simple_print_callback_impl, &expected_data );
@@ -2247,7 +2251,7 @@ TEST(PrintTests, PrintWithCallback) {
 
 TEST(PrintTests, PrintWithCallbackNullsafe) {
     const char* msg = "Hello";
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     assert(!QAJ4C_print_callback(&value, NULL, NULL ));
@@ -2269,7 +2273,7 @@ static bool buffer_print_callback_impl( void* ptr, const char* buffer, size_t bu
 TEST(PrintTests, PrintBufferWithCallback) {
     const char* msg = "Hello";
     std::pair<size_t, const char*> expected_data{0, "\"Hello\""};
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     bool result = QAJ4C_print_buffer_callback(&value, buffer_print_callback_impl, &expected_data );
@@ -2278,7 +2282,7 @@ TEST(PrintTests, PrintBufferWithCallback) {
 
 TEST(PrintTests, PrintBufferWithCallbackNullsafe) {
     const char* msg = "Hello";
-    QAJ4C_Value value;
+    QAJ4C_Value value = {};
     QAJ4C_set_string_ref(&value, QAJ4C_S(msg));
 
     assert(!QAJ4C_print_buffer_callback(&value, NULL, NULL ));
@@ -2466,6 +2470,7 @@ TEST(VariousTests, ComparisonAndCopyTest) {
 TEST(VariousTests, CopyNotFullyFilledObject) {
     uint8_t buff1[256];
     uint8_t buff2[ARRAY_COUNT(buff1)];
+
     QAJ4C_Builder builder1 = QAJ4C_builder_create(buff1, ARRAY_COUNT(buff1));
     QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
 
@@ -2474,6 +2479,111 @@ TEST(VariousTests, CopyNotFullyFilledObject) {
     QAJ4C_object_builder_create_member_by_ref(&obj_builder, QAJ4C_S("Hossa"));
 
     QAJ4C_set_object(root, &obj_builder, false);
+    QAJ4C_Value* copy = QAJ4C_builder_get_document(&builder2);
+
+    QAJ4C_copy(root, copy, &builder2);
+    assert(QAJ4C_equals(root, copy));
+}
+
+TEST(VariousTests, CopyEmptyObject) {
+    const char json[] = R"({})";
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
+    uint8_t buffer[buff_size];
+    uint8_t buffer2[buff_size];
+
+    QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
+
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, NULL);
+    QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
+    QAJ4C_copy(value_1, value_2, &builder);
+
+    assert(!QAJ4C_is_error(value_1));
+    assert(!QAJ4C_is_error(value_2));
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
+
+    assert(QAJ4C_equals(value_1, value_2));
+    assert(QAJ4C_OBJECT_GET_PTR(value_2) == NULL); // ensure copy does not create dangling pointer
+}
+
+TEST(VariousTests, CopyEmptyArray) {
+    const char json[] = R"([])";
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
+    uint8_t buffer[buff_size];
+    uint8_t buffer2[buff_size];
+
+    QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
+
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, NULL);
+    QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
+    QAJ4C_copy(value_1, value_2, &builder);
+
+    assert(!QAJ4C_is_error(value_1));
+    assert(!QAJ4C_is_error(value_2));
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
+
+    assert(QAJ4C_equals(value_1, value_2));
+    assert(QAJ4C_ARRAY_GET_PTR(value_2) == NULL); // ensure copy does not create dangling pointer
+}
+
+TEST(VariousTests, CopyObjectWithAttachedEmptyElements) {
+    const char json[] = R"({"first":[], "": {}})";
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
+    uint8_t buffer[buff_size];
+    uint8_t buffer2[buff_size];
+
+    QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
+
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, NULL);
+    QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
+    QAJ4C_copy(value_1, value_2, &builder);
+
+    assert(!QAJ4C_is_error(value_1));
+    assert(!QAJ4C_is_error(value_2));
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
+
+    assert(QAJ4C_equals(value_1, value_2));
+}
+
+TEST(VariousTests, CopyEmptyWithAttachedEmptyElements) {
+    const char json[] = R"([[], {}])";
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json, -1);
+    uint8_t buffer[buff_size];
+    uint8_t buffer2[buff_size];
+
+    QAJ4C_Builder builder = QAJ4C_builder_create(buffer2, buff_size);
+
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json, -1, buffer, buff_size, 0, NULL);
+    QAJ4C_Value* value_2 = QAJ4C_builder_get_document(&builder);
+    QAJ4C_copy(value_1, value_2, &builder);
+
+    assert(!QAJ4C_is_error(value_1));
+    assert(!QAJ4C_is_error(value_2));
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
+
+    assert(QAJ4C_equals(value_1, value_2));
+}
+
+
+TEST(VariousTests, CopyNotFullyFilledArray) {
+    uint8_t buff1[256];
+    uint8_t buff2[ARRAY_COUNT(buff1)];
+
+    QAJ4C_Builder builder1 = QAJ4C_builder_create(buff1, ARRAY_COUNT(buff1));
+    QAJ4C_Builder builder2 = QAJ4C_builder_create(buff2, ARRAY_COUNT(buff2));
+
+    QAJ4C_Value* root = QAJ4C_builder_get_document(&builder1);
+    QAJ4C_Array_builder array_builder = QAJ4C_array_builder_create(3, &builder1);
+    QAJ4C_array_builder_next(&array_builder);
+
+    QAJ4C_set_array(root, &array_builder);
     QAJ4C_Value* copy = QAJ4C_builder_get_document(&builder2);
 
     QAJ4C_copy(root, copy, &builder2);
@@ -2539,12 +2649,6 @@ TEST(VariousTests, CheckSizes) {
     printf("Sizeof QAJ4C_Value is: " FMT_SIZE "\n", sizeof(QAJ4C_Value));
 
     assert(sizeof(QAJ4C_Value) == (QAJ4C_MAX(sizeof(uint32_t), sizeof(uintptr_t)) + sizeof(size_type) * 2));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Object));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Array));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_String));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Short_string));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Primitive));
-    assert(sizeof(QAJ4C_Value) == sizeof(QAJ4C_Error));
 
     assert(sizeof(QAJ4C_Member) == 2 * sizeof(QAJ4C_Value));
 }
@@ -2651,6 +2755,7 @@ TEST(StrictParsingTests, ParseEmptyObject) {
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_object(value));
+    assert(QAJ4C_OBJECT_GET_PTR(value) == NULL); // ensure this method does not return dangling pointer
 
     free((void*)value);
 }
@@ -2664,6 +2769,7 @@ TEST(StrictParsingTests, ParseEmptyArray) {
     const QAJ4C_Value* value = QAJ4C_parse_dynamic(json, ARRAY_COUNT(json), QAJ4C_PARSE_OPTS_STRICT, realloc);
 
     assert(QAJ4C_is_array(value));
+    assert(QAJ4C_ARRAY_GET_PTR(value) == NULL); // ensure this method does not return dangling pointer
 
     free((void*)value);
 }
