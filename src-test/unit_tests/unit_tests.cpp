@@ -31,10 +31,6 @@
 #include "qajson4c/qajson4c.h"
 #include "qajson4c/internal/types.h"
 
-int raise( int __sig ) {
-    throw std::exception{};
-}
-
 // FIXME: Add test for equals with different representations of the same double value or NAN
 // FIXME: Add test for reading a valid QAJ4C_member_get_value element.
 // FIXME: Add test with json having trailing whitespaces (non strict mode)!
@@ -83,7 +79,7 @@ TEST(BufferSizeTests, ParseArrayWithBlockComments) {
 }
 
 TEST(BufferSizeTests, ParseArrayWithLineComment) {
-    const char json[] = "([1//,2\n]";
+    const char json[] = R"([1//,2\n])";
     size_t normal_required_buffer_size = QAJ4C_calculate_max_buffer_size(json, ARRAY_COUNT(json));
     // one object + one member as the other is commented out
     assert(normal_required_buffer_size == (sizeof(QAJ4C_Value) + sizeof(QAJ4C_Value)));
@@ -931,7 +927,7 @@ TEST(ErrorHandlingTests, InvalidConstantJsons) {
  * the start of an element is truncated!
  */
 TEST(ErrorHandlingTests, ParseTruncatedString) {
-    const char json[] = R"({"id":123, "name": )";
+    const char* json = R"({"id":123, "name": )";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1253,22 +1249,6 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
         assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
     }
     free((void*)value);
-}
-
-/**
- * Within the unit_tests.cpp the raise method is defined, so qajson4c will call the test
- * method instead of the system variant. The method will then throw an exception instead
- * of terminating the executable.
- *
- * FIXME: This test is experimental need to verify if this is portable!
- */
-TEST(DomObjectAccessTests, InvalidAccessCallingRaiseMethod) {
-    try {
-        QAJ4C_get_int(NULL);
-        assert(false);
-    } catch (const std::exception&) {
-
-    }
 }
 
 /**
