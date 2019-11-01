@@ -31,8 +31,13 @@
 #include "qajson4c/qajson4c.h"
 #include "qajson4c/internal/types.h"
 
-// FIXME: Add test copying a structure with subelements to be empty arrays or empty objects!
+int raise( int __sig ) {
+    throw std::exception{};
+}
+
 // FIXME: Add test for equals with different representations of the same double value or NAN
+// FIXME: Add test for reading a valid QAJ4C_member_get_value element.
+// FIXME: Add test with json having trailing whitespaces (non strict mode)!
 
 TEST(BufferSizeTests, ParseObjectWithOneNumericMember) {
     const char json[] = R"({"id":1})";
@@ -1074,6 +1079,15 @@ TEST(ErrorHandlingTests, ParseObjectMissingColon) {
     assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COLON);
 }
 
+TEST(ErrorHandlingTests, ParseObjectMissingColonNestedObject) {
+    const char json[] = R"({"id" {}})";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
+}
+
 TEST(ErrorHandlingTests, ParseObjectMissingValue) {
     const char json[] = R"({"id":123, "name":})";
     uint8_t buff[256];
@@ -1085,6 +1099,15 @@ TEST(ErrorHandlingTests, ParseObjectMissingValue) {
 
 TEST(ErrorHandlingTests, ParseArrayMissingComma) {
     const char json[] = R"([1, 2 3])";
+    uint8_t buff[256];
+    const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
+
+    assert(QAJ4C_is_error(val));
+    assert(QAJ4C_error_get_errno(val) == QAJ4C_ERROR_MISSING_COMMA);
+}
+
+TEST(ErrorHandlingTests, ParseArrayMissingCommaNestedObject) {
+    const char json[] = R"([1 []])";
     uint8_t buff[256];
     const QAJ4C_Value* val = QAJ4C_parse(json, -1, buff, ARRAY_COUNT(buff), 0, NULL);
 
@@ -1230,6 +1253,22 @@ TEST(ErrorHandlingTests, ParseMultipleLongStrings) {
         assert(strcmp("/path/to/my/binary", QAJ4C_get_string(path_val)) == 0);
     }
     free((void*)value);
+}
+
+/**
+ * Within the unit_tests.cpp the raise method is defined, so qajson4c will call the test
+ * method instead of the system variant. The method will then throw an exception instead
+ * of terminating the executable.
+ *
+ * FIXME: This test is experimental need to verify if this is portable!
+ */
+TEST(DomObjectAccessTests, InvalidAccessCallingRaiseMethod) {
+    try {
+        QAJ4C_get_int(NULL);
+        assert(false);
+    } catch (const std::exception&) {
+
+    }
 }
 
 /**
@@ -2310,6 +2349,34 @@ TEST(VariousTests, ComparisonTest) {
     assert(QAJ4C_value_sizeof(value_2) == buff_size);
 
     assert(QAJ4C_equals(value_1, value_2));
+}
+
+/**
+ * At the time of writing the binary dom representation of an empty object is nearly
+ * the same as for an empty array. Thus comparing those two items will only differ on the
+ * QAJ4C_type.
+ */
+TEST(VariousTests, ComparisonTestEmptyObjectVsEmptyArray) {
+    const char json_obj[] = R"({})";
+    const char json_array[] = R"([])";
+
+    size_t buff_size = QAJ4C_calculate_max_buffer_size(json_obj, -1);
+
+    uint8_t buffer[buff_size];
+    uint8_t buffer2[buff_size];
+    size_t actual_size1;
+    size_t actual_size2;
+
+    const QAJ4C_Value* value_1 = QAJ4C_parse(json_obj, -1, buffer, buff_size, 0, &actual_size1);
+    const QAJ4C_Value* value_2 = QAJ4C_parse(json_array, -1, buffer2, buff_size, 0, &actual_size2);
+
+    assert(actual_size1 == buff_size);
+    assert(actual_size2 == buff_size);
+
+    assert(QAJ4C_value_sizeof(value_1) == buff_size);
+    assert(QAJ4C_value_sizeof(value_2) == buff_size);
+
+    assert(!QAJ4C_equals(value_1, value_2));
 }
 
 TEST(VariousTests, ComparisonTestDifferentBooleanInArray) {
